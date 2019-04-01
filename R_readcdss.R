@@ -101,6 +101,8 @@ LATS_COL_v<-1:(ncol(lonsV)*nrow(lonsV))
 LATS_COL_v[k_v]<-latsV[i_v,j_v]
 
 
+
+
 Bottom_Top_ZNU<- var.get.nc(NC_prueba, "ZNU", unpack = TRUE)
 Bottom_Top_STAG_ZNW<- var.get.nc(NC_prueba, "ZNW", unpack = TRUE)
 
