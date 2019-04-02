@@ -42,7 +42,7 @@ CSV_generator_Spain(list_espana)
 
 # Parques eólicos ---------------------------------------------------------
 Hoy<- as.character(lubridate::today())
-list_hoy<- readRDS(file = paste0(here::here('Data'),"/Espana_",Hoy,".RDS"))
+list_hoy<- readRDS(file = paste0(here::here('Data/Espana/'),"Espana_",Hoy,".RDS"))
 
 
 
@@ -65,7 +65,7 @@ ElCerro_list<- Cortar_datos(list_hoy = list_hoy,
                            Latitud_Parque=Latitud_Parque)
 
 if(!file.exists(paste0(here::here('Data/Parques/ElCerro/'),"/ElCerro_",Hoy,".RDS"))){
-  saveRDS(Lubian_list, file = paste0(here::here('Data/Parques/ElCerro/'),"ElCerro_",Hoy,".RDS"))
+  saveRDS(ElCerro_list, file = paste0(here::here('Data/Parques/ElCerro/'),"ElCerro_",Hoy,".RDS"))
 }else{print(paste0("Hoy ya se han guardado este archivo: ", "ElCerro_",Hoy,".RDS"))}
 #La Sia
 Longitud_Parque=-3.57
@@ -75,7 +75,7 @@ LaSia_list<- Cortar_datos(list_hoy = list_hoy,
                            Latitud_Parque=Latitud_Parque)
 
 if(!file.exists(paste0(here::here('Data/Parques/LaSia/'),"/LaSia_",Hoy,".RDS"))){
-  saveRDS(Lubian_list, file = paste0(here::here('Data/Parques/LaSia/'),"LaSia_",Hoy,".RDS"))
+  saveRDS(LaSia_list, file = paste0(here::here('Data/Parques/LaSia/'),"LaSia_",Hoy,".RDS"))
 }else{print(paste0("Hoy ya se han guardado este archivo: ", "LaSia_",Hoy,".RDS"))}
 
 
@@ -88,8 +88,33 @@ LaBelesar_list<- Cortar_datos(list_hoy = list_hoy,
 
 
 if(!file.exists(paste0(here::here('Data/Parques/Belesar/'),"/Belesar_",Hoy,".RDS"))){
-  saveRDS(Lubian_list, file = paste0(here::here('Data/Parques/Belesar/'),"Belesar_",Hoy,".RDS"))
+  saveRDS(LaBelesar_list, file = paste0(here::here('Data/Parques/Belesar/'),"Belesar_",Hoy,".RDS"))
 }else{print(paste0("Hoy ya se han guardado este archivo: ", "Belesar_",Hoy,".RDS"))}
+
+
+
+
+
+## Convertir a listas por localizaciones y con toda la serie temporal
+Lubian_lolat<- lon_lat_df_ls(Lubian_list)
+ElCerro_lolat<- lon_lat_df_ls(ElCerro_list)
+LaSia_lolat<- lon_lat_df_ls(LaSia_list)
+LaBelesar_lolat<- lon_lat_df_ls(LaBelesar_list)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Mapeos de puntos y demas ------------------------------------------------

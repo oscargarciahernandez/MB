@@ -2,6 +2,10 @@
 #install.packages("stringr")
 #install.packages("lubridate")
 #install.packages("here")
+#install.packages("dplyr")
+
+
+
 #install.packages("rJava")
 #install.packages()
 
@@ -9,8 +13,8 @@
 library(RNetCDF)
 library(stringr)
 library(lubridate)
-library(OpenStreetMap)
-
+#library(OpenStreetMap)
+library(dpl)
 
 get_netcdf_list<- function(netcdf_files){
   
@@ -172,6 +176,7 @@ get_netcdf_list<- function(netcdf_files){
 
 Cortar_datos<- function(list_hoy, Longitud_Parque, Latitud_Parque){
   lista_parque<- list()
+  
   for (j in 1:length(list_hoy)) {
     Datos<- list_hoy[[j]]$Variable
     
@@ -188,7 +193,7 @@ Cortar_datos<- function(list_hoy, Longitud_Parque, Latitud_Parque){
     
   }
   
-  
+  names(lista_parque)<- names(list_hoy)
   return(lista_parque)
   
   
@@ -257,6 +262,31 @@ CSV_generator_Spain<- function(list_espana){
   
   
 }
+
+lon_lat_df_ls<- function(parque_list){
+  fecha<- names(parque_list)
+  fecha[!str_detect(fecha, " ")]<- paste0(fecha[!str_detect(fecha, " ")], " 00:00:00")
+  
+  n_lon<- parque_list[[1]]$lon
+  n_lat<- parque_list[[1]]$lat
+  
+  nombres<- paste0(n_lon,"__",n_lat)
+  
+  
+  list_localizaciones<- list()
+  for (localizaciones in 1:length(parque_list[[1]][,1]) ) {
+    l<- lapply(parque_list, function(x) x[localizaciones,])
+    df <- data.frame(matrix(unlist(l), nrow=length(l), byrow=T))
+    df<- as.data.frame(cbind(ymd_hms(fecha), df))
+    colnames(df)<-c("fechas", colnames(parque_list[[1]]))
+    list_localizaciones[[localizaciones]]<- df
+  }
+  
+  names(list_localizaciones)<- nombres
+  
+  
+}
+
 
 if(!dir.exists(here::here('Data'))){dir.create(here::here('Data'))}
 if(!dir.exists(here::here('Data/Europa/'))){dir.create(here::here('Data/Europa/'))}
