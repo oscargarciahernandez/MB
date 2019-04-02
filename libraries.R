@@ -2,12 +2,14 @@
 #install.packages("stringr")
 #install.packages("lubridate")
 #install.packages("here")
+#install.packages("rJava")
+#install.packages()
 
 
 library(RNetCDF)
 library(stringr)
 library(lubridate)
-
+library(OpenStreetMap)
 
 
 get_netcdf_list<- function(netcdf_files){
@@ -168,9 +170,103 @@ get_netcdf_list<- function(netcdf_files){
   return(netcdf_list)
 }
 
+Cortar_datos<- function(list_hoy, Longitud_Parque, Latitud_Parque){
+  lista_parque<- list()
+  for (j in 1:length(list_hoy)) {
+    Datos<- list_hoy[[j]]$Variable
+    
+    lon <- list_hoy[[j]]$Variable$lon
+    lat <- list_hoy[[j]]$Variable$lat
+    
+    lon_select<- lon[order(abs(lon-Longitud_Parque))[1:400]]
+    lat_select<- lat[order(abs(lat-Latitud_Parque))[1:1000]]
+    
+    Datos1<- Datos[which(lon%in%lon_select), ]
+    Datos2<- Datos1[Datos1$lat%in%lat_select, ]
+    
+    lista_parque[[j]]<- Datos2
+    
+  }
+  
+  
+  return(lista_parque)
+  
+  
+}
 
+CSV_generator_Europe<- function(list_europe){
+  vec_days_str<- names(list_europe)
+  vec_days<- which(str_detect(vec_days_str, "14:00:00"))
+  path_europe<- here::here('Data/Europa/')
+  
+  for (days in vec_days){
+    CSV_Europe<- list_europe[[days]]$Variable[ ,c('lon', 'lat', 
+                                                  'T02_MAX',
+                                                  'T02_MIN',
+                                                  'HGT',
+                                                  'PSFC')]
+    CSV_Europe$Presion<- (CSV_Europe$PSFC/100)*(1-(0.0065*CSV_Europe$HGT)/((CSV_Europe$T02_MAX-273.15)+0.0065*CSV_Europe$HGT+273.15))^(-5.257)
+    CSV_Europe$T02_MAX<- NULL
+    CSV_Europe$HGT<- NULL
+    CSV_Europe$PSFC<- NULL
+    CSV_Europe$T02_MIN<- CSV_Europe$T02_MIN-273.15 
+    
+    colnames(CSV_Europe)<- c("lon","lat","Temp","Presion")
+    
+    nombre<- vec_days_str[days] %>% str_split(., " ") %>% unlist(.)
+    nombre_ent<- paste0("Europe_",nombre[1])
+    
+    
+    write.table(CSV_Europe, paste0(path_europe,nombre_ent,'.CSV'), 
+                sep = ";",
+                dec = ".", 
+                row.names = F,
+                quote = F)
+    
+    
+  }
+  
+}
 
+CSV_generator_Spain<- function(list_espana){
+  
+  vec_days_str<- names(list_espana)
+  vec_days<- which(str_detect(vec_days_str, "14:00:00"))
+  path_espana<- here::here('Data/Espana/')
+  
+  for (days in vec_days){
+    CSV_Espana<- list_espana[[days]]$Variable[ ,c('lon', 'lat','T02_MAX')]
+    CSV_Espana$T02_MAX<- CSV_Espana$T02_MAX-273.15 
+    
+    colnames(CSV_Espana)<- c("lon","lat","Temp")
+    nombre<- paste0("España_2019-04-03") 
+    
+    nombre<- vec_days_str[days] %>% str_split(., " ") %>% unlist(.)
+    nombre_ent<- paste0("Espana_",nombre[1])
+    
+    
+    write.table(CSV_Espana, paste0(path_espana, nombre_ent,'.CSV'), 
+                sep = ";",
+                dec = ".", 
+                row.names = F,
+                quote = F)
+    
+    
+  }
+  
+  
+  
+}
 
+if(!dir.exists(here::here('Data'))){dir.create(here::here('Data'))}
+if(!dir.exists(here::here('Data/Europa/'))){dir.create(here::here('Data/Europa/'))}
+if(!dir.exists(here::here('Data/Espana/'))){dir.create(here::here('Data/Espana/'))}
+
+if(!dir.exists(here::here('Data/Parques'))){dir.create(here::here('Data/Parques'))}
+if(!dir.exists(here::here('Data/Parques/Lubian'))){dir.create(here::here('Data/Parques/Lubian'))}
+if(!dir.exists(here::here('Data/Parques/ElCerro'))){dir.create(here::here('Data/Parques/ElCerro'))}
+if(!dir.exists(here::here('Data/Parques/LaSia'))){dir.create(here::here('Data/Parques/LaSia'))}
+if(!dir.exists(here::here('Data/Parques/Belesar'))){dir.create(here::here('Data/Parques/Belesar'))}
 
 # Maps --------------------------------------------------------------------
 
