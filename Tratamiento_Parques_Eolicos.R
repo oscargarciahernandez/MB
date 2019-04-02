@@ -12,8 +12,8 @@ list_hoy<- readRDS(file = paste0(here::here('Data/Espana/'),"Espana_",Hoy,".RDS"
 Longitud_Parque=-6.84653
 Latitud_Parque=42.04514
 Lubian_list<- Cortar_datos(list_hoy = list_hoy,
-             Longitud_Parque = Longitud_Parque,
-             Latitud_Parque=Latitud_Parque)
+                           Longitud_Parque = Longitud_Parque,
+                           Latitud_Parque=Latitud_Parque)
 
 if(!file.exists(paste0(here::here('Data/Parques/Lubian/'),"Lubian_",Hoy,".RDS"))){
   saveRDS(Lubian_list, file = paste0(here::here('Data/Parques/Lubian/'),"/Lubian_",Hoy,".RDS"))
@@ -23,8 +23,8 @@ if(!file.exists(paste0(here::here('Data/Parques/Lubian/'),"Lubian_",Hoy,".RDS"))
 Longitud_Parque=-3.64
 Latitud_Parque=42.87
 ElCerro_list<- Cortar_datos(list_hoy = list_hoy,
-                           Longitud_Parque = Longitud_Parque,
-                           Latitud_Parque=Latitud_Parque)
+                            Longitud_Parque = Longitud_Parque,
+                            Latitud_Parque=Latitud_Parque)
 
 if(!file.exists(paste0(here::here('Data/Parques/ElCerro/'),"/ElCerro_",Hoy,".RDS"))){
   saveRDS(ElCerro_list, file = paste0(here::here('Data/Parques/ElCerro/'),"ElCerro_",Hoy,".RDS"))
@@ -33,8 +33,8 @@ if(!file.exists(paste0(here::here('Data/Parques/ElCerro/'),"/ElCerro_",Hoy,".RDS
 Longitud_Parque=-3.57
 Latitud_Parque=43.14
 LaSia_list<- Cortar_datos(list_hoy = list_hoy,
-                           Longitud_Parque = Longitud_Parque,
-                           Latitud_Parque=Latitud_Parque)
+                          Longitud_Parque = Longitud_Parque,
+                          Latitud_Parque=Latitud_Parque)
 
 if(!file.exists(paste0(here::here('Data/Parques/LaSia/'),"/LaSia_",Hoy,".RDS"))){
   saveRDS(LaSia_list, file = paste0(here::here('Data/Parques/LaSia/'),"LaSia_",Hoy,".RDS"))
@@ -45,8 +45,8 @@ if(!file.exists(paste0(here::here('Data/Parques/LaSia/'),"/LaSia_",Hoy,".RDS")))
 Longitud_Parque=-7.6854
 Latitud_Parque=42.72343056 
 LaBelesar_list<- Cortar_datos(list_hoy = list_hoy,
-                           Longitud_Parque = Longitud_Parque,
-                           Latitud_Parque=Latitud_Parque)
+                              Longitud_Parque = Longitud_Parque,
+                              Latitud_Parque=Latitud_Parque)
 
 
 if(!file.exists(paste0(here::here('Data/Parques/Belesar/'),"/Belesar_",Hoy,".RDS"))){
@@ -72,37 +72,3 @@ LaBelesar_lolat<- lapply(LaBelesar_lolat, uv_transformation)
 
 
 
-
-
-
-
-
-
-#Lo de los mapas esta a la espera de poder instalar JAVA
-# Mapeos de puntos y demas ------------------------------------------------
-
-
-#Seteamos el tamaño del mapa, para ello habrá que elegir 
-n=max(Datos2$lat)    
-s=min(Datos2$lat)    
-e=max(Datos2$lon)    
-w=min(Datos2$lon)    
-
-
-#Fijamos incremento para hacer más grande el mapa
-
-incr<- 0.0215
-
-
-if(n > 0){n<- n + incr}else{n<- n + incr}
-if(s > 0){s<- s - incr}else{s<- s- incr}
-if(e > 0){e<- e + incr}else{e<- e + incr}
-if(w > 0){w<- w - incr}else{w<- w- incr}
-
-
-
-ul <- round(c(n,w),digits = 3)  #Upper Left
-lr <- round(c(s,e), digits = 3)  #Lower Right
-
-
-download_maps(ul, lr, maptyp = "bing", res=15)
