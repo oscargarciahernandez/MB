@@ -1,17 +1,30 @@
 #install.packages("RNetCDF")
 #install.packages("stringr")
+#install.packages("lubridate")
+
+library(lubridate)
 library(RNetCDF)
 library(stringr)
 
-dir_path_spain<- "/usr1/uems/runs/spain1"
-folders_spain<- list.dirs(path = dir_path_spain)
-netcdf_folder<- folders_spain[str_detect(folders_spain, "wrfprd")]
-netcdf_files<- list.files(netcdf_folder, full.names = T)
 
-netcdf_list<- list[]
+dir_path_spain<- "/usr1/uems/runs/spain1"
+dir_path_europe<- "/usr1/uems/runs/europe1/"
+folders_spain<- list.dirs(path = dir_path_spain)
+folders_europe<- list.dirs(path=dir_path_europe)
+
+netcdf_folder_spain<- folders_spain[str_detect(folders_spain, "wrfprd")]
+netcdf_files-spain<- list.files(netcdf_folder_spain, full.names = T)
+
+netcdf_folder_europe<- folders_europe[str_detect(folders_europe, "wrfprd")]
+netcdf_files_europe<- list.files(netcdf_folder_europe, full.names = T)
+
+
+netcdf_files<- netcdf_files_europe
+
+netcdf_list<- list()
 vec_time<- vector()
-for (i in 1:length(netcdf_files)) {
-  NC_prueba<- open.nc(netcdf_files[i])
+for (n_files in 1:length(netcdf_files)) {
+  NC_prueba<- open.nc(netcdf_files[n_files])
   
   
   lons<-var.get.nc(NC_prueba,"XLONG",unpack=TRUE)
@@ -21,6 +34,8 @@ for (i in 1:length(netcdf_files)) {
   i<-1:nrow(lons)
   j<-1:ncol(lons)
   k<-1:(ncol(lons)*nrow(lons))
+  LONS_COL<- 1:(ncol(lons)*nrow(lons))
+  LATS_COL<- 1:(ncol(lons)*nrow(lons))
   LONS_COL[k]<-lons[i,j]
   LATS_COL[k]<-lats[i,j]
   
@@ -87,6 +102,8 @@ for (i in 1:length(netcdf_files)) {
   i_u<-1:nrow(lonsU)
   j_u<-1:ncol(lonsU)
   k_u<-1:(ncol(lonsU)*nrow(lonsU))
+  LONS_COL_u<- 1:(ncol(lonsU)*nrow(lonsU))
+  LATS_COL_u<- 1:(ncol(lonsU)*nrow(lonsU))
   LONS_COL_u[k_u]<-lonsU[i_u,j_u]
   LATS_COL_u[k_u]<-latsU[i_u,j_u]
   
@@ -95,6 +112,8 @@ for (i in 1:length(netcdf_files)) {
   i_v<-1:nrow(lonsV)
   j_v<-1:ncol(lonsV)
   k_v<-1:(ncol(lonsV)*nrow(lonsV))
+  LONS_COL_v<- 1:(ncol(lonsV)*nrow(lonsV))
+  LATS_COL_v<- 1:(ncol(lonsV)*nrow(lonsV))
   LONS_COL_v[k_v]<-lonsV[i_v,j_v]
   LATS_COL_v[k_v]<-latsV[i_v,j_v]
   
@@ -114,19 +133,25 @@ for (i in 1:length(netcdf_files)) {
                             V_comp[i_v,j_v,40][k_v])
   
   
-  time<-  var.get.nc(NC_prueba, "time", unpack = TRUE)
+  time<-  var.get.nc(NC_prueba, "XTIME", unpack = TRUE)
+  time1<- as.data.frame(utcal.nc("minutes since 2019-04-01 00:00:00", time))
+  time2<- paste(time1$year,"-",time1$month,"-",
+                 time1$day," ",time1$hour,"-",
+                 time1$minute,"-",time1$second, sep = '')
+  time3<- ymd_hms(time2)
   
   list_ch<- list(Tabla,
                  Tabla_V_level,
                  Tabla_U_level,
                  Bottom_Top_ZNU,
                  Bottom_Top_STAG_ZNW)
+  names(list_ch)<- c("Variable", "V","U", "ZNU", "ZNW")
   
-  netcdf_list[[i]]<- list_ch 
-  vec_time[i]<- time
+  netcdf_list[[n_files]]<- list_ch 
+  vec_time[n_files]<- as.character(time3)
   
 }
 
 
 names(netcdf_list)<- vec_time
->>>>>>> fab6fe50555032dd6917c7b251022ca1e194ecd4
+
