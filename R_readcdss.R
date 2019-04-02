@@ -83,3 +83,63 @@ for (days in vec_days){
   
   
   }
+
+
+
+
+# Parques eólicos ---------------------------------------------------------
+
+#Lubian
+Longitud_Parque=-6.84653
+Latitud_Parque=42.04514
+
+
+#El Cerro 
+Longitud_Parque=-3.64
+Latitud_Parque=42.87
+
+#La Sia
+Longitud_Parque=-3.57
+Latitud_Parque=43.14
+
+
+#La Belesar 
+Longitud_Parque=-7.6854
+Latitud_Parque=42.72343056 
+
+
+
+lon <- list_espana[[1]]$Variable$lon
+lat <- list_espana[[1]]$Variable$lat
+
+lon_select<- lon[order(abs(lon-Longitud_Parque))[1:400]]
+lat_select<- lat[order(abs(lat-Latitud_Parque))[1:1000]]
+
+lon_lat1<- list_espana[[1]]$Variable[which(lon%in%lon_select), c("lon","lat")]
+lon_lat1<- lon_lat1[, c("lon","lat")]
+
+lon_lat2<- lon_lat1[lon_lat1$lat%in%lat_select,]
+
+
+
+#Seteamos el tamaño del mapa, para ello habrá que elegir 
+n=max(lon_lat1$lat)    
+s=min(lon)    
+e=max(c(Coord_era$lon),Coord_anemo$lon)    
+w=min(c(Coord_era$lon),Coord_anemo$lon)    
+
+
+#Fijamos incremento para hacer más grande el mapa
+
+incr<- 0.0215
+
+
+if(n > 0){n<- n + incr}else{n<- n + incr}
+if(s > 0){s<- s - incr}else{s<- s- incr}
+if(e > 0){e<- e + incr}else{e<- e + incr}
+if(w > 0){w<- w - incr}else{w<- w- incr}
+
+
+
+ul <- round(c(n,w),digits = 3)  #Upper Left
+lr <- round(c(s,e), digits = 3)  #Lower Right

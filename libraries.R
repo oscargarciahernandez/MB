@@ -167,3 +167,92 @@ get_netcdf_list<- function(netcdf_files){
   
   return(netcdf_list)
 }
+
+
+
+
+
+# Maps --------------------------------------------------------------------
+
+#Descargar mapas seteando coordenadas
+download_maps<- function(ul,lr, 
+                         maptyp=NULL,
+                         res=40){
+  if(is.character(maptyp)){
+    maptypes<- maptyp
+  }else{
+    maptypes<- c("waze", "bing",
+                 "esri","esri-topo", "nps", 
+                 "apple-iphoto", "skobbler",
+                 "hillshade")
+  }
+  if(length(maptypes)>1){
+    res1<- res
+    for (i in 1:length(maptypes)) {
+      res<- res1
+      
+      
+      tryCatch({
+        while(TRUE){
+          tryCatch({
+            map1<- openmap(ul,lr, minNumTiles=res,
+                           type=maptypes[i],
+                           zoom=NULL)
+            
+          },error=function(e){cat("Error Java")})
+          
+          if(!exists("map1")){
+            res<- res-1
+            print("Bajando minNumtiles")
+            if(res<1){break}
+          }else{
+            print(paste0(maptypes[i],": Descargado con minNumtiles=", res))
+            break}
+        }
+        map.latlon <- openproj(map1, projection = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+        rm(map1)
+        
+        dirpath<- here::here(paste0("NUEVO/Mapas/",ul[1],"_",lr[2],"/"))
+        
+        if(!dir.exists(dirpath)){dir.create(dirpath)}
+        
+        save(map.latlon, file=paste0(dirpath,"/",maptypes[i],res,".Rdata"))
+        print(paste0("Guardado ",paste0(dirpath,"/",maptypes[i],res,".Rdata")))
+        rm(map1) 
+        
+        
+      }, error=function(e){print(paste0(maptypes[i],": No descargado"))})
+    }
+    
+  }else{
+    while(TRUE){
+      tryCatch({
+        map1<- openmap(ul,lr, minNumTiles=res,
+                       type=maptypes,
+                       zoom=NULL)
+        
+      },error=function(e){cat("Error Java")})
+      
+      if(!exists("map1")){
+        res<- res-1
+        print("Bajando minNumtiles")
+        if(res<1){break}
+      }else{
+        print(paste0(maptypes,": Descargado con minNumtiles=", res))
+        break}
+    }
+    
+    map.latlon <- openproj(map1, projection = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+    rm(map1)
+    
+    dirpath<- here::here(paste0("NUEVO/Mapas/",ul[1],"_",lr[2],"/"))
+    
+    if(!dir.exists(dirpath)){dir.create(dirpath)}
+    save(map.latlon, file=paste0(dirpath,"/",maptypes,res,".Rdata"))
+    print(paste0("Guardado ",paste0(dirpath,"/",maptypes,res,".Rdata")))
+    
+  }
+  
+}
+
+
