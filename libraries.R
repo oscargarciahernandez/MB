@@ -283,11 +283,45 @@ lon_lat_df_ls<- function(parque_list){
   }
   
   names(list_localizaciones)<- nombres
+  return(list_localizaciones)
   
   
 }
 
 
+uv_transformation<- function(tabla_comp){
+  
+  nombres<- colnames(tabla_comp)
+  
+  u10<- tabla_comp$U10_MEAN
+  v10<- tabla_comp$V10_MEAN
+  
+  u10_max<- tabla_comp$U10_MAX
+  v10_max<- tabla_comp$V10_MAX
+  
+  wind_abs <- sqrt(u10^2 + v10^2)
+  wind_dir_rad <-  atan2(u10/wind_abs, v10/wind_abs) 
+  wind_dir_deg1 <-  wind_dir_rad * 180/pi 
+  wind_dir_deg2 <-  wind_dir_deg1+ 180 
+  
+  
+  wind_abs_max <- sqrt(u10_max^2 + v10_max^2)
+  wind_dir_rad_max <-  atan2(u10_max/wind_abs_max, v10_max/wind_abs_max) 
+  wind_dir_deg1_max <-  wind_dir_rad_max * 180/pi 
+  wind_dir_deg2_max <-  wind_dir_deg1_max+ 180 
+  
+  tabla_comp<- as.data.frame(cbind(tabla_comp,wind_abs,wind_dir_deg2,
+                                   wind_abs_max,wind_dir_deg2_max))
+  colnames(tabla_comp)<- c(nombres,"WS","WD","WS_MAX","WD_MAX")
+  tabla_comp$U10_MAX<- NULL
+  tabla_comp$V10_MAX<- NULL
+  tabla_comp$U10_MEAN<- NULL
+  tabla_comp$V10_MEAN<- NULL
+  return(tabla_comp)
+  
+}
+
+  
 if(!dir.exists(here::here('Data'))){dir.create(here::here('Data'))}
 if(!dir.exists(here::here('Data/Europa/'))){dir.create(here::here('Data/Europa/'))}
 if(!dir.exists(here::here('Data/Espana/'))){dir.create(here::here('Data/Espana/'))}

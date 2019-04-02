@@ -102,6 +102,11 @@ LaSia_lolat<- lon_lat_df_ls(LaSia_list)
 LaBelesar_lolat<- lon_lat_df_ls(LaBelesar_list)
 
 
+##Convetir componentes U y V a formato WS y WD
+Lubian_lolat<- lapply(Lubian_lolat, uv_transformation)
+ElCerro_lolat<- lapply(ElCerro_lolat, uv_transformation)
+LaSia_lolat<- lapply(LaSia_lolat, uv_transformation)
+LaBelesar_lolat<- lapply(LaBelesar_lolat, uv_transformation)
 
 
 
@@ -111,12 +116,7 @@ LaBelesar_lolat<- lon_lat_df_ls(LaBelesar_list)
 
 
 
-
-
-
-
-
-
+#Lo de los mapas esta a la espera de poder instalar JAVA
 # Mapeos de puntos y demas ------------------------------------------------
 
 
