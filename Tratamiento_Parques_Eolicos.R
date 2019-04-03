@@ -57,6 +57,28 @@ if(!file.exists(paste0(here::here('Data/Parques/Belesar/'),"/Belesar_",Hoy,".RDS
 
 
 
+
+
+
+
+# Cargar datos de los parques ---------------------------------------------
+
+Lubian_files<- list.files(here::here('Data/Parques/Lubian/'), full.names = T)
+Belesar_files<- list.files(here::here('Data/Parques/Belesar/'), full.names = T)
+Lasia_files<- list.files(here::here('Data/Parques/LaSia/'), full.names = T)
+Elcerro_files<- list.files(here::here('Data/Parques/ElCerro/'), full.names = T)
+
+Lubian_list<- readRDS(Lubian_files)
+ElCerro_list<- readRDS(Elcerro_files)
+LaSia_list<- readRDS(Lasia_files)
+LaBelesar_list<- readRDS(Belesar_files)
+
+
+
+
+
+
+
 ## Convertir a listas por localizaciones y con toda la serie temporal
 Lubian_lolat<- lon_lat_df_ls(Lubian_list)
 ElCerro_lolat<- lon_lat_df_ls(ElCerro_list)
@@ -69,6 +91,8 @@ Lubian_lolat<- lapply(Lubian_lolat, uv_transformation)
 ElCerro_lolat<- lapply(ElCerro_lolat, uv_transformation)
 LaSia_lolat<- lapply(LaSia_lolat, uv_transformation)
 LaBelesar_lolat<- lapply(LaBelesar_lolat, uv_transformation)
+
+
 
 
 

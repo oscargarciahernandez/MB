@@ -14,7 +14,17 @@ library(RNetCDF)
 library(stringr)
 library(lubridate)
 #library(OpenStreetMap)
-library(dpl)
+#library(dplyr)
+
+
+first_date<- function(netcdf_files){
+  first_date<- str_split(netcdf_files[1],"/")[[1]]
+  first_date_1<- str_replace(str_remove(first_date[length(first_date)], "wrfout_d01_"),"_"," ")
+  first_date_2<- ymd_hms(first_date_1)
+  return(first_date_2)
+  
+  
+}
 
 get_netcdf_list<- function(netcdf_files){
   
@@ -199,10 +209,11 @@ Cortar_datos<- function(list_hoy, Longitud_Parque, Latitud_Parque){
   
 }
 
-CSV_generator_Europe<- function(list_europe){
+CSV_generator_Europe<- function(list_europe, path_europe){
+ 
+  
   vec_days_str<- names(list_europe)
   vec_days<- which(str_detect(vec_days_str, "14:00:00"))
-  path_europe<- here::here('Data/Europa/')
   
   for (days in vec_days){
     CSV_Europe<- list_europe[[days]]$Variable[ ,c('lon', 'lat', 
@@ -221,7 +232,7 @@ CSV_generator_Europe<- function(list_europe){
     nombre<- vec_days_str[days] %>% str_split(., " ") %>% unlist(.)
     nombre_ent<- paste0("Europe_",nombre[1])
     
-    
+    if(!dir.exists(path_europe)){dir.create(path_europe)}
     write.table(CSV_Europe, paste0(path_europe,nombre_ent,'.CSV'), 
                 sep = ";",
                 dec = ".", 
@@ -233,23 +244,22 @@ CSV_generator_Europe<- function(list_europe){
   
 }
 
-CSV_generator_Spain<- function(list_espana){
+CSV_generator_Spain<- function(list_espana,path_espana){
+  
   
   vec_days_str<- names(list_espana)
   vec_days<- which(str_detect(vec_days_str, "14:00:00"))
-  path_espana<- here::here('Data/Espana/')
   
   for (days in vec_days){
     CSV_Espana<- list_espana[[days]]$Variable[ ,c('lon', 'lat','T02_MAX')]
     CSV_Espana$T02_MAX<- CSV_Espana$T02_MAX-273.15 
     
     colnames(CSV_Espana)<- c("lon","lat","Temp")
-    nombre<- paste0("España_2019-04-03") 
-    
+
     nombre<- vec_days_str[days] %>% str_split(., " ") %>% unlist(.)
     nombre_ent<- paste0("Espana_",nombre[1])
     
-    
+    if(!dir.exists(path_espana)){dir.create(path_espana)}
     write.table(CSV_Espana, paste0(path_espana, nombre_ent,'.CSV'), 
                 sep = ";",
                 dec = ".", 
