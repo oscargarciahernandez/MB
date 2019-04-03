@@ -100,38 +100,4 @@ Belesar_rain<- lapply(LaBelesar_lolat, extract_rain_data)
 prueba<-Belesar_rain$`-8.02328491210938__42.1343421936035`
 
 
-path_graph<- here::here('graph/')
-if(!dir.exists(path_graph)){dir.create(path_graph)}
-
-
-path_belesar<- paste0(path_graph,"Belesar")
-if(!dir.exists(path_belesar)){dir.create(path_belesar)}
-
-#Funcion para crear gráficos de lluvia acumulada e instantanea
-grafp_Belesar<- function(Belesar_rain_cut, path_belesar){
-  nombres_archivos<- names(Belesar_rain_cut)
-  for (i in 1:length(nombres_archivos)) {
-    k<- max(Belesar_rain_cut[[i]]$pre_acum)/max(Belesar_rain_cut[[i]]$prep_hourly)
-    ggplot(data=Belesar_rain_cut[[i]], aes(x=fechas))+
-      geom_bar(aes(y=prep_hourly), stat="identity")+
-      xlab("Date")+ylab("Lluvia por hora [mm/h]")+theme(panel.background = element_blank(), 
-                                                        panel.grid = element_blank())+
-      geom_line(aes(y = pre_acum/k), group = 1, col="red") +
-      scale_y_continuous(sec.axis = sec_axis(trans = ~ . / (1/k), name = " LLuvia acumulada [mm]", 
-                                             breaks = seq(min(Belesar_rain_cut[[i]]$pre_acum),
-                                                          max(Belesar_rain_cut[[i]]$pre_acum),
-                                                          by=1)),
-                         breaks = seq(min(Belesar_rain_cut[[i]]$prep_hourly),
-                                      max(Belesar_rain_cut[[i]]$prep_hourly),
-                                      by=0.1))
-    
-    
-    ggsave(filename =paste0(path_belesar,"/",nombres_archivos[i]),
-           device = "png",
-           dpi=200,
-           width = 7,
-           height = 7,
-           units = "in")
-  }
-}
 

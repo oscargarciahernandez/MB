@@ -4,12 +4,15 @@
 #install.packages("here")
 #install.packages("dplyr")
 #install.packages("ggplot2")
+#install.packages("sf")
+#install.packages("tmap")
 
 
 
 #install.packages("rJava")
 #install.packages()
 
+library(tmap)
 library(ggplot2)
 library(RNetCDF)
 library(stringr)
@@ -352,6 +355,49 @@ extract_rain_data<- function(Belesar_lolat_df){
 }
 
   
+
+
+# BELESAR -----------------------------------------------------------------
+
+
+#Funcion para crear gráficos de lluvia acumulada e instantanea
+#Está pensada para meter los datos de una localización y verla
+barplot_cumulative_Belesar<- function(Belesar_rain_cut){
+  k<- max(Belesar_rain_cut$pre_acum)/max(Belesar_rain_cut$prep_hourly)
+  ggplot(data=Belesar_rain_cut, aes(x=fechas))+
+    geom_bar(aes(y=prep_hourly), stat="identity")+
+    xlab("Date")+ylab("Lluvia por hora [mm/h]")+theme(panel.background = element_blank(), 
+                                                      panel.grid = element_blank())+
+    geom_line(aes(y = pre_acum/k), group = 1, col="red") +
+    scale_y_continuous(sec.axis = sec_axis(trans = ~ . / (1/k), name = " LLuvia acumulada [mm]", 
+                                           breaks = seq(min(Belesar_rain_cut$pre_acum),
+                                                        max(Belesar_rain_cut$pre_acum),
+                                                        by=1)),
+                       breaks = seq(min(Belesar_rain_cut$prep_hourly),
+                                    max(Belesar_rain_cut$prep_hourly),
+                                    by=0.1))}
+
+
+#La función que viene está pensada para hacer ploteos de varios gráficos y guardarlos 
+#Por ello es necesario meter path_belesar
+grafp_Belesar<- function(Belesar_rain_grid, path_belesar){
+  nombres_archivos<- names(Belesar_rain_grid)
+  for (i in 1:length(nombres_archivos)) {
+    barplot_cumulative_Belesar(Belesar_rain_grid[[i]])
+    ggsave(filename =paste0(path_belesar,"/",nombres_archivos[i]),
+           device = "png",
+           dpi=200,
+           width = 7,
+           height = 7,
+           units = "in")
+  }
+}
+
+
+
+
+# Carpetas necesarias -----------------------------------------------------
+
 if(!dir.exists(here::here('Data'))){dir.create(here::here('Data'))}
 if(!dir.exists(here::here('Data/Europa/'))){dir.create(here::here('Data/Europa/'))}
 if(!dir.exists(here::here('Data/Espana/'))){dir.create(here::here('Data/Espana/'))}
@@ -361,6 +407,9 @@ if(!dir.exists(here::here('Data/Parques/Lubian'))){dir.create(here::here('Data/P
 if(!dir.exists(here::here('Data/Parques/ElCerro'))){dir.create(here::here('Data/Parques/ElCerro'))}
 if(!dir.exists(here::here('Data/Parques/LaSia'))){dir.create(here::here('Data/Parques/LaSia'))}
 if(!dir.exists(here::here('Data/Parques/Belesar'))){dir.create(here::here('Data/Parques/Belesar'))}
+if(!dir.exists(here::here('graph/'))){dir.create(here::here('graph/'))}
+if(!dir.exists(here::here('graph/Belesar'))){dir.create(here::here('graph/Belesar')}
+
 
 # Maps --------------------------------------------------------------------
 
