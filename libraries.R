@@ -354,6 +354,88 @@ extract_rain_data<- function(Belesar_lolat_df){
   return(rain)
 }
 
+Actualizar_Data_Parques<- function(){
+  RDS_Spain<- list.files(here::here('Data/Espana/'), recursive=T, full.names = T)
+  RDS_Spain<- RDS_Spain[str_detect(RDS_Spain, ".RDS")]
+  
+  nombres<- sapply(str_split(RDS_Spain, "/"), function(x) x[length(x)]) 
+  nombres1<- str_remove(nombres, "Espana_")
+  nombres2<- str_remove(nombres1,".RDS")
+  
+  path1<-here::here('Data/Parques/')
+  
+  
+  for (i in 1:length(RDS_Spain)) {
+    
+    list_RDS<- readRDS(RDS_Spain[i])
+    
+    
+    #Lubian
+    Longitud_Parque=-6.84653
+    Latitud_Parque=42.04514
+    
+    path_lubian<- paste0(path1,"Lubian/Lubian_",nombres2[i],".RDS" )
+    
+    if(!file.exists(path_lubian)){
+      Lubian_list<- Cortar_datos(list_hoy = list_RDS,
+                                 Longitud_Parque = Longitud_Parque,
+                                 Latitud_Parque=Latitud_Parque)
+      
+      saveRDS(Lubian_list, file = path_lubian)
+    }else{
+      print(paste0("Hoy ya se ha guardado este archivo: ",path_lubian))}
+    
+    #El Cerro 
+    Longitud_Parque=-3.64
+    Latitud_Parque=42.87
+    
+    path_ElCerro<- paste0(path1,"ElCerro/ElCerro_",nombres2[i],".RDS" )
+    
+    if(!file.exists(path_ElCerro)){
+      ElCerro_list<- Cortar_datos(list_hoy = list_RDS,
+                                  Longitud_Parque = Longitud_Parque,
+                                  Latitud_Parque=Latitud_Parque)
+      
+      saveRDS(ElCerro_list, file = path_ElCerro)
+    }else{
+      print(paste0("Hoy ya se ha guardado este archivo: ",path_ElCerro))}
+    
+    #La Sia
+    Longitud_Parque=-3.57
+    Latitud_Parque=43.14
+    
+    path_LaSia<- paste0(path1,"LaSia/LaSia_",nombres2[i],".RDS" )
+    
+    if(!file.exists(path_LaSia)){
+      LaSia_list<- Cortar_datos(list_hoy = list_RDS,
+                                Longitud_Parque = Longitud_Parque,
+                                Latitud_Parque=Latitud_Parque)
+      
+      saveRDS(LaSia_list, file = path_LaSia)
+    }else{
+      print(paste0("Hoy ya se ha guardado este archivo: ",path_LaSia))}
+    
+    
+    #La Belesar 
+    Longitud_Parque=-7.6854
+    Latitud_Parque=42.72343056 
+    
+    
+    
+    path_Belesar<- paste0(path1,"Belesar/Belesar_",nombres2[i],".RDS" )
+    
+    if(!file.exists(path_Belesar)){
+      Belesar_list<- Cortar_datos(list_hoy = list_RDS,
+                                  Longitud_Parque = Longitud_Parque,
+                                  Latitud_Parque=Latitud_Parque)
+      
+      saveRDS(Belesar_list, file = path_Belesar)
+    }else{
+      print(paste0("Hoy ya se ha guardado este archivo: ",path_Belesar))}
+    
+  }
+}
+
   
 
 
