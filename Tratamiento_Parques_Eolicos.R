@@ -94,23 +94,44 @@ LaBelesar_lolat<- lapply(LaBelesar_lolat, uv_transformation)
 
 
 
-## Variables interesantes
-prueba<- LaBelesar_lolat[[1]]
+## BELESAR TRATAMIENTO
+Belesar_rain<- lapply(LaBelesar_lolat, extract_rain_data)
 
-prueba1<- prueba[,c("fechas","lon","lat","RAINC","RAINNC","S10_MEAN","GUST10M",
-          "G10_MAX","T02_MEAN","T02_MAX","T02_MIN","SNOWC","SNOWNC","ACSNOW"
-          ,"WS","WD","WS_MAX","WD_MAX")]
-prueba2<- prueba1[,c(1,2,3,4,5)]
-prueba2$pre_acum<- prueba2$RAINC+prueba2$RAINNC
-prueba2$RAINC<- NULL
-prueba2$RAINNC<- NULL
+prueba<-Belesar_rain$`-8.02328491210938__42.1343421936035`
 
-prep_hourly<- vector()
-for (i in 1:length(prueba2$pre_acum)) {
-  if(i==1){prep_hourly[i]<- prueba2$pre_acum[i]}else{
-    prep_hourly[i]<- prueba2$pre_acum[i]-prueba2$pre_acum[i-1]
+
+path_graph<- here::here('graph/')
+if(!dir.exists(path_graph)){dir.create(path_graph)}
+
+
+path_belesar<- paste0(path_graph,"Belesar")
+if(!dir.exists(path_belesar)){dir.create(path_belesar)}
+
+#Funcion para crear gráficos de lluvia acumulada e instantanea
+grafp_Belesar<- function(Belesar_rain_cut, path_belesar){
+  nombres_archivos<- names(Belesar_rain_cut)
+  for (i in 1:length(nombres_archivos)) {
+    k<- max(Belesar_rain_cut[[i]]$pre_acum)/max(Belesar_rain_cut[[i]]$prep_hourly)
+    ggplot(data=Belesar_rain_cut[[i]], aes(x=fechas))+
+      geom_bar(aes(y=prep_hourly), stat="identity")+
+      xlab("Date")+ylab("Lluvia por hora [mm/h]")+theme(panel.background = element_blank(), 
+                                                        panel.grid = element_blank())+
+      geom_line(aes(y = pre_acum/k), group = 1, col="red") +
+      scale_y_continuous(sec.axis = sec_axis(trans = ~ . / (1/k), name = " LLuvia acumulada [mm]", 
+                                             breaks = seq(min(Belesar_rain_cut[[i]]$pre_acum),
+                                                          max(Belesar_rain_cut[[i]]$pre_acum),
+                                                          by=1)),
+                         breaks = seq(min(Belesar_rain_cut[[i]]$prep_hourly),
+                                      max(Belesar_rain_cut[[i]]$prep_hourly),
+                                      by=0.1))
+    
+    
+    ggsave(filename =paste0(path_belesar,"/",nombres_archivos[i]),
+           device = "png",
+           dpi=200,
+           width = 7,
+           height = 7,
+           units = "in")
   }
-  
 }
-prueba2$prep_hourly<- prep_hourly 
 

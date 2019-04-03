@@ -3,13 +3,14 @@
 #install.packages("lubridate")
 #install.packages("here")
 #install.packages("dplyr")
+#install.packages("ggplot2")
 
 
 
 #install.packages("rJava")
 #install.packages()
 
-
+library(ggplot2)
 library(RNetCDF)
 library(stringr)
 library(lubridate)
@@ -329,6 +330,25 @@ uv_transformation<- function(tabla_comp){
   tabla_comp$V10_MEAN<- NULL
   return(tabla_comp)
   
+}
+
+extract_rain_data<- function(Belesar_lolat_df){
+  
+  rain<- Belesar_lolat_df[,c(1,2,3,4,5)]
+  rain$pre_acum<- rain$RAINC+rain$RAINNC
+  rain$RAINC<- NULL
+  rain$RAINNC<- NULL
+  
+  prep_hourly<- vector()
+  for (i in 1:length(rain$pre_acum)) {
+    if(i==1){prep_hourly[i]<- rain$pre_acum[i]}else{
+      prep_hourly[i]<- rain$pre_acum[i]-rain$pre_acum[i-1]
+    }
+    
+  }
+  rain$prep_hourly<- prep_hourly 
+  
+  return(rain)
 }
 
   
