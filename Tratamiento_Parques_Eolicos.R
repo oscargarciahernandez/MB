@@ -94,5 +94,23 @@ LaBelesar_lolat<- lapply(LaBelesar_lolat, uv_transformation)
 
 
 
+## Variables interesantes
+prueba<- LaBelesar_lolat[[1]]
 
+prueba1<- prueba[,c("fechas","lon","lat","RAINC","RAINNC","S10_MEAN","GUST10M",
+          "G10_MAX","T02_MEAN","T02_MAX","T02_MIN","SNOWC","SNOWNC","ACSNOW"
+          ,"WS","WD","WS_MAX","WD_MAX")]
+prueba2<- prueba1[,c(1,2,3,4,5)]
+prueba2$pre_acum<- prueba2$RAINC+prueba2$RAINNC
+prueba2$RAINC<- NULL
+prueba2$RAINNC<- NULL
+
+prep_hourly<- vector()
+for (i in 1:length(prueba2$pre_acum)) {
+  if(i==1){prep_hourly[i]<- prueba2$pre_acum[i]}else{
+    prep_hourly[i]<- prueba2$pre_acum[i]-prueba2$pre_acum[i-1]
+  }
+  
+}
+prueba2$prep_hourly<- prep_hourly 
 
