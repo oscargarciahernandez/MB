@@ -15,51 +15,53 @@ netcdf_files_europe<- list.files(netcdf_folder_europe, full.names = T)
 
 
 fecha_exe_modelo_europa<- first_date(netcdf_files = netcdf_files_europe)
+
 if(is.na(fecha_exe_modelo_europa)){print("Modelo Europa, sin ejecutar")}else{
   if(fecha_exe_modelo_europa<lubridate::today()){
   print(paste0("El modelo de europa se ha ejecutado hace: ", 
                as.numeric(difftime(lubridate::today(),fecha_exe_modelo_europa,units = "days" ))," dias"))
-  }else{print("Modelo de Europa actualizado disponible")}
+  }else{
+    print("Modelo de Europa actualizado disponible")
+    list_europe<- get_netcdf_list(netcdf_files = netcdf_files_europe)
+    folder_europa<- str_remove_all(as.character(fecha_exe_modelo_europa),"-")
+    path_europe<- paste0(here::here('Data/Europa/'),folder_europa,"/")
+    
+    if(!dir.exists(path_europe)){dir.create(path_europe)}
+    if(!file.exists(paste0(path_europe,"Europe_",foler_europa,".RDS"))){
+      saveRDS(list_europe, file = paste0(path_europe,"Europe_",folder_europa,".RDS"))
+    }
+  }
 }
 
+
+
 fecha_exe_modelo_spain<- first_date(netcdf_files = netcdf_files_spain)
+
 if(is.na(fecha_exe_modelo_spain)){print("Modelo España, sin ejecutar")}else{
   if(fecha_exe_modelo_spain<lubridate::today()){
     print(paste0("El modelo de España se ha ejecutado hace: ", 
                  as.numeric(difftime(lubridate::today(),fecha_exe_modelo_spain,units = "days" ))," dias"))
-  }else{print("Modelo de España actualizado disponible")}
-}
-
-#Esta funcion crea una lista con todas la variables que nos interesan
-#En principio esto habría que ejecutarlo una vez que tenemos los ficheros 
-#Del modelo. 
-
-list_europe<- get_netcdf_list(netcdf_files = netcdf_files_europe)
-list_espana<- get_netcdf_list(netcdf_files = netcdf_files_spain)
-
-
-
-
-##Creamos una carpeta con la fecha de ejecucion del modelo, donde irán contenidos
-## Tanto los CSV como los archivos RDS. 
-folder_spain<- str_remove_all(as.character(fecha_exe_modelo_spain),"-")
-folder_europa<- str_remove_all(as.character(fecha_exe_modelo_europa),"-")
-
-path_europe<- paste0(here::here('Data/Europa/'),folder_europa,"/")
-path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/")
-
-
-if(!file.exists(paste0(path_europe,"Europe_",Hoy,".RDS"))){
-  saveRDS(list_europe, file = paste0(path_europe,"Europe_",Hoy,".RDS"))
-}
-if(!file.exists(paste0(path_espana,"Espana_",Hoy,".RDS"))){
-  saveRDS(list_espana, file = paste0(path_espana,"Espana_",Hoy,".RDS"))
+  }else{
+    print("Modelo de España actualizado disponible")
+    list_espana<- get_netcdf_list(netcdf_files = netcdf_files_spain)
+    folder_spain<- str_remove_all(as.character(fecha_exe_modelo_spain),"-")
+    path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/")
+    
+    if(!dir.exists(path_espana)){dir.create(path_espana)}
+    if(!file.exists(paste0(path_espana,"Espana_",folder_spain,".RDS"))){
+      saveRDS(list_espana, file = paste0(path_espana,"Espana_",folder_spain,".RDS"))
+    }
+    
+    CSV_generator_Spain(list_espana, path_espana)
+    
+  }
 }
 
 
-# Europe pressure and Temperature ---------------------------------------------------------
-CSV_generator_Europe(list_europe, path_europe)
 
-# España temperatura ------------------------------------------------------
 
-CSV_generator_Spain(list_espana, path_espana)
+
+
+
+
+

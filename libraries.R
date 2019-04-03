@@ -11,16 +11,19 @@
 
 #install.packages("rJava")
 #install.packages()
+#library(tmap)
+#library(OpenStreetMap)
+#library(dplyr)
 
-library(tmap)
 library(ggplot2)
 library(RNetCDF)
 library(stringr)
 library(lubridate)
-#library(OpenStreetMap)
-#library(dplyr)
 
 
+# Funciones principales para el tratamiento de  los datos -----------------
+
+#Busca dentro la carpeta donde se generan los datos 
 first_date<- function(netcdf_files){
   first_date<- str_split(netcdf_files[1],"/")[[1]]
   first_date_1<- str_replace(str_remove(first_date[length(first_date)], "wrfout_d01_"),"_"," ")
@@ -29,9 +32,13 @@ first_date<- function(netcdf_files){
   
   
 }
-
 get_netcdf_list<- function(netcdf_files){
+  fecha_ini<- str_split(netcdf_files[1],"/")[[1]]
+  fecha_ini<- fecha_ini[length(fecha_ini)]
+  fecha_ini<- str_remove(fecha_ini,"wrfout_d01_")
+  fecha_ini<- str_replace(fecha_ini, "_"," ")
   
+  netcdf_files[1]
   netcdf_list<- list()
   vec_time<- vector()
   for (n_files in 1:length(netcdf_files)) {
@@ -164,7 +171,7 @@ get_netcdf_list<- function(netcdf_files){
     
     
     time<-  var.get.nc(NC_prueba, "XTIME", unpack = TRUE)
-    time1<- as.data.frame(utcal.nc("minutes since 2019-04-01 00:00:00", time))
+    time1<- as.data.frame(utcal.nc(paste0("minutes since ",fecha_ini), time))
     time2<- paste(time1$year,"-",time1$month,"-",
                   time1$day," ",time1$hour,"-",
                   time1$minute,"-",time1$second, sep = '')
@@ -187,7 +194,6 @@ get_netcdf_list<- function(netcdf_files){
   
   return(netcdf_list)
 }
-
 Cortar_datos<- function(list_hoy, Longitud_Parque, Latitud_Parque){
   lista_parque<- list()
   
@@ -212,7 +218,6 @@ Cortar_datos<- function(list_hoy, Longitud_Parque, Latitud_Parque){
   
   
 }
-
 CSV_generator_Europe<- function(list_europe, path_europe){
  
   
@@ -247,7 +252,6 @@ CSV_generator_Europe<- function(list_europe, path_europe){
   }
   
 }
-
 CSV_generator_Spain<- function(list_espana,path_espana){
   
   
@@ -276,7 +280,6 @@ CSV_generator_Spain<- function(list_espana,path_espana){
   
   
 }
-
 lon_lat_df_ls<- function(parque_list){
   fecha<- names(parque_list)
   fecha[!str_detect(fecha, " ")]<- paste0(fecha[!str_detect(fecha, " ")], " 00:00:00")
@@ -301,8 +304,6 @@ lon_lat_df_ls<- function(parque_list){
   
   
 }
-
-
 uv_transformation<- function(tabla_comp){
   
   nombres<- colnames(tabla_comp)
@@ -334,7 +335,6 @@ uv_transformation<- function(tabla_comp){
   return(tabla_comp)
   
 }
-
 extract_rain_data<- function(Belesar_lolat_df){
   
   rain<- Belesar_lolat_df[,c(1,2,3,4,5)]
@@ -358,7 +358,6 @@ extract_rain_data<- function(Belesar_lolat_df){
 
 
 # BELESAR -----------------------------------------------------------------
-
 
 #Funcion para crear gráficos de lluvia acumulada e instantanea
 #Está pensada para meter los datos de una localización y verla
@@ -408,7 +407,7 @@ if(!dir.exists(here::here('Data/Parques/ElCerro'))){dir.create(here::here('Data/
 if(!dir.exists(here::here('Data/Parques/LaSia'))){dir.create(here::here('Data/Parques/LaSia'))}
 if(!dir.exists(here::here('Data/Parques/Belesar'))){dir.create(here::here('Data/Parques/Belesar'))}
 if(!dir.exists(here::here('graph/'))){dir.create(here::here('graph/'))}
-if(!dir.exists(here::here('graph/Belesar'))){dir.create(here::here('graph/Belesar')}
+if(!dir.exists(here::here('graph/Belesar/'))){dir.create(here::here('graph/Belesar/'))}
 
 
 # Maps --------------------------------------------------------------------
