@@ -21,6 +21,8 @@ library(stringr)
 library(lubridate)
 library(request)
 library(XML)
+library(dplyr)
+library(xlsx)
 
 
 # Funciones principales para el tratamiento de  los datos -----------------

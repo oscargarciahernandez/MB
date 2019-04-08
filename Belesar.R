@@ -59,5 +59,19 @@ Belesar_CSV_Generator_Point<- function(Belesar_ultimo, point){
 
 
 
-#Download data
-Down_E001_Belesar()
+#Download data... con ejecutar de vez en cuanto tenemos... 
+# Down_E001_Belesar()
+
+
+##Leer historico de Belesar... 
+
+historico<- read.csv(here::here('DHI_Datos Belesar.csv'), sep = ";")
+historico1<- historico[3:length(historico$X),]
+
+col__names<- as.vector(unlist(lapply(historico[1,], as.character)))
+col__names[1]<- "DATE"
+
+colnames(historico1)<- col__names
+
+historico1$DATE<- dmy_hms(historico1$DATE)
+historico1[,-1]<- as.numeric(as.character(historico1[,-1]))
