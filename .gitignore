@@ -3,4 +3,5 @@
 .RData
 .Ruserdata
 *.CSV
-"Tratamiento_Parques_E\303\263licos.R"
+*.RDS
+*.png

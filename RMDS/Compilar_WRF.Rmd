@@ -1,0 +1,588 @@
+---
+title: "Compilar WRF"
+author: "Óscar García Hernández"
+date: "5 de abril de 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Intro
+
+No fliparse, esto no es más que una traducción de [esto](http://www2.mmm.ucar.edu/wrf/OnLineTutorial/compilation_tutorial.php). No voy a, ni pretendo, inventar la polvora. 
+
+Hasta donde me llega, WRF está pensado para compilado en Linux, por eso, todo este tutorial es de movidas de Linux. 
+
+
+
+# Configuración inicial
+
+Este capitulo está pensado para comprobar que todas librerias y paquetes necesarios están en orden para ejecutar WRF. EStos paquetes son:
+
++ netCDF
++ MPICH
++ JasPer
++ Libpng
++ Zlib
+
+Al parecer, todo este tutorial está pensado para ejecutar los comandos, por una shell determinada... [tcsh](https://es.wikipedia.org/wiki/Tcsh). En principio cualquier otro shell debería valer, alterando algún comando específico. 
+
+
+Habrá que comprobar que tenemos compiladores de **gfrotran, cpp y gcc**. Con estos comandos por consola podemos comprobar si tenemos estos compiladores. 
+
+
+```{}
+which gfortran
+
+which cpp
+
+which gcc
+```
+
+
+Se recomienda version de fortrand superior a 4.4.0
+
+```{}
+gcc --version
+```
+
+Creamos dos carpetas nuevas, **Build_WRF y TESTS**. 
+
+
+# TESTS preliminares
+
+A continuación realizamos una serie de pruebas para comprobar que todos los compiladores están funcionando bien para ejecutar WRF. Para hacer los tests, descargamos el siguiente [ZIP](http://www2.mmm.ucar.edu/wrf/OnLineTutorial/compile_tutorial/tar_files/Fortran_C_tests.tar). Este archivo lo situaremos dentro de la carpeta **TESTS**
+
+
+Tras descargar el archivo comprimido lo extraemos empleando el siguiente comando. 
+
+```{}
+tar -xf Fortran_C_tests.tar
+```
+
+
+Dentro de este .tar hay 7 test. 
+
+## Fixed Format Fortran Test: TEST_1_fortran_only_fixed.f
+
+ 
+```{}
+
+gfortran TEST_1_fortran_only_fixed.f
+
+
+./a.out
+
+
+```
+
+
+## Free Format Fortran: TEST_2_fortran_only_free.f90
+
+
+ 
+```{}
+
+gfortran TEST_2_fortran_only_free.f90
+
+
+./a.out
+
+
+```
+
+
+
+## C: TEST_3_c_only.c
+
+
+
+```{}
+
+gcc TEST_3_c_only.c
+
+./a.out
+
+
+
+```
+
+
+##  Fortran Calling a C Function (our gcc and gfortran have different defaults, so we force both to always use 64 bit [-m64] when combining them): TEST_4_fortran+c_c.c, and TEST_4_fortran+x_f.f90
+
+
+
+```{}
+
+gcc -c -m64 TEST_4_fortran+c_c.c
+
+gfortran -c -m64 TEST_4_fortran+c_f.f90
+
+gfortran -m64 TEST_4_fortran+c_f.o TEST_4_fortran+c_c.o
+
+./a.out
+
+```
+
+
+
+## TEST de auxiliares
+
+Los siguientes tests nos sirven para probar otros comandos necesarios para compilar WRF.
++ csh
++ perl
++ sh
+
+
+### Test #5:csh 
+
+```{}
+./TEST_csh.csh
+```
+
+### Test #6:perl 
+```{}
+./TEST_perl.pl
+```
+
+
+
+
+### Test #7:sh 
+```{}
+./TEST_sh.sh
+```
+
+
+
+
+## Comandos UNIX necesarios
+
+Los siguientes comandos de unix tambien son necesarios y obligatorios
+
+```{}
+ar             head              sed
+awk          hostname         sleep
+cat            ln                  sort
+cd             ls                  tar
+cp             make            touch
+cut            mkdir            tr
+expr          mv                uname
+file             nm                wc
+grep          printf             which
+gzip           rm                   m4
+```
+
+
+# Librerías necesarias
+
+
+Dentro de la carpeta **Build_WRF** tendremos que crear otra carpeta llamada **LIBRARIES**.
+
+```{}
+cd Build_WRF
+
+mkdir LIBRARIES
+```
+
+A continuación descargaremos las librerias formato .tar y las alojaremos dentro de la carpeta **LIBRARIES**
+
++ [mpich](http://www2.mmm.ucar.edu/wrf/OnLineTutorial/compile_tutorial/tar_files/mpich-3.0.4.tar.gz)
++ [netCDF](http://www2.mmm.ucar.edu/wrf/OnLineTutorial/compile_tutorial/tar_files/netcdf-4.1.3.tar.gz)
++ [Jasper](http://www2.mmm.ucar.edu/wrf/OnLineTutorial/compile_tutorial/tar_files/jasper-1.900.1.tar.gz)
++ [libpng](http://www2.mmm.ucar.edu/wrf/OnLineTutorial/compile_tutorial/tar_files/libpng-1.2.50.tar.gz)
++ [zlib](http://www2.mmm.ucar.edu/wrf/OnLineTutorial/compile_tutorial/tar_files/zlib-1.2.7.tar.gz)
+
+## NetCDF
+
+Esta librería es indispensable
+
+```{}
+setenv DIR path_to_directory/Build_WRF/LIBRARIES
+setenv CC gcc
+setenv CXX g++
+setenv FC gfortran
+setenv FCFLAGS -m64
+setenv F77 gfortran
+setenv FFLAGS -m64
+
+tar xzvf netcdf-4.1.3.tar.gz     #or just .tar if no .gz present
+
+cd netcdf-4.1.3
+
+./configure --prefix=$DIR/netcdf --disable-dap \
+     --disable-netcdf-4 --disable-shared
+     
+make
+
+make install
+
+setenv PATH $DIR/netcdf/bin:$PATH
+
+setenv NETCDF $DIR/netcdf
+
+cd ..
+```
+
+## MPICH
+
+Esta librería es para poder correr WRF en paralelo, si nuestro CPU solo tiene un procesador no es necesario instalar esta librería. En principio cualquier  *MPI-2 standard* debería funcionar, pero estos están mas familiarizados con MPICH, asi que ellos mandan. 
+
+```{}
+tar xzvf mpich-3.0.4.tar.gz     #or just .tar if no .gz present
+
+cd mpich-3.0.4
+
+./configure --prefix=$DIR/mpich
+
+make
+
+make install
+
+setenv PATH $DIR/mpich/bin:$PATH
+
+cd ..
+```
+
+## Zlib
+
+Esta librería es para comprimir y descomprimir... movidas relacionadas con *GRIB* y ungrib. Necesaria para compilar **WPS**. 
+```{}
+setenv JASPERLIB $DIR/grib2/lib 
+setenv JASPERINC $DIR/grib2/include 
+
+tar xzvf zlib-1.2.7.tar.gz     #or just .tar if no .gz present
+
+cd zlib-1.2.7
+
+./configure --prefix=$DIR/grib2
+
+make
+
+make install
+
+cd ..
+```
+
+## libpng
+
+Esta librería es necesaria para compilar **WPS**. Prima-hermana de *zlib* 
+```{}
+tar xzvf libpng-1.2.50.tar.gz     #or just .tar if no .gz present
+
+cd libpng-1.2.50
+
+./configure --prefix=$DIR/grib2
+
+make
+
+make install
+
+cd ..
+```
+## Jasper
+
+Esta librería es necesaria para compilar **WPS**. Prima-hermana de *zlib* y *libpng*
+
+```{}
+tar xzvf jasper-1.900.1.tar.gz     #or just .tar if no .gz present
+
+cd jasper-1.900.1
+
+./configure --prefix=$DIR/grib2
+
+make
+
+make install
+
+cd ..
+```
+
+
+## Test de compatibilidad de librerías. 
+
+Igual que en la sección de antes lo que vamos a hacer es descargar un [archivito](http://www2.mmm.ucar.edu/wrf/OnLineTutorial/compile_tutorial/tar_files/Fortran_C_NETCDF_MPI_tests.tar) comprimido con un par de pruebas que vamos a copiar en la carpeta TESTS.
+
+```{}
+tar -xf Fortran_C_NETCDF_MPI_tests.tar
+```
+
+### Test #1: Fortran + C + NetCDF
+The NetCDF-only test requires the include file from the NETCDF package be in this directory. Copy the file here:
+```{}
+cp ${NETCDF}/include/netcdf.inc .
+
+```
+
+Ojito a lo anterior. Hay que copiar una movida del paquete NETCDF en el directorio de TESTS. ¿NO?
+```{}
+gfortran -c 01_fortran+c+netcdf_f.f
+
+gcc -c 01_fortran+c+netcdf_c.c
+
+gfortran 01_fortran+c+netcdf_f.o 01_fortran+c+netcdf_c.o \
+     -L${NETCDF}/lib -lnetcdff -lnetcdf
+     
+./a.out
+
+```
+
+###Test #2: Fortran + C + NetCDF + MPI
+No sé si habrá que repetir lo mismo...
+```{}
+cp ${NETCDF}/include/netcdf.inc .
+
+```
+
+```{}
+mpif90 -c 02_fortran+c+netcdf+mpi_f.f
+
+mpicc -c 02_fortran+c+netcdf+mpi_c.c
+
+mpif90 02_fortran+c+netcdf+mpi_f.o \
+
+02_fortran+c+netcdf+mpi_c.o \
+     -L${NETCDF}/lib -lnetcdff -lnetcdf
+     
+mpirun ./a.out
+```
+
+# CONSTRUIR WRF
+
+DESCARGAR [WRF-ARW](http://www2.mmm.ucar.edu/wrf/src/WRFV4.0.TAR.gz). Tras descargar el archivo Tar y descomprimirlo. Entramos en la carpeta y entramos al fichero de configuracion. Al parecer una de las cosas que habrá que configurar es si lo vamos a ejecutar en serie o paralelo... lo normal va a ser en paralelo, porque lo suyo es tener un buen cacharro multi-núcleo ¿no?... Bueno sin más, debe de haber varias maneras de ejecución en paralelo: 
+
++ smpar 
++ dmpar 
++ dm+sm
+
+Como antes... estamos siguiendo un tutorial y los del tutorial tienen más experiencia con **dmpar**
+
+```{}
+cd WRF
+
+./configure
+
+
+```
+
+
+Una vez que la cofiguración se complete deberíamos tener un **configure.wrf**. Y ya estaríamos listos para compilar... Hay que tener en cuenta que para compilar hay que saber que caso queremos compilar..
+
++ em_real (3d real case)
++ em_quarter_ss (3d ideal case)
++ em_b_wave (3d ideal case)
++ em_les (3d ideal case)
++ em_heldsuarez (3d ideal case)
++ em_tropical_cyclone (3d ideal case)
++ em_hill2d_x (2d ideal case)
++ em_squall2d_x (2d ideal case)
++ em_squall2d_y (2d ideal case)
++ em_grav2d_x (2d ideal case)
++ em_seabreeze2d_x (2d ideal case)
++ em_scm_xy (1d ideal case)
+
+```{}
+./compile "case_name_wihtoutquotes" >& log.compile
+
+```
+
+
+La compilación durará entorno a 25 mins. Cuando acabe tendremos que mirar los ejecutables que se habrán creado dentro de **WRF/main**. 
+
+```{}
+ls -ls main/*.exe
+```
+
+En el caso de compilar casos reales tendremos la siguiente lista: 
+
++ wrf.exe (model executable)
++ real.exe (real data initialization)
++ ndown.exe (one-way nesting)
++ tc.exe (for tc bogusing--serial only)
+
+
+Estos ejecutables estan linkeados a dos carpetas diferentes desde las cuales podrán ser ejecutados. 
+
++ WRF/run
++ WRF/test/em_real
+
+# Construimos WPS
+
+DESCARGAMOS [WPS](http://www2.mmm.ucar.edu/wrf/src/WPSV4.0.TAR.gz). Descomprimimos y entramos a la carpeta. Comprobamos que esté limpia...
+
+```{}
+cd WPS
+
+./clean
+
+```
+
+Antes de configurar WPS habrá que añadimos algunos paths
+
+```{}
+setenv JASPERLIB $DIR/grib2/lib
+
+setenv JASPERINC $DIR/grib2/include
+```
+
+y ahora configuramos
+
+```{}
+./configure
+```
+
+CURIOSO... recomiendad **compilar WPS en serie** sin importar que WRF valla a ser compilado en paralelo... si no vamos a simular "extremely large domains". Tambien habrá que configurar como queremos *ungrib*. Habrá que elegir **GRIB2**. En el arvhivo configure.wps hay un línea de WRF_DIR= ..../WRF. imagino que habrá que poner el path correcto aquí. 
+
+ya podemos compilar WPS.
+
+```{}
+./compile >& log.compile
+
+```
+Si la compilación es correcta se crearán una serie de ejecutables.
+
++ geogrid.exe -> geogrid/src/geogrid.exe
++ ungrib.exe -> ungrib/src/ungrib.exe
++ metgrid.exe -> metgrid/src/metgrid.exe
+
+
+habrá que comprobar que no sean **zero-sized**. 
+
+#Información Geográfica. 
+
+Descargamos los [datos](http://www2.mmm.ucar.edu/wrf/src/wps_files/geog_high_res_mandatory.tar.gz). Lo que se supones que he descargado es un mogollón de datos de terreno con muy altaresolución, 30Gb cuando descomprimamos. Yo creo que habrá una manera más eficiente de descargar estas movidas... pero bueno, a lo bruto.
+
+
+Descargamos el .tar y lo metemos en la carpeta **Build_WRF**.
+
+```{}
+gunzip geog.tar.gz
+tar -xf geog.tar
+```
+
+
+
+Cuando descomprimimos se llamra geog, le cambiamos el nombre a GEOG_WPS
+
+```{}
+mv geog WPS_GEOG
+
+```
+
+Ahora que ya hemos descargado la informacion del topografia habrá que decirle al WPS donde está esta informacion. dentro de **namelist.wps** hay un seccion llamada **&geogrid**: 
+
+```{}
+geog_data_path = ´path_to_directory/Build_WRF/WPS_GEOG´
+
+```
+
+Tras hacer esto podremos ejecutar **geogrid.exe**
+
+
+# Datos en tiempo Real
+
+El NCEP corren el Global Rosecast System 4 veces al dia. 00-06-12-18. Es de hay de donde nosotros obtenmos la información para correr nuestro modelo... Habrá que profundizar en como pedir datos GFS. 
+
+Aquí hablan de que lo suyo es crear una carpeta dentro de Build/WRF llamada DATA.
+
+```{}
+mkdir DATA
+
+cd DATA
+```
+
+Lo suyo es automatizar este proceso para pedir los datos... de momento lo dejo en **stand-by**. Imagino que habrá que hacerce una especie de cuenta o alguna movida para descargar los datos....  
+```{}
+curl -s --disable-epsv --connect-timeout 30 -m 60 -u anonymous:USER_ID@INSTITUTION -o GFS_00h \ ftp://ftpprd.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.2014013100/gfs.t00z.pgrb2.0p50.f000
+
+```
+
+en el comando anterior.  "gfs.2014013100/gfs.t00z.pgrb2.0p50.f000" esto es la fecha 2014/01/31. es decir estamos yendo al servidor a pedir un archivo temporal concreto. "GFS_00h" Eso es el nombre que nosotros le daremos al archivo descargado dentro de la carpeta DATA. imagino que lo suyo sería ponerle el nombre que a nosotros nos convenga... ESTO HAY QUE AUTOMATIZAR. 
+
+
+# EJECUCIÓN 
+
+Se supone que ya tenemos todo lo necesario...ahora de manera consisa se explicará el proceso a seguir. Pero para una información más extensa vete [aqui](http://www2.mmm.ucar.edu/wrf/OnLineTutorial/index.htm).
+
+## WPS
+
+primero vamos al directorio WPS. Y si los ajustes están bien hechos ejecutamos *geogrid*
+
+
+```{}
+cd WPS
+
+./geogrid.exe >& log.geogrid
+
+```
+
+
+No se que es esto pero parece importante... geo_em*. Creo que son los ficheros que se crean una vez hemos ejecutado geogrid.exe y corresponden a cada dominio... no se donde ajustan los dominios todavia, ni siquiera su resolucion.
+
+
+hay que linkear los datos GFS
+
+```{}
+./link_grib.csh path_where_you_placed_GFS_files
+
+```
+
+
+linkear el Vtable correcto
+
+```{}
+ln -sf ungrib/Variable_Tables/Vtable.GFS Vtable
+
+```
+
+
+Corremos ungrib
+
+```{}
+./ungrib.exe
+
+```
+
+corremos metgrid
+
+```{}
+./metgrid.exe >& log.metgrid
+
+```
+
+
+Tras esto se crean ficheros met_em* par dada lapso de tiempo...
+
+
+## WRF
+
+Entrar a la carpeta WRF/run o WRF/test/em_real, pal caso papas. Lo que hay que hacer es copiar los ficheros met_em* en el directorio de trabajo... por medio de el siguiente comando. 
+
+
+```{}
+ln -sf ../../../WPS/met_em* .     (from the test/em_real directory), or
+ln -sf ../../WPS/met_em* .            (from the run/ directory).
+```
+
+tambien valdría el comando *cp* sustiyendo a *ln -sf*
+
+Una vez hemos copiado los archivos ya podemos ejecutar el programa real.exe
+
+```{}
+mpirun -np 1 ./real.exe
+```
+
+El comando anterior va a depender de los procesadores que tengamos a nuestra disposición. Una vez ejecutemos esto... se crearan los archivos de input del modelo y podremos correr WRF .
+
+```{}
+mpirun -np 8 ./wrf.exe
+```
+
+
+
+# Mas
+
+
+Para ser seguir progresando entendiendo WRF, axisten tutoriales en la siguiente [página web](http://www2.mmm.ucar.edu/wrf/users/tutorial/tutorial_presentation_winter_2019.htm)

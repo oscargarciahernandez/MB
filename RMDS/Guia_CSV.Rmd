@@ -1,0 +1,41 @@
+---
+title: "Guía R para leer salidas WRF"
+author: "Óscar García Hernández"
+date: "3 de abril de 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Intro
+
+Este documento es una guía para correr los scripts de R en orden para ir guardando los datos. Estos comandos hay que ejecutarlos en la consola de Rstudio quitando el símbolo "#". 
+
+# Crear los CSV's para El Mundo. 
+
+Una vez que el modelo haya acabado de Europa. Ejecutaremos:  **Europe_CSV_Generator.R**. 
+
+```{r echo=TRUE}
+# source('/home/asus/MB/Europe_CSV_Generator.R', echo=TRUE)
+```
+
+Los CSV's se generaran en "/home/asus/MB/Data/Europa/**YYYYMMDD**/"
+
+Una vez que el modelo haya acabado de España.  Ejecutaremos:  **Spain_CSV_Generator.R**. 
+
+```{r echo=TRUE}
+# source('/home/asus/MB/Spain_CSV_Generator.R', echo=TRUE)
+```
+
+Los CSV's se generaran en "/home/asus/MB/Data/Espana/**YYYYMMDD**/"
+
+
+# Generar los archivos pertinentes para las zonas acotadas 
+
+Es interesante, una vez hayamos generado los CSV's de España,  generar los archivos.
+
+```{r echo=TRUE}
+# source('/home/asus/MB/Actualizar_data_parques.R', echo=TRUE)
+```
