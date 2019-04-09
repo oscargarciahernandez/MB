@@ -79,10 +79,15 @@ col__names[1]<- "DATE"
 colnames(historico1)<- col__names
 
 historico1$DATE<- dmy_hms(historico1$DATE)
-historico1[,-1]<- as.numeric(as.character(historico1[,-1]))
+historico2<-historico1[complete.cases(historico1),]
+
+indx <- sapply(historico2, is.factor)
+historico2[indx] <- lapply(historico2[indx], function(x) as.numeric(str_replace(as.character(x),",",".")))
 
 
-
+path_lista_total<- here::here('Data/Parques/Belesar/Historico/')
+nombre_lista<- paste0(path_lista_total, 'Historico_DHI_Belesar.RDS')
+saveRDS(historico2, nombre_lista)
 
 
 
