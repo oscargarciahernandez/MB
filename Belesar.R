@@ -82,36 +82,158 @@ historico1[,-1]<- as.numeric(as.character(historico1[,-1]))
 
 ##Historico WRF 
 
-solo_fechas<- grepl("^[[:digit:]]+$",list.dirs("/media/asus/Elements", recursive = F, full.names = F))
+solo_fechas<- grepl("^[[:digit:]]+$",
+                    list.dirs("/media/asus/Elements",
+                              recursive = F, 
+                              full.names = F))
 dirs_wrf<- list.dirs("/media/asus/Elements", recursive = F)[solo_fechas]
-
 
 for (dirs in 1:length(dirs_wrf)) {
   
   netcdf_files<- list.files(dirs_wrf[dirs], full.names = T)
   netcdf_files_d1<- netcdf_files[str_detect(netcdf_files, "wrfout_d01" )]
   netcdf_files_d2<- netcdf_files[str_detect(netcdf_files, "wrfout_d02" )]
-  netcdf_files2<- list(netcdf_files_d1, netcdf_files_d2)
-  names(netcdf_files2)<- c("dom1","dom2")
   
   folder_name<- first_date(list.files(dirs_wrf[dirs]))
+  folder_spain<- str_remove_all(as.character(folder_name),"-")
   
-  for (dom in 1:2) {
-    folder_spain<- str_remove_all(as.character(folder_name),"-")
+  path_check<- paste0(here::here('Data/Espana/'),folder_spain,"/")
+  if(dir.exists(path_check)){
     
-    if(dom==1){path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d01/")
-    }else{path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d02/")}
+  }else{
+    if(length(netcdf_files_d2)==0){
+      netcdf_files2<- netcdf_files_d1
+      path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d01/")
+      
+      if(!dir.exists(path_espana)){
+        dir.create(paste0(here::here('Data/Espana/'),folder_spain, "/"))
+        dir.create(path_espana)}
+      
+      list_espana<- create_list_from_netcdf(netcdf_files = netcdf_files2)
+      
+      saveRDS(list_espana, file = paste0(path_espana,"Espana_",folder_spain,".RDS"))
+      
+      
+    }else{
+      netcdf_files2<- list(netcdf_files_d1, netcdf_files_d2)
+      names(netcdf_files2)<- c("dom1","dom2")
+      
+      for (dom in 1:2) {
+        
+        if(dom==1){path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d01/")
+        }else{path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d02/")}
+        
+        if(!dir.exists(path_espana)){
+          dir.create(paste0(here::here('Data/Espana/'),folder_spain, "/"))
+          dir.create(path_espana)}
+        
+        list_espana<- create_list_from_netcdf(netcdf_files = netcdf_files2[[dom]])
+        
+        saveRDS(list_espana, file = paste0(path_espana,"Espana_",folder_spain,".RDS"))
+      }
+      
+    }
     
-    if(!dir.exists(path_espana)){
-      dir.create(paste0(here::here('Data/Espana/'),folder_spain, "/"))
-      dir.create(path_espana)}
     
-    list_espana<- create_list_from_netcdf(netcdf_files = netcdf_files2[[dom]])
-    
-    saveRDS(list_espana, file = paste0(path_espana,"Espana_",folder_spain,".RDS"))
   }
   
   
   
+  
+  
+
+  
+  
 }
+
+
+
+
+##Construir historico WRF
+All_files_Spain<- list.files(here::here('Data/Espana/'), recursive = T, full.names = T)
+d01_files<- All_files_Spain[!str_detect(All_files_Spain, "/d02/")]
+
+
+
+Actualizar_Data_Parques_2<- function(RDS_Spain){
+
+  nombres<- sapply(str_split(RDS_Spain, "/"), function(x) x[length(x)]) 
+  nombres1<- str_remove(nombres, "Espana_")
+  nombres2<- str_remove(nombres1,".RDS")
+  
+  path1<-here::here('Data/Parques/')
+  
+  
+  for (i in 1:length(RDS_Spain)) {
+    
+    list_RDS<- readRDS(RDS_Spain[i])
+    
+    
+    #Lubian
+    Longitud_Parque=-6.84653
+    Latitud_Parque=42.04514
+    
+    path_lubian<- paste0(path1,"Lubian/Lubian_",nombres2[i],".RDS" )
+    
+    if(!file.exists(path_lubian)){
+      Lubian_list<- Cortar_datos(list_hoy = list_RDS,
+                                 Longitud_Parque = Longitud_Parque,
+                                 Latitud_Parque=Latitud_Parque)
+      
+      saveRDS(Lubian_list, file = path_lubian)
+    }else{
+      print(paste0("Hoy ya se ha guardado este archivo: ",path_lubian))}
+    
+    #El Cerro 
+    Longitud_Parque=-3.64
+    Latitud_Parque=42.87
+    
+    path_ElCerro<- paste0(path1,"ElCerro/ElCerro_",nombres2[i],".RDS" )
+    
+    if(!file.exists(path_ElCerro)){
+      ElCerro_list<- Cortar_datos(list_hoy = list_RDS,
+                                  Longitud_Parque = Longitud_Parque,
+                                  Latitud_Parque=Latitud_Parque)
+      
+      saveRDS(ElCerro_list, file = path_ElCerro)
+    }else{
+      print(paste0("Hoy ya se ha guardado este archivo: ",path_ElCerro))}
+    
+    #La Sia
+    Longitud_Parque=-3.57
+    Latitud_Parque=43.14
+    
+    path_LaSia<- paste0(path1,"LaSia/LaSia_",nombres2[i],".RDS" )
+    
+    if(!file.exists(path_LaSia)){
+      LaSia_list<- Cortar_datos(list_hoy = list_RDS,
+                                Longitud_Parque = Longitud_Parque,
+                                Latitud_Parque=Latitud_Parque)
+      
+      saveRDS(LaSia_list, file = path_LaSia)
+    }else{
+      print(paste0("Hoy ya se ha guardado este archivo: ",path_LaSia))}
+    
+    
+    #La Belesar 
+    Longitud_Parque=-7.6854
+    Latitud_Parque=42.72343056 
+    
+    
+    
+    path_Belesar<- paste0(path1,"Belesar/Belesar_",nombres2[i],".RDS" )
+    
+    if(!file.exists(path_Belesar)){
+      Belesar_list<- Cortar_datos(list_hoy = list_RDS,
+                                  Longitud_Parque = Longitud_Parque,
+                                  Latitud_Parque=Latitud_Parque)
+      
+      saveRDS(Belesar_list, file = path_Belesar)
+    }else{
+      print(paste0("Hoy ya se ha guardado este archivo: ",path_Belesar))}
+    
+  }
+}
+
+Actualizar_Data_Parques_2(d01_files)
 
