@@ -241,3 +241,18 @@ names_loc<- names(Belesar_rain)
 
 Lista_total2<- lapply(Lista_total, function(x) names(x)<- names_fechas)
 names(Lista_total2)<- names_loc
+
+
+Lista_total1<- Lista_total
+
+Lista_total3<- list(Lista_total1[1:35],Lista_total)
+Lista_total3<- Lista_total
+Lista_total3[1:35]<- Lista_total1[1:35]
+
+names(Lista_total3)<- names_loc
+
+path_lista_total<- here::here('Data/Parques/Belesar/Historico/')
+nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar.RDS')
+nombre_lista2<- paste0(path_lista_total, 'Historico_WRF_Belesar_rdata.Rdata')
+saveRDS(Lista_total3, nombre_lista)
+save(Lista_total3, file=nombre_lista2)
