@@ -99,40 +99,44 @@ for (dirs in 1:length(dirs_wrf)) {
   
   path_check<- paste0(here::here('Data/Espana/'),folder_spain,"/")
   if(dir.exists(path_check)){
+    print(paste0(("Archivo ya almacenado: "),path_check ))
     
   }else{
-    if(length(netcdf_files_d2)==0){
-      netcdf_files2<- netcdf_files_d1
-      path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d01/")
+    if(length(netcdf_files_d2)==0 && length(netcdf_files_d1)==0){}else{
       
-      if(!dir.exists(path_espana)){
-        dir.create(paste0(here::here('Data/Espana/'),folder_spain, "/"))
-        dir.create(path_espana)}
-      
-      list_espana<- create_list_from_netcdf(netcdf_files = netcdf_files2)
-      
-      saveRDS(list_espana, file = paste0(path_espana,"Espana_",folder_spain,".RDS"))
-      
-      
-    }else{
-      netcdf_files2<- list(netcdf_files_d1, netcdf_files_d2)
-      names(netcdf_files2)<- c("dom1","dom2")
-      
-      for (dom in 1:2) {
-        
-        if(dom==1){path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d01/")
-        }else{path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d02/")}
+      if(length(netcdf_files_d2)==0){
+        netcdf_files2<- netcdf_files_d1
+        path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d01/")
         
         if(!dir.exists(path_espana)){
           dir.create(paste0(here::here('Data/Espana/'),folder_spain, "/"))
           dir.create(path_espana)}
         
-        list_espana<- create_list_from_netcdf(netcdf_files = netcdf_files2[[dom]])
+        list_espana<- create_list_from_netcdf(netcdf_files = netcdf_files2)
         
         saveRDS(list_espana, file = paste0(path_espana,"Espana_",folder_spain,".RDS"))
+        
+        
+      }else{
+        netcdf_files2<- list(netcdf_files_d1, netcdf_files_d2)
+        names(netcdf_files2)<- c("dom1","dom2")
+        
+        for (dom in 1:2) {
+          
+          if(dom==1){path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d01/")
+          }else{path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d02/")}
+          
+          if(!dir.exists(paste0(here::here('Data/Espana/'),folder_spain, "/"))){dir.create(paste0(here::here('Data/Espana/'),folder_spain, "/"))}
+          if(!dir.exists(path_espana)){dir.create(path_espana)}
+          
+          list_espana<- create_list_from_netcdf(netcdf_files = netcdf_files2[[dom]])
+          
+          saveRDS(list_espana, file = paste0(path_espana,"Espana_",folder_spain,".RDS"))
+        }
+        
       }
-      
     }
+    
     
     
   }
@@ -148,6 +152,14 @@ for (dirs in 1:length(dirs_wrf)) {
 
 
 
+
+
+x<- list.dirs(here::here('Data/Espana/'), recursive = T, full.names = T)
+unique(x)
+y<- list.files(here::here('Data/Espana/'), recursive = T, full.names = T)
+y1<- str_split(y,"/") %>% lapply(., function(x) x[1:(length(x)-1)]) %>%  sapply(., function(x) paste(x, collapse = "/"))
+y2<- unique(y1)
+carpetas_vacias<- x[x%in%y2]
 
 ##Construir historico WRF
 All_files_Spain<- list.files(here::here('Data/Espana/'), recursive = T, full.names = T)
@@ -236,4 +248,20 @@ Actualizar_Data_Parques_2<- function(RDS_Spain){
 }
 
 Actualizar_Data_Parques_2(d01_files)
+
+
+
+All_files_Belesar<- list.files(here::here('Data/Parques/Belesar/'), 
+                             recursive = F, full.names = T)
+RDS_Belesar<- All_files_Belesar[str_detect(All_files_Belesar), ".RDS"]
+
+Belesar_data<- readRDS(RDS_Belesar[1])
+Belesar_lolat<- lon_lat_df_ls(Belesar_data)
+Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
+Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data)
+
+
+
+
+
 
