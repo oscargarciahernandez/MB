@@ -6,6 +6,9 @@ source(here::here('libraries.R'))
 
 
 
+# Generar CSV's de todas las localizacones y puntos concretos -------------
+
+
 
 #Para generar todas los CSV's
 #lapply(Belesar_files2, Belesar_CSV_Generator)
@@ -55,9 +58,15 @@ Belesar_CSV_Generator_Point<- function(Belesar_ultimo, point){
 
 
 
-#Download data... con ejecutar de vez en cuanto tenemos... 
+
+# Descargar Data_ Internet ------------------------------------------------
+
+
 # Down_E001_Belesar()
 
+
+
+# Leer historico DHI ------------------------------------------------------
 
 
 
@@ -168,7 +177,7 @@ All_files_Spain<- list.files(here::here('Data/Espana/'),
 
 d01_files<- All_files_Spain[!str_detect(All_files_Spain, "/d02/")]
 RDS_files<- d01_files[str_detect(d01_files, ".RDS")]
-RDS_files1<- d01_files[!str_detect(d01_files, "/NA/")]
+RDS_files1<- RDS_files[!str_detect(RDS_files, "/NA/")]
 
 
 
@@ -184,10 +193,9 @@ Actualizar_Data_Parques_2(RDS_files1)
 
 All_files_Belesar<- list.files(here::here('Data/Parques/Belesar/'), 
                              recursive = F, full.names = T)
-RDS_Belesar<- All_files_Belesar[str_detect(All_files_Belesar), ".RDS"]
+RDS_Belesar<- All_files_Belesar[str_detect(All_files_Belesar, ".RDS")]
 
 RDS_Belesar1<- RDS_Belesar[!str_detect(RDS_Belesar, "E001")]
- 
 
 
 Belesar_data<- readRDS(RDS_Belesar1[1])
@@ -195,8 +203,41 @@ Belesar_lolat<- lon_lat_df_ls(Belesar_data)
 Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
 Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data)
 
+fecha_ini<- Belesar_rain$`-8.02328491210938__42.1343421936035`$fechas[1]
+
+Belesar_data<- readRDS(RDS_Belesar1[length(RDS_Belesar)])
+Belesar_lolat<- lon_lat_df_ls(Belesar_data)
+Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
+Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data)
+
+fecha_last<- Belesar_rain$`-8.02328491210938__42.1343421936035`$fechas[length(Belesar_rain$`-8.02328491210938__42.1343421936035`$fechas)]
+
+periodo_WRF<- seq(fecha_ini, fecha_last, by="hour")
+
+Tabla_WRF<- as.data.frame(matrix(ncol = 5, nrow = length(periodo_WRF)))
+colnames(Tabla_WRF)<- colnames(Belesar_rain[[1]])
+Tabla_WRF$fechas<- periodo_WRF
+
+Lista_total<- list()
+for (j in 1:length(Belesar_rain)) {
+  Lista_localizacion<- list() 
+  for (i in 1:length(RDS_Belesar)) {
+    Belesar_data<- readRDS(RDS_Belesar1[i])
+    Belesar_lolat<- lon_lat_df_ls(Belesar_data)
+    Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
+    Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data)
+    Lista_localizacion[[i]]<- Belesar_rain[[j]]
+  }
+  Lista_total[[j]]<- Lista_localizacion
+}
 
 
+names_fechas<- sapply(RDS_Belesar, function(x){
+  r<- str_split(x, "/")
+  return(r[length(r)])
+})
 
+names_loc<- names(Belesar_rain)
 
-
+Lista_total2<- lapply(Lista_total, function(x) names(x)<- names_fechas)
+names(Lista_total2)<- names_loc
