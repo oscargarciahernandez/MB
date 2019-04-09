@@ -2,10 +2,6 @@ library(here)
 source(here::here('libraries.R'))
 
 
-Belesar_files<- list.files(here::here('Data/Parques/Belesar'), full.names = T)
-Belesar_files1<- Belesar_files[!str_detect(Belesar_files, "E001")]
-Belesar_files2<- Belesar_files1[str_detect(Belesar_files1,".RDS")]
-Belesar_ultimo<- Belesar_files2[length(Belesar_files2)] 
 
 
 
@@ -63,7 +59,7 @@ Belesar_CSV_Generator_Point<- function(Belesar_ultimo, point){
 # Down_E001_Belesar()
 
 
-##Leer historico de Belesar... 
+
 
 historico<- read.csv(here::here('DHI_Datos Belesar.csv'), sep = ";")
 historico1<- historico[3:length(historico$X),]
@@ -80,7 +76,9 @@ historico1[,-1]<- as.numeric(as.character(historico1[,-1]))
 
 
 
-##Historico WRF 
+
+# Historico WRF -----------------------------------------------------------
+
 
 solo_fechas<- grepl("^[[:digit:]]+$",
                     list.dirs("/media/asus/Elements",
@@ -151,7 +149,7 @@ for (dirs in 1:length(dirs_wrf)) {
 }
 
 
-
+Actualizar_Historico_WRF_desdeElements()
 
 
 x<- list.dirs(here::here('Data/Espana/'), recursive = T, full.names = T)
@@ -161,93 +159,26 @@ y1<- str_split(y,"/") %>% lapply(., function(x) x[1:(length(x)-1)]) %>%  sapply(
 y2<- unique(y1)
 carpetas_vacias<- x[x%in%y2]
 
-##Construir historico WRF
-All_files_Spain<- list.files(here::here('Data/Espana/'), recursive = T, full.names = T)
+
+
+# Historico WRF de parques ------------------------------------------------
+All_files_Spain<- list.files(here::here('Data/Espana/'),
+                             recursive = T, 
+                             full.names = T)
+
 d01_files<- All_files_Spain[!str_detect(All_files_Spain, "/d02/")]
+RDS_files<- d01_files[str_detect(d01_files, ".RDS")]
+RDS_files1<- d01_files[!str_detect(d01_files, "/NA/")]
 
 
 
-Actualizar_Data_Parques_2<- function(RDS_Spain){
 
-  nombres<- sapply(str_split(RDS_Spain, "/"), function(x) x[length(x)]) 
-  nombres1<- str_remove(nombres, "Espana_")
-  nombres2<- str_remove(nombres1,".RDS")
-  
-  path1<-here::here('Data/Parques/')
-  
-  
-  for (i in 1:length(RDS_Spain)) {
-    
-    list_RDS<- readRDS(RDS_Spain[i])
-    
-    
-    #Lubian
-    Longitud_Parque=-6.84653
-    Latitud_Parque=42.04514
-    
-    path_lubian<- paste0(path1,"Lubian/Lubian_",nombres2[i],".RDS" )
-    
-    if(!file.exists(path_lubian)){
-      Lubian_list<- Cortar_datos(list_hoy = list_RDS,
-                                 Longitud_Parque = Longitud_Parque,
-                                 Latitud_Parque=Latitud_Parque)
-      
-      saveRDS(Lubian_list, file = path_lubian)
-    }else{
-      print(paste0("Hoy ya se ha guardado este archivo: ",path_lubian))}
-    
-    #El Cerro 
-    Longitud_Parque=-3.64
-    Latitud_Parque=42.87
-    
-    path_ElCerro<- paste0(path1,"ElCerro/ElCerro_",nombres2[i],".RDS" )
-    
-    if(!file.exists(path_ElCerro)){
-      ElCerro_list<- Cortar_datos(list_hoy = list_RDS,
-                                  Longitud_Parque = Longitud_Parque,
-                                  Latitud_Parque=Latitud_Parque)
-      
-      saveRDS(ElCerro_list, file = path_ElCerro)
-    }else{
-      print(paste0("Hoy ya se ha guardado este archivo: ",path_ElCerro))}
-    
-    #La Sia
-    Longitud_Parque=-3.57
-    Latitud_Parque=43.14
-    
-    path_LaSia<- paste0(path1,"LaSia/LaSia_",nombres2[i],".RDS" )
-    
-    if(!file.exists(path_LaSia)){
-      LaSia_list<- Cortar_datos(list_hoy = list_RDS,
-                                Longitud_Parque = Longitud_Parque,
-                                Latitud_Parque=Latitud_Parque)
-      
-      saveRDS(LaSia_list, file = path_LaSia)
-    }else{
-      print(paste0("Hoy ya se ha guardado este archivo: ",path_LaSia))}
-    
-    
-    #La Belesar 
-    Longitud_Parque=-7.6854
-    Latitud_Parque=42.72343056 
-    
-    
-    
-    path_Belesar<- paste0(path1,"Belesar/Belesar_",nombres2[i],".RDS" )
-    
-    if(!file.exists(path_Belesar)){
-      Belesar_list<- Cortar_datos(list_hoy = list_RDS,
-                                  Longitud_Parque = Longitud_Parque,
-                                  Latitud_Parque=Latitud_Parque)
-      
-      saveRDS(Belesar_list, file = path_Belesar)
-    }else{
-      print(paste0("Hoy ya se ha guardado este archivo: ",path_Belesar))}
-    
-  }
-}
 
-Actualizar_Data_Parques_2(d01_files)
+Actualizar_Data_Parques_2(RDS_files1)
+
+
+
+# Belesar. Construir historico --------------------------------------------
 
 
 
@@ -255,7 +186,11 @@ All_files_Belesar<- list.files(here::here('Data/Parques/Belesar/'),
                              recursive = F, full.names = T)
 RDS_Belesar<- All_files_Belesar[str_detect(All_files_Belesar), ".RDS"]
 
-Belesar_data<- readRDS(RDS_Belesar[1])
+RDS_Belesar1<- RDS_Belesar[!str_detect(RDS_Belesar, "E001")]
+ 
+
+
+Belesar_data<- readRDS(RDS_Belesar1[1])
 Belesar_lolat<- lon_lat_df_ls(Belesar_data)
 Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
 Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data)

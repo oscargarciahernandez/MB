@@ -1027,6 +1027,8 @@ Actualizar_Data_Parques_2<- function(RDS_Spain){
   }
 }
 
+
+
 # Carpetas necesarias -----------------------------------------------------
 
 if(!dir.exists(here::here('Data'))){dir.create(here::here('Data'))}

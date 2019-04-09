@@ -23,20 +23,20 @@ if(is.na(fecha_exe_modelo_spain)){print("Modelo España, sin ejecutar")}else{
     
     folder_spain<- str_remove_all(as.character(fecha_exe_modelo_spain),"-")
     path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/")
-    if(!dir.exists(path_espana)){dir.create(path_espana)}else{
+    if(!dir.exists(path_espana)){dir.create(path_espana)}
       
-      if(length(list.files(path_espana))>0){
-        
-        print(paste0("CSV's generados anteriormente en la carpeta", path_espana))        
-      }else{
-        
-        list_espana<- get_netcdf_list(netcdf_files = netcdf_files_spain)
-        saveRDS(list_espana, file = paste0(path_espana,"Espana_",folder_spain,".RDS"))
-        CSV_generator_Spain(list_espana, path_espana)
-        print(paste0("CSV's generados correctamente en la carpeta", path_espana))
-        
-      }
+    if(length(list.files(path_espana))>0){
+      
+      print(paste0("CSV's generados anteriormente en la carpeta", path_espana))        
+    }else{
+      
+      list_espana<- get_netcdf_list(netcdf_files = netcdf_files_spain)
+      saveRDS(list_espana, file = paste0(path_espana,"Espana_",folder_spain,".RDS"))
+      CSV_generator_Spain(list_espana, path_espana)
+      print(paste0("CSV's generados correctamente en la carpeta", path_espana))
+      
     }
+    
   }
 }
 
