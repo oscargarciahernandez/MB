@@ -75,3 +75,43 @@ colnames(historico1)<- col__names
 
 historico1$DATE<- dmy_hms(historico1$DATE)
 historico1[,-1]<- as.numeric(as.character(historico1[,-1]))
+
+
+
+
+
+##Historico WRF 
+
+solo_fechas<- grepl("^[[:digit:]]+$",list.dirs("/media/asus/Elements", recursive = F, full.names = F))
+dirs_wrf<- list.dirs("/media/asus/Elements", recursive = F)[solo_fechas]
+
+
+for (dirs in 1:length(dirs_wrf)) {
+  
+  netcdf_files<- list.files(dirs_wrf[dirs], full.names = T)
+  netcdf_files_d1<- netcdf_files[str_detect(netcdf_files, "wrfout_d01" )]
+  netcdf_files_d2<- netcdf_files[str_detect(netcdf_files, "wrfout_d02" )]
+  netcdf_files2<- list(netcdf_files_d1, netcdf_files_d2)
+  names(netcdf_files2)<- c("dom1","dom2")
+  
+  folder_name<- first_date(list.files(dirs_wrf[dirs]))
+  
+  for (dom in 1:2) {
+    folder_spain<- str_remove_all(as.character(folder_name),"-")
+    
+    if(dom==1){path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d01/")
+    }else{path_espana<- paste0(here::here('Data/Espana/'),folder_spain,"/d02/")}
+    
+    if(!dir.exists(path_espana)){
+      dir.create(paste0(here::here('Data/Espana/'),folder_spain, "/"))
+      dir.create(path_espana)}
+    
+    list_espana<- create_list_from_netcdf(netcdf_files = netcdf_files2[[dom]])
+    
+    saveRDS(list_espana, file = paste0(path_espana,"Espana_",folder_spain,".RDS"))
+  }
+  
+  
+  
+}
+
