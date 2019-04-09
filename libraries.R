@@ -69,6 +69,20 @@ get_netcdf_list<- function(netcdf_files){
     RAINNC<- var.get.nc(NC_prueba, "RAINNC", unpack = TRUE)
     #ACCUMULATED SHALLOW CUMULUS PRECIPITATION
     RAINSH<- var.get.nc(NC_prueba, "RAINSH", unpack = TRUE)
+    #"Period Maximum Total Precipitation Rate
+    #MAX_PRATE<- var.get.nc(NC_prueba, "MAX_PRATE", unpack = TRUE)   
+    #"Total Accumulated Precipitation
+    #TACC_PRECIP<- var.get.nc(NC_prueba, "TACC_PRECIP", unpack = TRUE)
+    #ACCUMULATED SHALLOW CUMULUS PRECIPITATION
+    #INST_PRATE<- var.get.nc(NC_prueba, "INST_PRATE", unpack = TRUE)
+    #Period Maximum Convective Precipitation Rate (RAINC)/DT
+    #MAX_CURATE<- var.get.nc(NC_prueba, "MAX_CURATE", unpack = TRUE)
+    #Period Maximum Freezing Rainfall Rate
+    #MAX_ZRATE<- var.get.nc(NC_prueba, "MAX_ZRATE", unpack = TRUE)
+    #Total Accumulated Rainfall
+    #TACC_RAIN<- var.get.nc(NC_prueba, "TACC_RAIN", unpack = TRUE)
+    
+   
     
     
     #ACCUMULATED SNOW
