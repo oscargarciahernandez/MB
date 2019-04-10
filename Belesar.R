@@ -424,7 +424,8 @@ for (j in 1:length(Belesar_Merge)) {
 names(Belesar_Merge_cc)<- names(Belesar_Merge)
 
 
-
+path_merge_cc<- here::here('Data/Parques/Belesar/Historico/Historico_Merged.RDS')
+saveRDS(Belesar_Merge_cc,path_merge_cc)
 
 
 
