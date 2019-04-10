@@ -1028,6 +1028,35 @@ Actualizar_Data_Parques_2<- function(RDS_Spain){
 }
 
 
+Return_periodo_Belesar<- function(){
+  All_files_Belesar<- list.files(here::here('Data/Parques/Belesar/'), 
+                                 recursive = F, full.names = T)
+  RDS_Belesar<- All_files_Belesar[str_detect(All_files_Belesar, ".RDS")]
+  
+  RDS_Belesar1<- RDS_Belesar[!str_detect(RDS_Belesar, "E001")]
+  
+  
+  Belesar_data<- readRDS(RDS_Belesar1[1])
+  Belesar_lolat<- lon_lat_df_ls(Belesar_data)
+  Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
+  Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data)
+  
+  fecha_ini<- Belesar_rain$`-8.02328491210938__42.1343421936035`$fechas[1]
+  
+  Belesar_data<- readRDS(RDS_Belesar1[length(RDS_Belesar)])
+  Belesar_lolat<- lon_lat_df_ls(Belesar_data)
+  Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
+  Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data)
+  
+  fecha_last<- Belesar_rain$`-8.02328491210938__42.1343421936035`$fechas[length(Belesar_rain$`-8.02328491210938__42.1343421936035`$fechas)]
+  
+  periodo_WRF<- seq(fecha_ini, fecha_last, by="hour")
+  
+  Tabla_WRF<- as.data.frame(matrix(ncol = 5, nrow = length(periodo_WRF)))
+  colnames(Tabla_WRF)<- colnames(Belesar_rain[[1]])
+  Tabla_WRF$fechas<- periodo_WRF
+  return(Tabla_WRF)
+}
 
 # Carpetas necesarias -----------------------------------------------------
 
