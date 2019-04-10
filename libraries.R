@@ -23,6 +23,8 @@ library(lubridate)
 library(request)
 library(XML)
 library(dplyr)
+library(TTR)
+library(data.table)
 
 
 

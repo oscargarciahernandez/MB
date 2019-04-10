@@ -352,21 +352,76 @@ for (i in 1:length(Hist_DHI$DATE)) {
 
 Hist_DHI$Qnet<- Hist_DHI$`APORTACION (m3/s)`-(Hist_DHI$`CAUDAL TURBINADO (m3/s)`+Hist_DHI$`Q. TURB. BCE. (m3/s)`)
 
-Acumulada_horaria<- Hist_DHI %>% group_by(yday(DATE), hour(DATE), year(DATE)) %>% 
+Acumulada_horaria<- Hist_DHI %>% group_by(round_date(DATE, "hour")) %>% 
   summarise(hourly_rainfall =sum(DESACUMULADA))
 
 Acum_hor<- Acumulada_horaria$hourly_rainfall
 
+
 hourly<- seq(min(Hist_DHI$DATE), max(Hist_DHI$DATE), by="hour")
 
 LLuvia_DHI<- as.data.frame(cbind(as.character(hourly), Acum_hor))
-
+LLuvia_DHI$V1<- ymd_hms(as.character(LLuvia_DHI$V1))
+LLuvia_DHI$Acum_hor<-as.numeric(as.character(LLuvia_DHI$Acum_hor))
+colnames(LLuvia_DHI)<- c("Date", "Rainfall[mm]")
 
 path_hist_LLuvia<- here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar_Lluvia.RDS')
 saveRDS(LLuvia_DHI,path_hist_LLuvia)
 
 # Juntar DHI y Belesar ----------------------------------------------------
 
+Belesar_WRF<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_WRF_Belesar.RDS'))
+Belesar_DHI<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar_Lluvia.RDS'))
+
+
+### Merge por dates... 2 metodos
+df1<- prueba
+df2<- Belesar_DHI
+colnames(df2)<- c("Date", "Real_RF")
+
+#data.table
+setDT(df1)
+setDT(df2)
+Merge_datatable<- df2[df1, on = c('Date')]
+
+#dplyr
+Merge_dplyr<- left_join(df1, df2, by=c("Date"))
+
+###usamos dplyr
+df2<- Belesar_DHI
+colnames(df2)<- c("Date", "Real_RF")
+
+Belesar_Merge<- list()
+for (j in 1:length(Belesar_WRF)) {
+  lista_retorno<- list()
+  for(i in 1:2){
+    df1<-  Belesar_WRF[[j]][[i]]
+    Merge_table<- left_join(df1, df2, by=c("Date"))
+    lista_retorno[[i]]<- Merge_table
+  }
+  names(lista_retorno)<- c("D1", "D2")
+  Belesar_Merge[[j]]<- lista_retorno 
+}
+names(Belesar_Merge)<- names(Belesar_WRF)
+
+
+
+#Belesar merge completecases
+Belesar_Merge_cc<- list()
+for (j in 1:length(Belesar_Merge)) {
+    lista_retorno<- list()
+  for(i in 1:2){
+    df1<-  Belesar_Merge[[j]][[i]]
+    df1$Acumulated<- NULL
+    Table_fine<- df1[complete.cases(df1),]
+    
+    colnames(Table_fine)<- c("Date", "LON","LAT", "WRF","Observada")
+    lista_retorno[[i]]<- Table_fine
+  }
+  names(lista_retorno)<- c("D1", "D2")
+  Belesar_Merge_cc[[j]]<- lista_retorno 
+}
+names(Belesar_Merge_cc)<- names(Belesar_Merge)
 
 
 
@@ -374,25 +429,89 @@ saveRDS(LLuvia_DHI,path_hist_LLuvia)
 
 
 
+# Ploteando cositas para sacar pistas -------------------------------------
+
+
+prueba<- Belesar_Merge_cc[[19]]$D2
+prueba_acum<- prueba %>% mutate(WRF_Acum= cumsum(WRF),
+                  Observada_Acum=cumsum(Observada))
+
+prueba_acum<- prueba_acum[year(prueba_acum$Date)==2019, ]
+
+
+
+wrf<- prueba_acum[,c("Date","WRF_Acum", "WRF")]
+obs<- prueba_acum[,c("Date","Observada_Acum", "Observada")]
+
+colnames(wrf)<- c("Date","acum","rain")
+colnames(obs)<- c("Date","acum","rain")
+
+
+data<-wrf
+data2<-obs
+
+plot_rain2(data,data2)
+
+for (i in 1:length(Belesar_Merge_cc)) {
+  prueba<- Belesar_Merge_cc[[i]]$D2
+  prueba_acum<- prueba %>% mutate(WRF_Acum= cumsum(WRF),
+                                  Observada_Acum=cumsum(Observada))
+  prueba_acum<- prueba_acum[prueba_acum$Date> ymd("2018/10/1"),]
+  wrf<- prueba_acum[,c("Date","WRF_Acum", "WRF")]
+  obs<- prueba_acum[,c("Date","Observada_Acum", "Observada")]
+  
+  colnames(wrf)<- c("Date","acum","rain")
+  colnames(obs)<- c("Date","acum","rain")
+  path_belesar<- here::here('graph/Belesar/')
+  
+  plot_rain2(wrf,obs)
+  ggsave(filename =paste0(path_belesar,"/",names(Belesar_Merge_cc)[i],"_D2.png"),
+         device = "png",
+         dpi=200,
+         width = 7,
+         height = 7,
+         units = "in")
+}
 
 
 
 
-k<- max(prueba$Acumulated)/max(prueba$`Rainfall[mm]`)
-ggplot(data=prueba, aes(x=Date))+
-  geom_bar(aes(y=`Rainfall[mm]`), stat="identity")+
-  xlab("Date")+ylab("Lluvia por hora [mm/h]")+theme(panel.background = element_blank(), 
-                                                    panel.grid = element_blank())+
-  geom_line(aes(y = Acumulated/k), group = 1, col="red") +
-  scale_y_continuous(sec.axis = sec_axis(trans = ~ . / (1/k), name = " LLuvia acumulada [mm]", 
-                                         breaks = seq(min(prueba$Acumulated),
-                                                      max(prueba$Acumulated),
-                                                      by=50)),
-                     breaks = seq(min(prueba$`Rainfall[mm]`),
-                                  max(prueba$`Rainfall[mm]`),
-                                  by=1))
 
 
+#Esta funcion necesita que data contenga acum, rain y Date
+plot_rain<- function(data){
+  k<- max(data$acum)/max(data$rain)
+  ggplot(data=data, aes(x=Date))+
+    geom_bar(aes(y=rain), stat="identity")+
+    xlab("Date")+ylab("Lluvia por hora [mm/h]")+theme(panel.background = element_blank(), 
+                                                      panel.grid = element_blank())+
+    geom_line(aes(y = acum/k), group = 1, col="red") +
+    scale_y_continuous(sec.axis = sec_axis(trans = ~ . / (1/k), name = " LLuvia acumulada [mm]", 
+                                           breaks = seq(min(data$acum),
+                                                        max(data$acum),
+                                                        by=50)),
+                       breaks = seq(min(data$rain),
+                                    max(data$rain),
+                                    by=1))
+  
+  
+}
+
+plot_rain2<- function(data,data2){
+  ggplot(data=data, aes(x=Date))+
+    geom_line(aes(y=rain), stat="identity")+
+    xlab("Date")+ylab("Lluvia por hora [mm/h]")+theme(panel.background = element_blank(), 
+                                                      panel.grid = element_blank()) +
+    geom_line(data= data2, aes(x=Date, y=rain), color="red", alpha=0.5)+
+    geom_text(aes(as.POSIXct(ymd("2019/02/01")),10, label=paste0("Cor: ",round(cor(data$rain,data2$rain), 
+                                                                        digits = 2))))
+
+}
+
+
+
+plot_rain(wrf)
+plot_rain(obs)
 
 
 
