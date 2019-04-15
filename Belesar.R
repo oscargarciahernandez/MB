@@ -217,29 +217,34 @@ for (j in 1:length(Belesar_rain)) {
 
 names_fechas<- sapply(RDS_Belesar, function(x){
   r<- str_split(x, "/")
-  return(r[length(r)])
+  return(r[[1]][length(r[[1]])])
 })
 
 names_loc<- names(Belesar_rain)
 
-Lista_total2<- lapply(Lista_total, function(x) names(x)<- names_fechas)
+names(Lista_total)<- names_loc
+Lista_total2<- lapply(Lista_total, 
+                      function(x){
+                        names(x)<- names_fechas
+                        return(x)
+                      } )
 names(Lista_total2)<- names_loc
 
-names(Lista_total2)<- names_loc
+
 
 path_lista_total<- here::here('Data/Parques/Belesar/Historico/')
 nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar_Variables.RDS')
-nombre_lista2<- paste0(path_lista_total, 'Historico_WRF_Belesar_rdata_BRUTO.Rdata')
+#nombre_lista2<- paste0(path_lista_total, 'Historico_WRF_Belesar_rdata_BRUTO.Rdata')
 saveRDS(Lista_total2, nombre_lista)
-save(Lista_total2, file=nombre_lista2)
+#save(Lista_total2, file=nombre_lista2)
 
 
 
 
 # Tratar Belesar ----------------------------------------------------------
-nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar_BRUTO.RDS')
-Lista_total<- readRDS(nombre_lista)
-Lista_total_MF<- lapply(Lista_total, function(x) bind_rows(x))
+nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar_Variables.RDS')
+Lista_total1<- readRDS(nombre_lista)
+Lista_total_MF<- lapply(Lista_total1, function(x) bind_rows(x))
 
 Lista_d1_d2_loc<- list()
 for (i in 1:length(Lista_total_MF)) {
@@ -259,8 +264,8 @@ for (i in 1:length(Lista_total_MF)) {
   d1_2$pre_acum<- NULL
   d2$pre_acum<- NULL
   
-  colnames(d1_2)<- c("Date", "LON", "LAT", "Rainfall[mm]")
-  colnames(d2)<- c("Date", "LON", "LAT", "Rainfall[mm]")
+  colnames(d1_2)<- c("Date", "LON", "LAT", "RAINC", "RAINNC","RAINSH", "T02_MEAN","PSFC","WS_MAX", "prep_hourly")
+  colnames(d2)<-  c("Date", "LON", "LAT", "RAINC", "RAINNC","RAINSH", "T02_MEAN","PSFC","WS_MAX", "prep_hourly")
   
   lista_loc_d12<- list(d1_2,d2)
   names(lista_loc_d12)<- c("D1", "D2")
@@ -272,7 +277,7 @@ names(Lista_d1_d2_loc)<- names(Lista_total_MF)
 
 
 Tabla_periodo1<- Return_periodo_Belesar()
-colnames(Tabla_periodo1)<- c("Date", "LON", "LAT", "Rainfall[mm]", "Acumulated")
+colnames(Tabla_periodo1)<- c("Date", "LON", "LAT", "RAINC", "RAINNC","RAINSH", "T02_MEAN","PSFC","WS_MAX", "prep_hourly")
 
 Lista_d1_d2_loc2<- list()
 for (j in 1:length(Lista_d1_d2_loc)) {
@@ -283,7 +288,13 @@ for (j in 1:length(Lista_d1_d2_loc)) {
     Tabla_periodo<- Tabla_periodo1
     Tabla_periodo$LON[match(prueba$Date,Tabla_periodo$Date)] <- prueba$LON
     Tabla_periodo$LAT[match(prueba$Date,Tabla_periodo$Date)] <- prueba$LAT
-    Tabla_periodo$`Rainfall[mm]`[match(prueba$Date,Tabla_periodo$Date)] <- prueba$`Rainfall[mm]`
+    Tabla_periodo$RAINC[match(prueba$Date,Tabla_periodo$Date)] <- prueba$RAINC
+    Tabla_periodo$RAINNC[match(prueba$Date,Tabla_periodo$Date)] <- prueba$RAINNC
+    Tabla_periodo$RAINSH[match(prueba$Date,Tabla_periodo$Date)] <- prueba$RAINSH
+    Tabla_periodo$T02_MEAN[match(prueba$Date,Tabla_periodo$Date)] <- prueba$T02_MEAN
+    Tabla_periodo$PSFC[match(prueba$Date,Tabla_periodo$Date)] <- prueba$PSFC
+    Tabla_periodo$WS_MAX[match(prueba$Date,Tabla_periodo$Date)] <- prueba$WS_MAX
+    Tabla_periodo$prep_hourly[match(prueba$Date,Tabla_periodo$Date)] <- prueba$prep_hourly
     lista_retorno[[i]]<- Tabla_periodo
   }
   names(lista_retorno)<- c("D1", "D2")
@@ -293,38 +304,20 @@ for (j in 1:length(Lista_d1_d2_loc)) {
 }
 names(Lista_d1_d2_loc2)<- names(Lista_d1_d2_loc)
 
-Lista_d1_d2_loc3<- list()
-for (i in 1:length(Lista_d1_d2_loc2)) {
+Lista_d1_d2_loc3<- lapply(Lista_d1_d2_loc2, function(x){
+  x[[1]]$RAINC<- NULL
+  x[[1]]$RAINNC<- NULL
+  x[[1]]$RAINSH<- NULL
+  x[[2]]$RAINC<- NULL
+  x[[2]]$RAINNC<- NULL
+  x[[2]]$RAINSH<- NULL
   
-  x_lista<- Lista_d1_d2_loc2[[i]]
-  
-  datos_erroneos<- which(x[[2]]$`Rainfall[mm]`<0)
-  if(length(datos_erroneos)==0){
-    x[[2]]<- x[[2]]%>%
-      mutate(., Acumulated=cumsum(`Rainfall[mm]`))
-    }else{
-    x_lista[[2]]<- x_lista[[2]][-which(x_lista[[2]]$`Rainfall[mm]`<0),]%>%
-      mutate(., Acumulated=cumsum(`Rainfall[mm]`))
-    }
-  
-  datos_erroneos<- which(x_lista[[1]]$`Rainfall[mm]`<0)
-  if(length(datos_erroneos)==0){
-    x_lista[[1]]<- x_lista[[1]]%>%
-      mutate(., Acumulated=cumsum(`Rainfall[mm]`))
-  }else{
-    x_lista[[1]]<- x_lista[[1]][-which(x_lista[[1]]$`Rainfall[mm]`<0),]%>%
-      mutate(., Acumulated=cumsum(`Rainfall[mm]`))
-  }
-  
-  Lista_d1_d2_loc3[[i]]<-  x_lista
-  
-  
-}
+  return(x)})
   
 names(Lista_d1_d2_loc3)<- names(Lista_d1_d2_loc2)
 
 
-path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Historico_WRF_Belesar.RDS')
+path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Historico_WRF_Belesar_Todas_Varibles.RDS')
 saveRDS(Lista_d1_d2_loc3,path_hist_WRF)
 
 
@@ -367,37 +360,13 @@ LLuvia_DHI$V1<- ymd_hms(as.character(LLuvia_DHI$V1))
 LLuvia_DHI$Acum_hor<-as.numeric(as.character(LLuvia_DHI$Acum_hor))
 colnames(LLuvia_DHI)<- c("Date", "Rainfall[mm]")
 
-
-tabla_nueva<- as.data.frame(matrix(ncol = ncol(Hist_DHI)))
-for (i in 1:length(hourly)) {
-  pos<- which(Hist_DHI$DATE==hourly[i])
-  if(length(pos)==0){
-    tabla_nueva[i,]<- rep(NA,9)
-  }else{tabla_nueva[i,]<- Hist_DHI[pos,]}
-  
-}
-colnames(tabla_nueva)<- colnames(Hist_DHI)
-
-
-Tabla_DHI<- as.data.frame(cbind(LLuvia_DHI[1:(length(LLuvia_DHI$Date)-1),], 
-                                tabla_nueva$`TEMPERATURA (ºC)`,
-                                tabla_nueva$`NIVEL EMBALSE (msnm)`,
-                                tabla_nueva$`APORTACION (m3/s)`,
-                                tabla_nueva$`CAUDAL TURBINADO (m3/s)`,
-                                tabla_nueva$`Q. TURB. BCE. (m3/s)`,
-                                tabla_nueva$Qnet))
-colnames(Tabla_DHI)<- c("Date", "Rainfall[mm]", "Temperatura[Celsius]", 
-                        "Nivel[msnm]","Aportacion[m³/s]","Turbinado[m³/s]",
-                        "Turbinado_BCE[m³/s]", "Qnet[m³/s]")
-
-
-path_hist_LLuvia<- here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar_Todas_Variables.RDS')
-saveRDS(Tabla_DHI,path_hist_LLuvia)
+path_hist_LLuvia<- here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar_Lluvia.RDS')
+saveRDS(LLuvia_DHI,path_hist_LLuvia)
 
 # Juntar DHI y Belesar ----------------------------------------------------
 
-Belesar_WRF<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_WRF_Belesar.RDS'))
-Belesar_DHI<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar_Lluvia.RDS'))
+Belesar_WRF<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_WRF_Belesar_Todas_Varibles.RDS'))
+Belesar_DHI<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar_Todas_Variables.RDS'))
 
 
 ### Merge por dates... 2 metodos
@@ -415,7 +384,6 @@ Merge_dplyr<- left_join(df1, df2, by=c("Date"))
 
 ###usamos dplyr
 df2<- Belesar_DHI
-colnames(df2)<- c("Date", "Real_RF")
 
 Belesar_Merge<- list()
 for (j in 1:length(Belesar_WRF)) {
@@ -440,8 +408,6 @@ for (j in 1:length(Belesar_Merge)) {
     df1<-  Belesar_Merge[[j]][[i]]
     df1$Acumulated<- NULL
     Table_fine<- df1[complete.cases(df1),]
-    
-    colnames(Table_fine)<- c("Date", "LON","LAT", "WRF","Observada")
     lista_retorno[[i]]<- Table_fine
   }
   names(lista_retorno)<- c("D1", "D2")
@@ -450,8 +416,13 @@ for (j in 1:length(Belesar_Merge)) {
 names(Belesar_Merge_cc)<- names(Belesar_Merge)
 
 
-path_merge_cc<- here::here('Data/Parques/Belesar/Historico/Historico_Merged.RDS')
+path_merge_cc<- here::here('Data/Parques/Belesar/Historico/Historico_Merged_TodasVariales.RDS')
 saveRDS(Belesar_Merge_cc,path_merge_cc)
+
+
+
+
+
 
 
 
