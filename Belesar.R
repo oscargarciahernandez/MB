@@ -495,6 +495,7 @@ plot_rain<- function(data){
   
 }
 
+#Plot_rain2 necesita columna Date y columna rain
 plot_rain2<- function(data,data2){
   ggplot(data=data, aes(x=Date))+
     geom_line(aes(y=rain), stat="identity")+

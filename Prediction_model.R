@@ -211,3 +211,146 @@ svm_tune <- tune(svm, `Rainfall[mm]` ~ prep_hourly,data = data_predict,
 
 best_mod <- svm_tune$best.model
 best_mod_pred <- predict(best_mod, data_predict2) 
+
+
+
+
+#Queremos representar obtener todas las correlaciones del rollo. 
+cut_train<- lapply(clean_data, function(x){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2018/10/01")
+    fecha_end<- ymd("2019/02/01")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+})
+cut_predict<- lapply(clean_data, function(x){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2019/02/01")
+    fecha_end<- ymd("2019/02/20")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+})
+lista_TL<- list()
+for (i in 1:length(cut_train)) {
+  lista_d1d2<- list()
+ for (j in 1:2) {
+   data_predict<- cut_train[[i]][[j]]
+   data_predict2<- cut_predict[[i]][[j]]
+   
+   fit_1  <- lm(`Rainfall[mm]` ~ prep_hourly, data = data_predict)
+   fit_2  <- lm(`Rainfall[mm]` ~ prep_hourly + T02_MEAN, data = data_predict)
+   fit_3  <- lm(`Rainfall[mm]` ~ prep_hourly + PSFC, data = data_predict)
+   fit_4  <- lm(`Rainfall[mm]` ~ prep_hourly + WS_MAX, data = data_predict)
+   fit_5  <- lm(`Rainfall[mm]` ~ prep_hourly * T02_MEAN, data = data_predict)
+   fit_6  <- lm(`Rainfall[mm]` ~ prep_hourly * PSFC, data = data_predict)
+   fit_7  <- lm(`Rainfall[mm]` ~ prep_hourly * WS_MAX, data = data_predict)
+   
+   uncorrected<-data_predict2$prep_hourly
+   prediction_rain<- predict(fit_1, data.frame(prep_hourly =data_predict2$prep_hourly))
+   prediction_rain2<- predict(fit_2, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                T02_MEAN =data_predict2$T02_MEAN))
+   prediction_rain3<- predict(fit_3, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                PSFC =data_predict2$PSFC))
+   prediction_rain4<- predict(fit_4, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                WS_MAX =data_predict2$WS_MAX))
+   prediction_rain5<- predict(fit_5, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                T02_MEAN =data_predict2$T02_MEAN))
+   prediction_rain6<- predict(fit_6, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                PSFC =data_predict2$PSFC))
+   prediction_rain7<- predict(fit_7, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                WS_MAX =data_predict2$WS_MAX))
+   
+   observed_rain<-data_predict2$`Rainfall[mm]`
+   
+   
+   
+   tabla_cor<-cbind(cor(uncorrected, observed_rain),
+                    cor(prediction_rain, observed_rain),
+                    cor(prediction_rain2, observed_rain),
+                    cor(prediction_rain3, observed_rain),
+                    cor(prediction_rain4, observed_rain),
+                    cor(prediction_rain5, observed_rain),
+                    cor(prediction_rain6, observed_rain),
+                    cor(prediction_rain7, observed_rain))
+   
+   fit_1  <- svm(`Rainfall[mm]` ~ prep_hourly, data = data_predict)
+   fit_2  <- svm(`Rainfall[mm]` ~ prep_hourly + T02_MEAN, data = data_predict)
+   fit_3  <- svm(`Rainfall[mm]` ~ prep_hourly + PSFC, data = data_predict)
+   fit_4  <- svm(`Rainfall[mm]` ~ prep_hourly + WS_MAX, data = data_predict)
+   fit_5  <- svm(`Rainfall[mm]` ~ prep_hourly * T02_MEAN, data = data_predict)
+   fit_6  <- svm(`Rainfall[mm]` ~ prep_hourly * PSFC, data = data_predict)
+   fit_7  <- svm(`Rainfall[mm]` ~ prep_hourly * WS_MAX, data = data_predict)
+   
+   uncorrected<-data_predict2$prep_hourly
+   prediction_rain<- predict(fit_1, data.frame(prep_hourly =data_predict2$prep_hourly))
+   prediction_rain2<- predict(fit_2, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                T02_MEAN =data_predict2$T02_MEAN))
+   prediction_rain3<- predict(fit_3, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                PSFC =data_predict2$PSFC))
+   prediction_rain4<- predict(fit_4, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                WS_MAX =data_predict2$WS_MAX))
+   prediction_rain5<- predict(fit_5, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                T02_MEAN =data_predict2$T02_MEAN))
+   prediction_rain6<- predict(fit_6, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                PSFC =data_predict2$PSFC))
+   prediction_rain7<- predict(fit_7, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                WS_MAX =data_predict2$WS_MAX))
+   
+   observed_rain<-data_predict2$`Rainfall[mm]`
+   
+   tabla_cor<-cbind(tabla_cor,
+                    cor(prediction_rain, observed_rain),
+                    cor(prediction_rain2, observed_rain),
+                    cor(prediction_rain3, observed_rain),
+                    cor(prediction_rain4, observed_rain),
+                    cor(prediction_rain5, observed_rain),
+                    cor(prediction_rain6, observed_rain),
+                    cor(prediction_rain7, observed_rain))
+   
+   colnames(tabla_cor)<- c("uncorrected", "1","2", "3","4","5","6","7",
+                           "svm1","svm2", "svm3","svm4","svm5","svm6","svm7")
+   lista_d1d2[[j]]<- tabla_cor
+ }
+  
+  names(lista_d1d2)<- c("D1", "D2")
+  lista_TL[[i]]<- lista_d1d2
+}
+
+
+colnames(tabla_cor)<- c("uncorrected", "1","2", "3","4","5","6","7",
+                        "svm1","svm2", "svm3","svm4","svm5","svm6","svm7")
+names(lista_d1d2)<- c("D1", "D2")
+
+
+Lista_TL_names<-lapply(lista_TL, function(x){
+  y<- lapply(x, function(r) {
+    r<- as.data.frame(r)
+    names(r)<- c("uncorrected", "1","2", "3","4","5","6","7",
+                 "svm1","svm2", "svm3","svm4","svm5","svm6","svm7")
+    return(r)
+  })
+  names(y)<- c("D1", "D2")
+  return(y)
+})
+names(Lista_TL_names)<- names(cut_predict)
+
+y<- lapply(Lista_TL_names, function(x){
+  x<- lapply(x, function(r) {bind_rows(r)})
+  return(x)
+  })
+
+lapply(y, function(x){
+  bind_rows(x, .id="id")
+})
+
+
+bind_rows(y)
+y[[1]]
