@@ -13,6 +13,8 @@ source(here::here('libraries.R'))
 #Para generar todas los CSV's
 #lapply(Belesar_files2, Belesar_CSV_Generator)
 
+Belesar_files<- list.files(here::here('Data/Parques/Belesar/'), full.names = T) %>% .[str_detect(., ".RDS")]
+Belesar_ultimo<- Belesar_files[length(Belesar_files)]
 ##Generar CSV Belesar
 Belesar_CSV_Generator(Belesar_ultimo)
 
@@ -206,7 +208,7 @@ for (j in 1:length(Belesar_rain)) {
     Belesar_data<- readRDS(RDS_Belesar1[i])
     Belesar_lolat<- lon_lat_df_ls(Belesar_data)
     Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
-    Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data)
+    Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data2)
     Lista_localizacion[[i]]<- Belesar_rain[[j]]
   }
   Lista_total[[j]]<- Lista_localizacion
@@ -226,7 +228,7 @@ names(Lista_total2)<- names_loc
 names(Lista_total2)<- names_loc
 
 path_lista_total<- here::here('Data/Parques/Belesar/Historico/')
-nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar_BRUTO.RDS')
+nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar_Variables.RDS')
 nombre_lista2<- paste0(path_lista_total, 'Historico_WRF_Belesar_rdata_BRUTO.Rdata')
 saveRDS(Lista_total2, nombre_lista)
 save(Lista_total2, file=nombre_lista2)
@@ -235,7 +237,7 @@ save(Lista_total2, file=nombre_lista2)
 
 
 # Tratar Belesar ----------------------------------------------------------
-nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar.RDS')
+nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar_BRUTO.RDS')
 Lista_total<- readRDS(nombre_lista)
 Lista_total_MF<- lapply(Lista_total, function(x) bind_rows(x))
 
@@ -365,8 +367,32 @@ LLuvia_DHI$V1<- ymd_hms(as.character(LLuvia_DHI$V1))
 LLuvia_DHI$Acum_hor<-as.numeric(as.character(LLuvia_DHI$Acum_hor))
 colnames(LLuvia_DHI)<- c("Date", "Rainfall[mm]")
 
-path_hist_LLuvia<- here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar_Lluvia.RDS')
-saveRDS(LLuvia_DHI,path_hist_LLuvia)
+
+tabla_nueva<- as.data.frame(matrix(ncol = ncol(Hist_DHI)))
+for (i in 1:length(hourly)) {
+  pos<- which(Hist_DHI$DATE==hourly[i])
+  if(length(pos)==0){
+    tabla_nueva[i,]<- rep(NA,9)
+  }else{tabla_nueva[i,]<- Hist_DHI[pos,]}
+  
+}
+colnames(tabla_nueva)<- colnames(Hist_DHI)
+
+
+Tabla_DHI<- as.data.frame(cbind(LLuvia_DHI[1:(length(LLuvia_DHI$Date)-1),], 
+                                tabla_nueva$`TEMPERATURA (ºC)`,
+                                tabla_nueva$`NIVEL EMBALSE (msnm)`,
+                                tabla_nueva$`APORTACION (m3/s)`,
+                                tabla_nueva$`CAUDAL TURBINADO (m3/s)`,
+                                tabla_nueva$`Q. TURB. BCE. (m3/s)`,
+                                tabla_nueva$Qnet))
+colnames(Tabla_DHI)<- c("Date", "Rainfall[mm]", "Temperatura[Celsius]", 
+                        "Nivel[msnm]","Aportacion[m³/s]","Turbinado[m³/s]",
+                        "Turbinado_BCE[m³/s]", "Qnet[m³/s]")
+
+
+path_hist_LLuvia<- here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar_Todas_Variables.RDS')
+saveRDS(Tabla_DHI,path_hist_LLuvia)
 
 # Juntar DHI y Belesar ----------------------------------------------------
 

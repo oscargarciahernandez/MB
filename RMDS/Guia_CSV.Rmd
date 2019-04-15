@@ -11,31 +11,46 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Intro
 
-Este documento es una guía para correr los scripts de R en orden para ir guardando los datos. Estos comandos hay que ejecutarlos en la consola de Rstudio quitando el símbolo "#". 
+Este documento es una guía para correr los scripts de R en orden para ir guardando los datos. Estos comandos hay que ejecutarlos en la consola de Rstudio. 
 
 # Crear los CSV's para El Mundo. 
 
 Una vez que el modelo haya acabado de Europa. Ejecutaremos:  **Europe_CSV_Generator.R**. 
 
-```{r echo=TRUE}
-# source('/home/asus/MB/Europe_CSV_Generator.R', echo=TRUE)
+```{}
+source('/home/asus/MB/Europe_CSV_Generator.R', echo=TRUE)
 ```
 
 Los CSV's se generaran en "/home/asus/MB/Data/Europa/**YYYYMMDD**/"
 
 Una vez que el modelo haya acabado de España.  Ejecutaremos:  **Spain_CSV_Generator.R**. 
 
-```{r echo=TRUE}
-# source('/home/asus/MB/Spain_CSV_Generator.R', echo=TRUE)
+```{}
+source('/home/asus/MB/Spain_CSV_Generator.R', echo=TRUE)
 ```
 
 Los CSV's se generaran en "/home/asus/MB/Data/Espana/**YYYYMMDD**/"
 
 
-# Generar los archivos pertinentes para las zonas acotadas 
+# Guardar datos parques
 
-Es interesante, una vez hayamos generado los CSV's de España,  generar los archivos.
+Es interesante, una vez hayamos generado los CSV's de España,  generar los archivos para los parques
 
-```{r echo=TRUE}
-# source('/home/asus/MB/Actualizar_data_parques.R', echo=TRUE)
+```{}
+source('/home/asus/MB/Actualizar_data_parques.R', echo=TRUE)
 ```
+
+
+# Generar CSV's Belesar 
+
+
+```{}
+source('/home/asus/MB/Belesar_CSV_generator.R', echo=TRUE)
+```
+
+
+Los CSV's se generaran en "/home/asus/MB/Data/Parques/Belesar/CSV/". Se crearan dos archivos: 
+
++ Belesar_YYYYMMDD_TL.CSV: CSV con todos los puntos cercanos a belesar
++ Belesar_YYYYMMDD_19.CSV: CSV con la lluvia del punto 19 (se podrá cambiar en el futuro el punto elegido)
+
