@@ -895,34 +895,43 @@ pred2<- cut_predict$`-8.02328491210938__42.1343421936035`$D1
 
 
 #### construyo entrenamiento.... 
-date_antes<- "2018/12/26"
+date_antes<- "2018/12/29"
 aport<- pred1$`Aportacion[m³/s]`[pred1$Date< ymd(date_antes)]
 prep<- pred1$prep_hourly[abs(length(aport)-length(pred1$prep_hourly)-1):length(pred1$Date)]
 aport_actual<- pred1$`Aportacion[m³/s]`[abs(length(aport)-length(pred1$prep_hourly)-1):length(pred1$Date)]
+nivel_actual<- pred1$`Nivel[msnm]`[abs(length(aport)-length(pred1$prep_hourly)-1):length(pred1$Date)]
 
-data_predict_cut<- as.data.frame(cbind(aport, prep, aport_actual))
+data_predict_cut<- as.data.frame(cbind(aport,
+                                       prep, 
+                                       aport_actual, 
+                                       nivel_actual))
+
 ###### construir el de test
 range(pred2$Date)
 aport_test<- pred1$`Aportacion[m³/s]`[pred1$Date> ymd(date_antes)]
 prep_test<- pred2$prep_hourly[1:length(aport_test)]
-aport_actual_test<- pred1$`Aportacion[m³/s]`[1:length(aport_test)]
+aport_actual_test<- pred2$`Aportacion[m³/s]`[1:length(aport_test)]
+nivel_actual_test<- pred1$`Nivel[msnm]`[pred1$Date> ymd(date_antes)]
 
-data_test_cut<- as.data.frame(cbind(aport_test, prep_test, aport_actual_test))
+
+data_test_cut<- as.data.frame(cbind(aport_test, prep_test, aport_actual_test, nivel_actual_test))
 
 
-fit_1  <- lm(aport_actual~ prep * aport , data = data_predict_cut)
-fit_2  <- svm(aport_actual~ prep * aport , data = data_predict_cut)
+fit_1  <- lm(SMA(aport_actual,24)~ prep * aport * nivel_actual , data = data_predict_cut)
+fit_2  <- svm(SMA(aport_actual,24)~ prep * nivel_actual * aport , data = data_predict_cut)
 
 prediction_rain_lm<- predict(fit_1, data.frame(prep=data_test_cut$prep_test,
-                                               aport=data_test_cut$aport_test))
+                                               aport=data_test_cut$aport_test,
+                                               nivel_actual=data_test_cut$nivel_actual_test))
 prediction_rain_svm<- predict(fit_2, data.frame(prep =data_test_cut$prep_test,
-                                               aport=data_test_cut$aport_test))
+                                               aport=data_test_cut$aport_test,
+                                               nivel_actual=data_test_cut$nivel_actual_test))
 
 
 cor(data_test_cut$aport_actual_test, prediction_rain_lm)
 cor(data_test_cut$aport_actual_test, prediction_rain_svm)
 
-plot(data_test_cut$aport_actual_test, type = "l", ylim = c(0,120))
+plot(SMA(data_test_cut$aport_actual_test, 12)*1.4, type = "l", ylim = c(0,120))
 lines(prediction_rain_lm, col="red")
 lines(data_test_cut$prep_test, col="green")
 lines(prediction_rain_svm, col="blue")
