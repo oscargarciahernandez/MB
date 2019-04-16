@@ -25,6 +25,9 @@ library(XML)
 library(dplyr)
 library(TTR)
 library(data.table)
+library(GGally)
+library(e1071)
+library(geosphere)
 
 
 

@@ -22,7 +22,7 @@ Belesar_CSV_Generator<- function(Belesar_ultimo){
   nombre2<- nombre1[[1]][length(nombre1[[1]])]
   nombre3<- str_remove(nombre2 ,".RDS")
   
-  path_nombre<-paste0(path,nombre3,"_TL.CSV")
+  path_nombre<-paste0(path,nombre3,"_GRID.CSV")
   
   
   write.table(tabla_precip, path_nombre, 
