@@ -1,7 +1,6 @@
 library(outliers)
 library(imputeTS)
 DHI<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar.RDS'))
-View(DHI)
 
 
 DHI$`APORTACION (m3/s)`[which(DHI$`APORTACION (m3/s)`<0)]<- NA 
@@ -68,8 +67,7 @@ ccf_belesar$lag[which.max(ccf_belesar$acf)]
 
 DHI$`LLUVIA ACUMULADA DÍA (l/m2)`<- lead(DHI$`LLUVIA ACUMULADA DÍA (l/m2)`)
 
-DHI<- DHI %>% group_by(as.Date(DATE)) %>% mutate(desacumulada= c(`LLUVIA ACUMULADA DÍA (l/m2)`[1],
-                                                                 diff(`LLUVIA ACUMULADA DÍA (l/m2)`)))
+Prueba_desacumular<- DHI %>% group_by(yday(DATE), year(DATE)) %>% summarize(oye= sum(diff(`LLUVIA ACUMULADA DÍA (l/m2)`)))
 
 
 
