@@ -394,24 +394,16 @@ $(document).ready(function () {
 <pre><code>source('/home/asus/MB/Spain_CSV_Generator.R', echo=TRUE)</code></pre>
 <p>Los CSV’s se generaran en “/home/asus/MB/Data/Espana/<strong>YYYYMMDD</strong>/”</p>
 </div>
-<div id="guardar-datos-parques" class="section level1">
-<h1>Guardar datos parques</h1>
-<p>Es interesante, una vez hayamos generado los CSV’s de España, generar los archivos para los parques</p>
-<pre><code>source('/home/asus/MB/Actualizar_data_parques.R', echo=TRUE)</code></pre>
-</div>
-<div id="generar-csvs-belesar" class="section level1">
-<h1>Generar CSV’s Belesar</h1>
-<pre><code>source('/home/asus/MB/Belesar_CSV_generator.R', echo=TRUE)</code></pre>
-<p>Los CSV’s se generaran en “/home/asus/MB/Data/Parques/Belesar/CSV/”. Se crearan dos archivos:</p>
+<div id="hacer-csvs-de-todos-los-parques." class="section level1">
+<h1>Hacer CSV’s de todos los PARQUES.</h1>
+<p>EJECUTANDO ESTE SCRIPT TAMBIEN SE CREAN LOS CSV’S DE ESPAÑA SI NO LOS HABÍAMOS HECHO ANTES.</p>
+<pre><code>source('/home/asus/MB/CSV_Generators.R', echo=TRUE)</code></pre>
+<p>Los CSV’s para belesar se generaran en “/home/asus/MB/Data/Parques/Belesar/CSV/”. Se crearan dos archivos:</p>
 <ul>
 <li>Belesar_YYYYMMDD_TL.CSV: CSV con todos los puntos cercanos a belesar</li>
 <li>Belesar_YYYYMMDD_19.CSV: CSV con la lluvia del punto 19 (se podrá cambiar en el futuro el punto elegido)</li>
 </ul>
-</div>
-<div id="generar-csvs-parques-eolicos." class="section level1">
-<h1>Generar CSV’s Parques eólicos.</h1>
-<pre><code>source('/home/asus/MB/CSV_Generator_VientoMAX.R', echo=TRUE)</code></pre>
-<p>Se crean CSV’s para cada localización:</p>
+<p>Se crean CSV’s para los parques eólicos se guardan dentro de la carpeta de cada localización:</p>
 <ul>
 <li>El Cerro: /home/asus/MB/Data/Parques/ElCerro/CSV/<strong>ElCerroYYYYMMDD.CSV</strong></li>
 <li>La Sia: /home/asus/MB/Data/Parques/LaSia/CSV/<strong>LaSiaYYYYMMDD.CSV</strong></li>

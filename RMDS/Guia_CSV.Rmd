@@ -32,37 +32,22 @@ source('/home/asus/MB/Spain_CSV_Generator.R', echo=TRUE)
 Los CSV's se generaran en "/home/asus/MB/Data/Espana/**YYYYMMDD**/"
 
 
-# Guardar datos parques
+# Hacer CSV's de todos los PARQUES. 
 
-Es interesante, una vez hayamos generado los CSV's de España,  generar los archivos para los parques
-
-```{}
-source('/home/asus/MB/Actualizar_data_parques.R', echo=TRUE)
-```
-
-
-# Generar CSV's Belesar 
-
+EJECUTANDO ESTE SCRIPT TAMBIEN SE CREAN LOS CSV'S DE ESPAÑA SI NO LOS HABÍAMOS HECHO ANTES. 
 
 ```{}
-source('/home/asus/MB/Belesar_CSV_generator.R', echo=TRUE)
+source('/home/asus/MB/CSV_Generators.R', echo=TRUE)
 ```
 
-
-Los CSV's se generaran en "/home/asus/MB/Data/Parques/Belesar/CSV/". Se crearan dos archivos: 
+Los CSV's para belesar se generaran en "/home/asus/MB/Data/Parques/Belesar/CSV/". Se crearan dos archivos: 
 
 + Belesar_YYYYMMDD_TL.CSV: CSV con todos los puntos cercanos a belesar
 + Belesar_YYYYMMDD_19.CSV: CSV con la lluvia del punto 19 (se podrá cambiar en el futuro el punto elegido)
 
 
-# Generar CSV's Parques eólicos. 
 
-```{}
-source('/home/asus/MB/CSV_Generator_VientoMAX.R', echo=TRUE)
-```
-
-
-Se crean CSV's para cada localización:
+Se crean CSV's para los parques eólicos se guardan dentro de la carpeta de cada localización:
 
 + El Cerro: /home/asus/MB/Data/Parques/ElCerro/CSV/**ElCerroYYYYMMDD.CSV**
 + La Sia: /home/asus/MB/Data/Parques/LaSia/CSV/**LaSiaYYYYMMDD.CSV**

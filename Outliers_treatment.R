@@ -63,13 +63,13 @@ ccf_belesar$lag[which.max(ccf_belesar$acf)]
 
 
 
-##Pasamos a a la Lluvia
+##Pasamos a tratar la Lluvia
 #ojito con la utilidad del comando lag y el comando lead
 
 DHI$`LLUVIA ACUMULADA DÍA (l/m2)`<- lead(DHI$`LLUVIA ACUMULADA DÍA (l/m2)`)
 
 DHI<- DHI %>% group_by(as.Date(DATE)) %>% mutate(desacumulada= c(`LLUVIA ACUMULADA DÍA (l/m2)`[1],
-                                                                          diff(`LLUVIA ACUMULADA DÍA (l/m2)`)))
+                                                                 diff(`LLUVIA ACUMULADA DÍA (l/m2)`)))
 
 
 
@@ -87,16 +87,25 @@ Lluvia_acum_horaria$V1<- ymd_hms(Lluvia_acum_horaria$V1)
 colnames(Lluvia_acum_horaria)<- c("Date", "Lluvia_mm")
 
 
+#Añadimos la aportación y el resto de variables
+x<- 96
+aportacion_SMA<- SMA(DHI$`APORTACION (m3/s)`,x)
+nivel_SMA<- SMA(DHI$`NIVEL EMBALSE (msnm)`, x)
+
+aportacion_horaria<- aportacion_SMA[DHI$DATE%in%acum_diaria]
+nivel_horario<- nivel_SMA[DHI$DATE%in%acum_diaria]
+
+
+Tabla_DHI<- as.data.frame(cbind(Lluvia_acum_horaria, 
+                                aportacion_horaria[2:length(aportacion_horaria)],
+                                nivel_horario[2:length(nivel_horario)]))
 
 
 
+colnames(Tabla_DHI)<- c("Date", "Lluvia_mm", "Aportacion_m3_s", "Nivel_msnm")
 
 
-
-
-
-
-
+View(Tabla_DHI)
 
 outlierKD <- function(dt, var) {
   var_name <- eval(substitute(var),eval(dt))
