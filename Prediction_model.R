@@ -636,9 +636,16 @@ cor_table<- as.data.frame(cbind(cor_table, vec_dist))
 
 
 # DHI histórico para hacer un daily average.  -----------------------------
-
+library(outliers)
+library(impute)
 DHI<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar_Todas_Variables.RDS'))
 View(DHI)
+
+DHI$`Aportacion[m³/s]`[which(DHI$`Aportacion[m³/s]`< 0 )]<- NA
+DHI$`Aportacion[m³/s]`[which(DHI$`Aportacion[m³/s]`==outlier(DHI$`Aportacion[m³/s]`))]<- NA
+prueba<-DHI$`Aportacion[m³/s]`
+
+na.interpolation(DHI$`Aportacion[m³/s]`)
 
 DHI_2018<- DHI[which(year(DHI$Date)==2018), ]
 V<- yday(DHI_2018$Date)
