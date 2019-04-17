@@ -1,5 +1,5 @@
 ---
-title: "Guía R para leer salidas WRF"
+title: "Guía Scripts R"
 author: "Óscar García Hernández"
 date: "3 de abril de 2019"
 output: html_document
@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Intro
 
-Este documento es una guía para correr los scripts de R en orden para ir guardando los datos. Estos comandos hay que ejecutarlos en la consola de Rstudio. 
+Este documento es una guía para correr los scripts de R en orden para ir guardando los datos una vez el modelo WRF haya acabado. Estos comandos hay que ejecutarlos en la consola de Rstudio. 
 
 # Crear los CSV's para El Mundo. 
 
@@ -54,3 +54,18 @@ Los CSV's se generaran en "/home/asus/MB/Data/Parques/Belesar/CSV/". Se crearan 
 + Belesar_YYYYMMDD_TL.CSV: CSV con todos los puntos cercanos a belesar
 + Belesar_YYYYMMDD_19.CSV: CSV con la lluvia del punto 19 (se podrá cambiar en el futuro el punto elegido)
 
+
+# Generar CSV's Parques eólicos. 
+
+```{}
+source('/home/asus/MB/CSV_Generator_VientoMAX.R', echo=TRUE)
+```
+
+
+Se crean CSV's para cada localización:
+
++ El Cerro: /home/asus/MB/Data/Parques/ElCerro/CSV/**ElCerroYYYYMMDD.CSV**
++ La Sia: /home/asus/MB/Data/Parques/LaSia/CSV/**LaSiaYYYYMMDD.CSV**
++ Lubian: /home/asus/MB/Data/Parques/Lubian/CSV/**LubianYYYYMMDD.CSV**
+
+De momento estos CSV's son de todas las localizaciones. 

@@ -1,0 +1,208 @@
+---
+title: "Predictive model"
+author: "Óscar García Hernández"
+date: "17/4/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Indroducción
+
+En el presente documento se pretende ir comentando los pasos que se están siguiendo para conseguir predecir la cantidad de agua que llegará a la presa de belesar. Para ello se cuenta con la predicción meteorológica que diariamente se realiza con WRF.
+
+# Datos
+
+Para la elaboracion del modelo predictivo se cuenta con un Histórico de datos 15 minutales aportados por la presa de Belesar en la que se aportan datos como Aportación, Nivel del embalse, Caudal turbinado, lluvia y algunas otras variables. 
+
+```{r}
+DHI<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar.RDS'))
+
+head(DHI)
+```
+
+
+## Outliers
+
+Uno de los problemas que nos encontramos a la hora de tratar los datos es la presencia de valores atípicos o "outliers". modo de ejemplo podemos observar el siguiente gráfico de la aportación... donde se aprecia un valor negativo enorme y erróneo sin ninguna duda. 
+
+```{r}
+plot(DHI$`APORTACION (m3/s)`,
+     xlab = "Date",
+     ylab= "Aportacion [m³/s]",
+     type = "l")
+```
+
+
+Investigando sobre la mejor manera de eliminar outliers encontre una función hecha por un fanático. que funciona de la siguiente manera y la verdad que me gusta. 
+
+```{r}
+
+
+outlierKD <- function(dt, var) {
+  var_name <- eval(substitute(var),eval(dt))
+  tot <- sum(!is.na(var_name))
+  na1 <- sum(is.na(var_name))
+  m1 <- mean(var_name, na.rm = T)
+  par(mar = rep(2, 4))
+  par(mfrow=c(2, 2), oma=c(0,0,3,0))
+  boxplot(var_name, main="With outliers")
+  hist(var_name, main="With outliers", xlab=NA, ylab=NA)
+  outlier <- boxplot.stats(var_name)$out
+  mo <- mean(outlier)
+  var_name <- ifelse(var_name %in% outlier, NA, var_name)
+  boxplot(var_name, main="Without outliers")
+  hist(var_name, main="Without outliers", xlab=NA, ylab=NA)
+  title("Outlier Check", outer=TRUE)
+  na2 <- sum(is.na(var_name))
+  message("Outliers identified: ", na2 - na1, " from ", tot, " observations")
+  message("Proportion (%) of outliers: ", (na2 - na1) / tot*100)
+  message("Mean of the outliers: ", mo)
+  m2 <- mean(var_name, na.rm = T)
+  message("Mean without removing outliers: ", m1)
+  message("Mean if we remove outliers: ", m2)
+  
+    dt[as.character(substitute(var))] <- invisible(var_name)
+    assign(as.character(as.list(match.call())$dt), dt, envir = .GlobalEnv)
+    message("Outliers successfully removed", "\n")
+    return(invisible(dt))
+   
+}
+
+```
+
+Eliminamos valores negativos y pasamos el filtro para outliers. 
+
+```{r}
+DHI$`APORTACION (m3/s)`[which(DHI$`APORTACION (m3/s)`<0)]<- NA 
+
+outlierKD(DHI,`APORTACION (m3/s)`)
+```
+```{r}
+plot(DHI$`APORTACION (m3/s)`,
+     xlab = "Date",
+     ylab= "Aportacion [m³/s]",
+     type = "l")
+```
+```{r}
+outlierKD(DHI,`APORTACION (m3/s)`)
+
+
+```
+```{r}
+plot(DHI$`APORTACION (m3/s)`,
+     xlab = "Date",
+     ylab= "Aportacion [m³/s]",
+     type = "l")
+
+```
+
+```{r}
+outlierKD(DHI,`APORTACION (m3/s)`)
+
+
+```
+```{r}
+plot(DHI$`APORTACION (m3/s)`,
+     xlab = "Date",
+     ylab= "Aportacion [m³/s]",
+     type = "l")
+```
+
+Aplicando esta funcion a los datos de aportación vemos como se han eliminado  valores... pero observando los datos... nos damos cuenta de que nuestros datos siguen teniendo demasiado "ruido".  Antes de proseguir hay que rellenar los huecos que hemos ido generando. 
+
+## Rellenando huecos
+Tras hacer la limpieza de los datos, se han generado gran cantidad de NA's dentro de nuestro dataset.
+```{r}
+sum(is.na(DHI$`APORTACION (m3/s)`))
+```
+
+
+A continuación añadimos datos interpolando. Con el paquete **imputeTS** se puede añadir los datos que faltan interpolando de maneras diferentes: 
+
++ linear (por defecto)
++ spline
++ stine 
+
+```{r}
+library(imputeTS)
+
+#Rellenamos Huecos
+DHI$`APORTACION (m3/s)`<-  na.interpolation(DHI$`APORTACION (m3/s)`)
+
+
+#Comprobamos
+sum(is.na(DHI$`APORTACION (m3/s)`))
+```
+
+
+Para eliminarlo aplicamos una moving averagel. Tenemos en cuenta de que tenemos un total de 96 datos diarios. probamos la Moving Average para varios valores.
+```{r}
+library(TTR)
+
+for(n in c(1,seq(48,192,length.out = 4))){
+  Mavg<- SMA(DHI$`APORTACION (m3/s)`, n) 
+  
+  plot(DHI$DATE, Mavg,
+       xlab = "Date",
+       ylab= "Aportacion [m³/s]", 
+       type = "l",
+       main = paste0("Aportación en Belesar. MA= ", n))
+}
+
+```
+
+
+
+Se puede apreciar como de este mode se elimina bastante ruido de la señal de aportación. Pero no sé hasta que punto estamos respetando los datos... Para continuar se decide que **utilizaremos una Moving Average con 96 puntos(cantidad de datos generados en 1 dia)**... que sería algo parecido a una media diaria (aunque no es lo mismo). 
+
+### Limpiando datos de nivel del embalse
+
+Tras ejecutar la funcion en buscar de outliers vemos que no hay que en este dataset hay menos datos erroneos. 
+
+```{r}
+outlierKD(DHI,`NIVEL EMBALSE (msnm)`)
+DHI$`NIVEL EMBALSE (msnm)`<-  na.interpolation(DHI$`NIVEL EMBALSE (msnm)`)
+```
+
+
+# Correlación entre la aportacion y la variacion del nivel. 
+
+A continuación comprobaremos la correlacion que existe entre la aportacion y la variacion del nivel de la presa de Belesar. 
+
+
+```{r}
+x<- 96
+aportacion_SMA<- SMA(DHI$`APORTACION (m3/s)`,x)
+nivel_SMA<- SMA(c(0,diff(DHI$`NIVEL EMBALSE (msnm)`)*8000+150), x)
+
+aportacion_SMA<- aportacion_SMA[!is.na(aportacion_SMA)]
+nivel_SMA<- nivel_SMA[!is.na(nivel_SMA)]
+
+
+plot(aportacion_SMA,type = "l",
+     xlab =" " ,ylab = "",xaxt= 'n',yaxt='n',
+     main=paste0("Variacion del nivel y aportacion\n Correlación de: ", 
+                 round(cor(aportacion_SMA, nivel_SMA), 3)))
+lines(nivel_SMA, col = "red")
+```
+
+Otro análisis previo que se puede hacer es el de la crosscorrelation... para observar con que desfase se obtiene la mejor correlation. Esto es super útil para analizar correlacione de variables que estan desfasadas en el tiempo. 
+
+```{r}
+ccf_belesar<- ccf(aportacion_SMA, nivel_SMA, lag.max = 5000)
+```
+
+```{r}
+#Máxima correlación
+max(ccf_belesar$acf)
+
+
+#Con cuanto desfase se produce la máxima correlación. 
+ccf_belesar$lag[which.max(ccf_belesar$acf)]
+```
+
+De esta manera podemos darnos cuenta de que estas variables obtienen la mejor correlacion (0.58) para un retraso en la aportación de 44 valores, teniendo en cuenta que nuestro dataset es de datos 15 minutales esto supone  11 horas, es decir, **los datos de aportación influyen en el nivel de la presa con un retardo de medio día.** 

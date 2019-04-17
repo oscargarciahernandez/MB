@@ -63,7 +63,7 @@ CSV_Generator_VientoMAX<- function(RDS_parque){
               row.names = F,
               col.names = F,
               quote = F)
-
+  
 }
 
 ElCerro<- list.files(here::here('Data/Parques/ElCerro/'), full.names = T) %>% .[str_detect(., ".RDS")]
@@ -77,6 +77,6 @@ CSV_Generator_VientoMAX(Lubian_ultimo)
 
 
 LaSia<- list.files(here::here('Data/Parques/LaSia/'), full.names = T) %>% .[str_detect(., ".RDS")]
-LaSia_ultimo<- ElCerro[length(LaSia)]
+LaSia_ultimo<- LaSia[length(LaSia)]
 CSV_Generator_VientoMAX(LaSia_ultimo)
 
