@@ -205,3 +205,109 @@ ccf_belesar$lag[which.max(ccf_belesar$acf)]
 ```
 
 De esta manera podemos darnos cuenta de que estas variables obtienen la mejor correlacion (0.58) para un retraso en la aportación de 44 valores, teniendo en cuenta que nuestro dataset es de datos 15 minutales esto supone  11 horas, es decir, **los datos de aportación influyen en el nivel de la presa con un retardo de medio día.** 
+
+
+A continuación construiremos una tabla con las variables aportacion y nivel obtenidas por diferentes métodos:
+
++ Haciendo SMA sobre el dataset completo
++ Haciendo medias horarias
++ Haciendo SMA sobre las medias horarias 
+
+```{r}
+#Retrasamos hacia detrás todos los datos de lluvia porque la acumulada de toda la hora la suma en la hora siguiente....
+DHI$`LLUVIA ACUMULADA DÍA (l/m2)`<- lead(DHI$`LLUVIA ACUMULADA DÃA (l/m2)`)
+
+Desacumular_lluvia<- DHI %>% group_by(yday(DATE), year(DATE)) %>% mutate(desacumulada= c(0,diff(`LLUVIA ACUMULADA DÍA (l/m2)`)),
+                                                                         lluvia=na.interpolation(ifelse(desacumulada>=0, desacumulada, NA)))
+
+
+Medias_horarias<- as.data.frame(Desacumular_lluvia) %>% group_by(hour(DATE), yday(DATE), year(DATE))  %>% 
+  summarize(., Acum_horaria=sum(lluvia, na.rm = T),
+            aport_mean=mean(`APORTACION (m3/s)`, na.rm = T),
+            nivel_mean=mean(`NIVEL EMBALSE (msnm)`, na.rm = T))
+
+vector_Date<- seq(range(DHI$DATE)[1],range(DHI$DATE)[2],
+                  by="hour")
+
+Lluvia_acum_horaria<- as.data.frame(cbind(as.character(vector_Date[2:length(vector_Date)]), 
+                                          Medias_horarias[,4:6]))
+
+
+
+Lluvia_acum_horaria$`as.character(vector_Date[2:length(vector_Date)])`<- ymd_hms(Lluvia_acum_horaria$`as.character(vector_Date[2:length(vector_Date)])`)
+
+
+colnames(Lluvia_acum_horaria)<- c("Date", "Lluvia_mm", "aport_mean", "nivel_mean")
+
+
+```
+
+Añadimos ahora los SMA's de todo el dataset y el SMA sobre la media horaria. P
+```{r}
+
+#se selecciona 96 porque es la cantidad de datos que corresponden a 1 día. 
+x<- 96
+aportacion_SMA<- SMA(DHI$`APORTACION (m3/s)`,x)
+nivel_SMA<- SMA(DHI$`NIVEL EMBALSE (msnm)`, x)
+
+aportacion_horaria<- aportacion_SMA[DHI$DATE%in%acum_diaria]
+nivel_horario<- nivel_SMA[DHI$DATE%in%acum_diaria]
+
+#○Se ponen 5 días porque  se obtienen las mejoras correlaciones de esta manera
+y<- 24*5
+aportacion_mean_SMA<- SMA(prueba$aport_mean,y)
+nivel_mean_SMA<- SMA(prueba$nivel_mean,y)
+plot(aportacion_mean_SMA)
+
+
+
+Tabla_DHI<- as.data.frame(cbind(Lluvia_acum_horaria, 
+                                aportacion_horaria[2:length(aportacion_horaria)],
+                                nivel_horario[2:length(nivel_horario)], 
+                                aportacion_mean_SMA,
+                                nivel_mean_SMA))
+
+
+
+colnames(Tabla_DHI)<- c(names(Lluvia_acum_horaria), "aport_SMA", "nivel_SMA", "aport_mean_SMA",  "nivel_mean_SMA")
+Tabla_DHI<- Tabla_DHI[complete.cases(Tabla_DHI),]
+
+```
+
+
+Comprobacoin de máxima correlacion desplazada para diferentes valores de SMA. 
+
+```{r}
+for (n in 1:14) {
+  y<- 24*n
+  aportacion_mean_SMA<- SMA(prueba$aport_mean,y)
+  nivel_mean_SMA<- SMA(prueba$nivel_mean,y)
+  
+  
+  
+  Tabla_DHI<- as.data.frame(cbind(Lluvia_acum_horaria, 
+                                  aportacion_horaria[2:length(aportacion_horaria)],
+                                  nivel_horario[2:length(nivel_horario)], 
+                                  aportacion_mean_SMA,
+                                  nivel_mean_SMA))
+  
+  
+  
+  colnames(Tabla_DHI)<- c(names(Lluvia_acum_horaria), "aport_SMA", "nivel_SMA", "aport_mean_SMA",  "nivel_mean_SMA")
+  Tabla_DHI<- Tabla_DHI[complete.cases(Tabla_DHI),]
+  
+  cor(Tabla_DHI$aport_mean_SMA[rango],
+      Tabla_DHI$nivel_mean_SMA[rango])
+  
+  
+  
+  ccf_aport_mean<- ccf(Tabla_DHI$aport_mean_SMA[rango],
+                       Tabla_DHI$nivel_mean_SMA[rango], lag.max = 1000)
+  
+  print(paste0("Máxima correlacion de ", str(max(ccf_aport_mean$acf)) , " .Para un desfase de: "),
+        str(ccf_aport_mean$lag[which.max(ccf_aport_mean$acf)]/24), " días")
+ 
+}
+
+```
+
