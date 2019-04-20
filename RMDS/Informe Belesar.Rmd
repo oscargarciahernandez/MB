@@ -32,8 +32,7 @@ Uno de los problemas que nos encontramos a la hora de tratar los datos es la pre
 ```{r}
 plot(DHI$`APORTACION (m3/s)`,
      xlab = "Date",
-     ylab= "Aportacion [m³/s]",
-     type = "l")
+     ylab= "Aportacion [m³/s]")
 ```
 
 
