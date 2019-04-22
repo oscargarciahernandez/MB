@@ -201,47 +201,44 @@ RDS_Belesar<- All_files_Belesar[str_detect(All_files_Belesar, ".RDS")]
 
 RDS_Belesar1<- RDS_Belesar[!str_detect(RDS_Belesar, "E001")]
 
-Lista_total<- list()
-for (j in 1:length(Belesar_rain)) {
-  Lista_localizacion<- list() 
-  for (i in 1:length(RDS_Belesar)) {
-    Belesar_data<- readRDS(RDS_Belesar1[i])
-    Belesar_lolat<- lon_lat_df_ls(Belesar_data)
-    Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
-    Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data2)
-    Lista_localizacion[[i]]<- Belesar_rain[[j]]
-  }
-  Lista_total[[j]]<- Lista_localizacion
+Lista_localizacion<- list() 
+for (i in 1:length(RDS_Belesar1)) {
+  Belesar_data<- readRDS(RDS_Belesar1[i])
+  Belesar_lolat<- lon_lat_df_ls(Belesar_data)
+  Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
+  Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data2)
+  Lista_localizacion[[i]]<- Belesar_rain
 }
 
 
-names_fechas<- sapply(RDS_Belesar, function(x){
+
+names_fechas<- sapply(RDS_Belesar1, function(x){
   r<- str_split(x, "/")
-  return(r[[1]][length(r[[1]])])
+  return(str_remove(str_remove(r[[1]][length(r[[1]])], ".RDS"), "Belesar_"))
 })
 
-names_loc<- names(Belesar_rain)
+names(Lista_localizacion)<- names_fechas
 
-names(Lista_total)<- names_loc
-Lista_total2<- lapply(Lista_total, 
-                      function(x){
-                        names(x)<- names_fechas
-                        return(x)
-                      } )
-names(Lista_total2)<- names_loc
+Lista_localizacion2<- list()
+for (i in 1:length(Lista_localizacion[[1]])) {
+  Lista_localizacion2[[i]]<- lapply(Lista_localizacion, 
+                               function(x) return(x[[i]]))
+}
 
-
+names(Lista_localizacion2)<- names(Lista_localizacion[[1]])
 
 path_lista_total<- here::here('Data/Parques/Belesar/Historico/')
 nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar_Variables.RDS')
 #nombre_lista2<- paste0(path_lista_total, 'Historico_WRF_Belesar_rdata_BRUTO.Rdata')
-saveRDS(Lista_total2, nombre_lista)
+saveRDS(Lista_localizacion2, nombre_lista)
 #save(Lista_total2, file=nombre_lista2)
 
 
 
 
 # Tratar Belesar ----------------------------------------------------------
+path_lista_total<- here::here('Data/Parques/Belesar/Historico/')
+
 nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar_Variables.RDS')
 Lista_total1<- readRDS(nombre_lista)
 Lista_total_MF<- lapply(Lista_total1, function(x) bind_rows(x))
@@ -317,7 +314,7 @@ Lista_d1_d2_loc3<- lapply(Lista_d1_d2_loc2, function(x){
 names(Lista_d1_d2_loc3)<- names(Lista_d1_d2_loc2)
 
 
-path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Historico_WRF_Belesar_Todas_Varibles.RDS')
+path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Historico_WRF_Belesar_Variables_D1D2.RDS')
 saveRDS(Lista_d1_d2_loc3,path_hist_WRF)
 
 
