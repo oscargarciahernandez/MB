@@ -1105,6 +1105,41 @@ saveRDS(Belesar_Merge_cc,path_hist_WRF)
 
 
 ```{r}
+#importar
+path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
+clean_data<- readRDS(path_hist_WRF)
+
+
+#cortar en entrenamiento y predicción
+cut_train<- lapply(clean_data, function(x){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2018/10/01")
+    fecha_end<- ymd("2019/02/01")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+})
+cut_predict<- lapply(clean_data, function(x){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2019/02/01")
+    fecha_end<- ymd("2019/02/20")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+})
+
+```
+
+<br />
+<br />
+
+```{r}
 lista_TL<- list()
 for (i in 1:length(cut_train)) {
   lista_d1d2<- list()
