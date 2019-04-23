@@ -1216,11 +1216,11 @@ cut_predict<- lapply(clean_data_dec, function(x){
   return(y)
 })
 
+
 cut_predict<- lapply(cut_predict, function(x){
   y<- lapply(x, function(r){
     r$aport_SMA1<- lead(r$aport_SMA, SMA_n)
     r<- r[complete.cases(r),]
-    r<- r[1:SMA_n, ]
     print(range(r$Date))
     return(r)
   })
@@ -1235,9 +1235,9 @@ if(method_max==TRUE){
 }
 
 
-fit_1  <- lm(aport_mean_SMA  ~ prep_hourly , data = data_predict)
-fit_2  <- lm(aport_mean_SMA  ~ prep_hourly + aport_SMA1, data = data_predict)
-fit_3  <- lm(aport_mean_SMA  ~ prep_hourly * aport_SMA1, data = data_predict)
+fit_1  <- svm(aport_mean_SMA  ~ prep_hourly , data = data_predict)
+fit_2  <- lm(aport_mean_SMA  ~ a*(prep_hourly + b*aport_SMA1), data = data_predict, )
+fit_3  <- svm(aport_mean_SMA  ~ prep_hourly * aport_SMA1, data = data_predict)
 
 
 uncorrected<-data_predict2$prep_hourly
@@ -1424,11 +1424,37 @@ name_max<- paste0(LON,"__",LAT)
 
 
 
+
+
+SMA_n<- 48
+
+cut_train<- lapply(clean_data_dec, function(x){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2018/12/01")
+    fecha_end<- ymd("2019/01/25")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+})
+cut_train<- lapply(cut_train, function(x){
+  y<- lapply(x, function(r){
+    
+    r$nivel_mean_SMA1<- lead(r$nivel_mean_SMA, SMA_n)
+    r$prep_hourly1<- lead(r$prep_hourly, SMA_n/2)
+    
+    r<- r[complete.cases(r),]
+    return(r)
+  })
+})
+  
 cut_predict<- lapply(clean_data_dec, function(x){
   y<- lapply(x, function(r){
     
     fecha_ini<- ymd("2019/01/26")
-    fecha_end<- ymd("2019/02/20")
+    fecha_end<- ymd("2019/02/25")
     Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
     return(Jan_data)
     
@@ -1439,8 +1465,8 @@ cut_predict<- lapply(clean_data_dec, function(x){
 cut_predict<- lapply(cut_predict, function(x){
   y<- lapply(x, function(r){
     r$nivel_mean_SMA1<- lead(r$nivel_mean_SMA, SMA_n)
+    r$prep_hourly1<- lead(r$prep_hourly, SMA_n/2)
     r<- r[complete.cases(r),]
-    r<- r[1:SMA_n, ]
     print(range(r$Date))
     return(r)
   })
@@ -1455,20 +1481,22 @@ if(method_max==TRUE){
 }
 
 
-fit_1  <- lm(nivel_mean_SMA  ~ prep_hourly , data = data_predict)
-fit_2  <- lm(nivel_mean_SMA  ~ prep_hourly + nivel_mean_SMA1, data = data_predict)
-fit_3  <- lm(nivel_mean_SMA  ~ prep_hourly * nivel_mean_SMA1, data = data_predict)
+fit_1  <- svm(nivel_mean_SMA  ~ prep_hourly , data = data_predict)
+fit_2  <- svm(nivel_mean_SMA  ~ prep_hourly + nivel_mean_SMA1 + prep_hourly1, data = data_predict)
+fit_3  <- svm(nivel_mean_SMA  ~ prep_hourly * nivel_mean_SMA1 + prep_hourly1, data = data_predict)
 
 
 uncorrected<-data_predict2$prep_hourly
 prediction_rain<- predict(fit_1, data.frame(prep_hourly =data_predict2$prep_hourly))
 prediction_rain2<- predict(fit_2, data.frame(prep_hourly =data_predict2$prep_hourly,
-                                             nivel_mean_SMA1 =data_predict2$nivel_mean_SMA1))
+                                             nivel_mean_SMA1 =data_predict2$nivel_mean_SMA1,
+                                             prep_hourly1=data_predict2$prep_hourly1))
 
 prediction_rain3<- predict(fit_3, data.frame(prep_hourly =data_predict2$prep_hourly,
-                                             nivel_mean_SMA1 =data_predict2$1))
+                                             nivel_mean_SMA1 =data_predict2$nivel_mean_SMA1,
+                                             prep_hourly1=data_predict2$prep_hourly1))
 
-observed_rain<-data_predict2$ 
+observed_rain<-data_predict2$nivel_mean_SMA
 
 
 tabla_plot<-as.data.frame( cbind(data_predict2$Date,
@@ -1492,6 +1520,7 @@ ggplot(data=tabla_plot, aes(x=Date))+
 
 
 
+fit_3$coefficients
 
 
 
