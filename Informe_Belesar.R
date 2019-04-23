@@ -385,7 +385,7 @@ print(paste0("Máxima correlacion de ",
 
 path_dataDHI <- here::here('Data/Parques/Belesar/Historico/DHI_historico_afinado.RDS')
 
-saveRDS(Tabla_DHI,path_dataDHI)
+#sRDS(Tabla_DHI,path_dataDHI)
 
 
 
@@ -432,7 +432,7 @@ names(Lista_localizacion2)<- names(Lista_localizacion[[1]])
 #Guardamos la lista
 path_lista_total<- here::here('Data/Parques/Belesar/Historico/')
 nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar_Variables.RDS')
-saveRDS(Lista_localizacion2, nombre_lista)
+#sRDS(Lista_localizacion2, nombre_lista)
 
 #Cargamos lista
 path_lista_total<- here::here('Data/Parques/Belesar/Historico/')
@@ -517,7 +517,7 @@ names(Lista_d1_d2_loc3)<- names(Lista_d1_d2_loc2)
 
 #Guardamos
 path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Historico_WRF_Belesar_Variables_D1D2.RDS')
-saveRDS(Lista_d1_d2_loc3,path_hist_WRF)
+#saveRDS(Lista_d1_d2_loc3,path_hist_WRF)
 
 
 
@@ -565,12 +565,49 @@ names(Belesar_Merge_cc)<- names(Belesar_Merge)
 
 #Guardamos
 path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
-saveRDS(Belesar_Merge_cc,path_hist_WRF)
+#saveRDS(Belesar_Merge_cc,path_hist_WRF)
 
 
 
 
 ## Probamos diferentes regresiones lineales
+
+
+
+#importar
+path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
+clean_data<- readRDS(path_hist_WRF)
+
+
+#cortar en entrenamiento y predicción
+cut_train<- lapply(clean_data, function(x){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2018/10/01")
+    fecha_end<- ymd("2019/02/01")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+})
+cut_predict<- lapply(clean_data, function(x){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2019/02/01")
+    fecha_end<- ymd("2019/02/20")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+})
+
+
+
+
+
+
 lista_TL<- list()
 for (i in 1:length(cut_train)) {
   lista_d1d2<- list()
@@ -719,6 +756,522 @@ vec_dist<- round(vec_dist/1000, digits = 1)
 
 cor_table<- as.data.frame(cbind(cor_table, vec_dist))
 
+cor_table$LON<-round(as.numeric(cor_table$LON), digits = 2)
+cor_table$LAT<-round(as.numeric(cor_table$LAT), digits = 2)
+cor_table$Corr<-round(as.numeric(cor_table$Corr), digits = 3)
+
+cor_table
+
+clean_data_oct<-lapply(clean_data, function(x){
+  y<- lapply(x, function(r) r[which(r$Date > ymd("2018/10/01")),])
+})
+
+
+
+#Plot_rain2 necesita columna Date y columna rain
+plot_rain3<- function(data,data2, titulo){
+  ggplot(data=data, aes(x=Date))+
+    geom_line(aes(y=rain), stat="identity")+
+    xlab("Date")+ylab("Lluvia por hora [mm/h]")+theme(panel.background = element_blank(), 
+                                                      panel.grid = element_blank()) +
+    geom_line(data= data2, aes(x=Date, y=rain), color="red", alpha=0.5)+
+    geom_text(aes(as.POSIXct(ymd("2019/02/01")),10, label=paste0("Cor: ",round(cor(data$rain,data2$rain), 
+                                                                               digits = 2)))) +
+    ggtitle(titulo)
+  
+}
+
+
+for (i in 1:length(clean_data_oct)) {
+  data1<- as.data.frame(cbind(as.character(clean_data_oct[[i]][[1]]$Date),
+                              clean_data_oct[[i]][[1]]$prep_hourly))
+  
+  names(data1)<- c("Date", "rain")
+  data1$Date<- ymd_hms(data1$Date)
+  data1$rain<- as.numeric(as.character(data1$rain))
+  
+  
+  
+  data2<- as.data.frame(cbind(as.character(clean_data_oct[[i]][[1]]$Date),
+                              clean_data_oct[[i]][[1]]$Lluvia_mm))
+  
+  names(data2)<- c("Date", "rain")
+  data2$Date<- ymd_hms(data2$Date)
+  data2$rain<- as.numeric(as.character(data2$rain))
+  
+  
+  plot_rain3(data = data1 ,
+             data2 = data2,
+             titulo = paste(str_split(names(clean_data_oct)[i], "_")[[1]], collapse = " "))
+  
+  
+  
+  
+  
+}
+
+Cor_rain_place<- data.frame(matrix(ncol = 4))
+colnames(Cor_rain_place)<- c("LON", "LAT", "Corr", "Dist")
+for (i in 1:length(clean_data_oct)) {
+  Corr<- cor(clean_data_oct[[i]][[1]]$prep_hourly, 
+      clean_data_oct[[i]][[1]]$Lluvia_mm)
+  LON<- as.numeric(str_split(names(clean_data_oct)[i], "_")[[1]][1])
+  LAT<- as.numeric(str_split(names(clean_data_oct)[i], "_")[[1]][3])
+  Dist<- distm(c(-7.713948, 42.628577), 
+                      c(as.numeric(LON),
+                        as.numeric(LAT)),
+                      fun = distHaversine)
+  Cor_rain_place[i,]<- as.data.frame(cbind(LON, LAT, Corr, Dist))
+  
+  
+}
+
+Cor_order<- Cor_rain_place[order(Cor_rain_place$Corr, decreasing = T),]
+
+
+
+clean_data_jan<-lapply(clean_data_oct, function(x){
+  y<- lapply(x, function(r) r[which(r$Date > ymd("2019/01/01")),])
+})
+
+for (i in 1:length(clean_data_jan)) {
+  data1<- as.data.frame(cbind(as.character(clean_data_jan[[i]][[1]]$Date),
+                              clean_data_jan[[i]][[1]]$prep_hourly))
+  
+  names(data1)<- c("Date", "rain")
+  data1$Date<- ymd_hms(data1$Date)
+  data1$rain<- as.numeric(as.character(data1$rain))
+  
+  
+  
+  data2<- as.data.frame(cbind(as.character(clean_data_jan[[i]][[1]]$Date),
+                              clean_data_jan[[i]][[1]]$Lluvia_mm))
+  
+  names(data2)<- c("Date", "rain")
+  data2$Date<- ymd_hms(data2$Date)
+  data2$rain<- as.numeric(as.character(data2$rain))
+  
+  
+  x<- plot_rain3(data = data1 ,
+             data2 = data2,
+             titulo = paste(str_split(names(clean_data_jan)[i], "_")[[1]], collapse = " "))
+  
+  print(x)
+  
+  
+  
+}
+
+
+clean_data_jan<-lapply(clean_data_oct, function(x){
+  y<- lapply(x, function(r) r[which(r$Date > ymd("2019/01/01")),])
+})
+Cor_rain_place<- data.frame(matrix(ncol = 4))
+colnames(Cor_rain_place)<- c("LON", "LAT", "Corr", "Dist")
+for (i in 1:length(clean_data_jan)) {
+  Corr<- cor(clean_data_jan[[i]][[1]]$prep_hourly, 
+             clean_data_jan[[i]][[1]]$Lluvia_mm)
+  LON<- as.numeric(str_split(names(clean_data_jan)[i], "_")[[1]][1])
+  LAT<- as.numeric(str_split(names(clean_data_jan)[i], "_")[[1]][3])
+  Dist<- distm(c(-7.713948, 42.628577), 
+               c(as.numeric(LON),
+                 as.numeric(LAT)),
+               fun = distHaversine)
+  Cor_rain_place[i,]<- as.data.frame(cbind(LON, LAT, Corr, Dist))
+  
+  
+}
+
+Cor_order<- Cor_rain_place[order(Cor_rain_place$Corr, decreasing = T),]
+
+
+### Correlación data desde diciembre
+clean_data_dec<-lapply(clean_data, function(x){
+  y<- lapply(x, function(r) r[which(r$Date > ymd("2018/12/01")),])
+})
+Daiyli_avgs<- lapply(clean_data_dec, function(x){
+  x[[1]] %>% group_by(year(Date), yday(Date)) %>%  
+    summarize(rWRF_acum= sum(prep_hourly),
+              rDHI_acum= sum(Lluvia_mm),
+              rWRF_mean= sum(prep_hourly),
+              rDHI_mean= sum(Lluvia_mm),
+              aport_SMA_diario=mean(aport_SMA),
+              aport_mean_diario=mean(aport_mean),
+              aport_mean_SMA_diario=mean(aport_mean_SMA),
+              nivel_SMA_diario=mean(nivel_SMA),
+              nivel_mean_diario=mean(nivel_mean),
+              nivel_mean_SMA_diario=mean(nivel_mean_SMA))
+
+  
+  })
+
+Daiyli_avgs2<- lapply(Daiyli_avgs, function(x){
+  
+  x$Date<- ymd(ifelse(x$`year(Date)`==2018,
+                      as.character(as.Date(x$`yday(Date)`, origin= "2018-01-01")),
+                      as.character(as.Date(x$`yday(Date)`, origin= "2019-01-01"))))
+  x$`year(Date)`<- NULL
+  x$`yday(Date)`<- NULL
+  return(x)
+})
+
+Cor_rain_place<- data.frame(matrix(ncol = 11))
+for (i in 1:length(Daiyli_avgs2)) {
+  Corr1<- cor(Daiyli_avgs2[[i]]$rWRF_acum, 
+             Daiyli_avgs2[[i]]$aport_SMA_diario)
+  Corr2<- cor(Daiyli_avgs2[[i]]$rWRF_acum, 
+              Daiyli_avgs2[[i]]$aport_mean_diario)
+  Corr3<- cor(Daiyli_avgs2[[i]]$rWRF_acum, 
+              Daiyli_avgs2[[i]]$aport_mean_SMA_diario)
+  Corr4<- cor(Daiyli_avgs2[[i]]$rWRF_acum, 
+              Daiyli_avgs2[[i]]$rDHI_acum)
+  
+  Corr5<- cor(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$aport_SMA_diario)
+  Corr6<- cor(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$aport_mean_diario)
+  Corr7<- cor(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$aport_mean_SMA_diario)
+  Corr8<- cor(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$rDHI_mean)
+  
+  LON<- as.numeric(str_split(names(Daiyli_avgs2)[i], "_")[[1]][1])
+  LAT<- as.numeric(str_split(names(Daiyli_avgs2)[i], "_")[[1]][3])
+  Dist<- distm(c(-7.713948, 42.628577), 
+               c(as.numeric(LON),
+                 as.numeric(LAT)),
+               fun = distHaversine)
+  Cor_rain_place[i,]<- as.data.frame(cbind(LON, LAT, Corr1,
+                                           Corr2,Corr3,Corr4,Corr5,
+                                           Corr6,Corr7,Corr8, Dist))
+  
+  
+}
+
+colnames(Cor_rain_place)<- c("LON","LAT","AWRF_aport1","AWRF_aport2", "AWRF_aport3","AWRF_ADHI",
+         "MWRF_aport1","MWRF_aport2", "MWRF_aport3","MWRF_MDHI","Dist")
+
+
+
+Cor_rain_place_ccf<- data.frame(matrix(ncol = 11))
+for (i in 1:length(Daiyli_avgs2)) {
+  ccfr1<- ccf(Daiyli_avgs2[[i]]$rWRF_acum, 
+              Daiyli_avgs2[[i]]$aport_SMA_diario)
+  ccfr2<- ccf(Daiyli_avgs2[[i]]$rWRF_acum, 
+              Daiyli_avgs2[[i]]$aport_mean_diario)
+  ccfr3<- ccf(Daiyli_avgs2[[i]]$rWRF_acum, 
+              Daiyli_avgs2[[i]]$aport_mean_SMA_diario)
+  ccfr4<- ccf(Daiyli_avgs2[[i]]$rWRF_acum, 
+              Daiyli_avgs2[[i]]$rDHI_acum)
+  
+  ccfr5<- ccf(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$aport_SMA_diario)
+  ccfr6<- ccf(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$aport_mean_diario)
+  ccfr7<- ccf(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$aport_mean_SMA_diario)
+  ccfr8<- ccf(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$rDHI_mean)
+  
+  LON<- as.numeric(str_split(names(Daiyli_avgs2)[i], "_")[[1]][1])
+  LAT<- as.numeric(str_split(names(Daiyli_avgs2)[i], "_")[[1]][3])
+  Dist<- distm(c(-7.713948, 42.628577), 
+               c(as.numeric(LON),
+                 as.numeric(LAT)),
+               fun = distHaversine)
+  Cor_rain_place_ccf[i,]<- as.data.frame(cbind(LON, LAT, max(ccfr1$acf),
+                                           max(ccfr2$acf),max(ccfr3$acf),max(ccfr4$acf),max(ccfr5$acf),
+                                           max(ccfr6$acf),max(ccfr7$acf),max(ccfr8$acf), Dist))
+  
+  print(paste("Mejor corr para un retardo de: ", 
+              ccfr1$lag[which.max(ccfr1$acf)],
+              ccfr2$lag[which.max(ccfr2$acf)],
+              ccfr3$lag[which.max(ccfr3$acf)],
+              ccfr4$lag[which.max(ccfr4$acf)],
+              ccfr5$lag[which.max(ccfr5$acf)],
+              ccfr6$lag[which.max(ccfr6$acf)],
+              ccfr7$lag[which.max(ccfr7$acf)],
+              ccfr8$lag[which.max(ccfr8$acf)], sep = " "))
+  
+}
+
+colnames(Cor_rain_place_ccf)<-  c("LON","LAT","AWRF_aport1","AWRF_aport2", "AWRF_aport3","AWRF_ADHI",
+                                  "MWRF_aport1","MWRF_aport2", "MWRF_aport3","MWRF_MDHI","Dist")
+
+
+View(Cor_rain_place_ccf[order(as.numeric(Cor_rain_place_ccf$Dist)),])
+
+
+
+
+Cor_rain_place_ccf<- data.frame(matrix(ncol = 11))
+for (i in 1:length(Daiyli_avgs2)) {
+  ccfr1<- ccf(Daiyli_avgs2[[i]]$rWRF_acum, 
+              Daiyli_avgs2[[i]]$aport_SMA_diario, plot = FALSE)
+  ccfr2<- ccf(Daiyli_avgs2[[i]]$rWRF_acum, 
+              Daiyli_avgs2[[i]]$aport_mean_diario, plot = FALSE)
+  ccfr3<- ccf(Daiyli_avgs2[[i]]$rWRF_acum, 
+              Daiyli_avgs2[[i]]$aport_mean_SMA_diario, plot = FALSE)
+  ccfr4<- ccf(Daiyli_avgs2[[i]]$rWRF_acum, 
+              Daiyli_avgs2[[i]]$rDHI_acum, plot = FALSE)
+  
+  ccfr5<- ccf(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$aport_SMA_diario, plot = FALSE)
+  ccfr6<- ccf(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$aport_mean_diario, plot = FALSE)
+  ccfr7<- ccf(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$aport_mean_SMA_diario, plot = FALSE)
+  ccfr8<- ccf(Daiyli_avgs2[[i]]$rWRF_mean, 
+              Daiyli_avgs2[[i]]$rDHI_mean, plot = FALSE)
+  
+  LON<- as.numeric(str_split(names(Daiyli_avgs2)[i], "_")[[1]][1])
+  LAT<- as.numeric(str_split(names(Daiyli_avgs2)[i], "_")[[1]][3])
+  Dist<- distm(c(-7.713948, 42.628577), 
+               c(as.numeric(LON),
+                 as.numeric(LAT)),
+               fun = distHaversine)
+  
+  
+  ccf1<- paste(round(max(ccfr1$acf), digits = 2), ccfr1$lag[which.max(ccfr1$acf)], sep = " ")
+  ccf2<- paste(round(max(ccfr2$acf), digits = 2), ccfr1$lag[which.max(ccfr2$acf)], sep = " ")
+  ccf3<- paste(round(max(ccfr3$acf), digits = 2), ccfr1$lag[which.max(ccfr3$acf)], sep = " ")
+  ccf4<- paste(round(max(ccfr4$acf), digits = 2), ccfr1$lag[which.max(ccfr4$acf)], sep = " ")
+  ccf5<- paste(round(max(ccfr5$acf), digits = 2), ccfr1$lag[which.max(ccfr5$acf)], sep = " ")
+  ccf6<- paste(round(max(ccfr6$acf), digits = 2), ccfr1$lag[which.max(ccfr6$acf)], sep = " ")
+  ccf7<- paste(round(max(ccfr7$acf), digits = 2), ccfr1$lag[which.max(ccfr7$acf)], sep = " ")
+  ccf8<- paste(round(max(ccfr8$acf), digits = 2), ccfr1$lag[which.max(ccfr8$acf)], sep = " ")
+  
+  Cor_rain_place_ccf[i,]<- as.data.frame(cbind(LON, LAT, ccf1,ccf2, 
+                                               ccf3,ccf4,ccf5,ccf6,
+                                               ccf7,ccf8, Dist))
+  
+  
+}
+
+colnames(Cor_rain_place_ccf)<-  c("LON","LAT","AWRF_aport1",
+                                  "AWRF_aport2", "AWRF_aport3",
+                                  "AWRF_ADHI","MWRF_aport1",
+                                  "MWRF_aport2","MWRF_aport3",
+                                  "MWRF_MDHI","Dist")
+
+
+
+
+# Prediction aportacion  --------------------------------------------------
+#cortar en entrenamiento y predicción
+clean_data_dec<-lapply(clean_data, function(x){
+  y<- lapply(x, function(r) r[which(r$Date > ymd("2018/12/01")),])
+})
+
+SMA_n<- 36
+
+cut_train<- lapply(clean_data_dec, function(x){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2018/12/01")
+    fecha_end<- ymd("2019/01/25")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+})
+cut_train<- lapply(cut_train, function(x){
+  y<- lapply(x, function(r){
+    
+    r$aport_SMA1<- lag(r$aport_SMA, SMA_n)
+    r<- r[complete.cases(r),]
+    return(r)
+  }
+  
+  
+  )
+})
+
+cut_predict<- lapply(clean_data_dec, function(x){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2019/01/26")
+    fecha_end<- ymd("2019/02/20")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+})
+cut_predict<- lapply(cut_predict, function(x){
+  y<- lapply(x, function(r){
+   
+    r$aport_SMA1<- lag(r$aport_SMA, SMA_n)
+    r<- r[complete.cases(r),]
+    r<- r[1:48, ]
+    return(r)
+  }
+    
+    
+    )
+})
+
+
+lista_TL<- list()
+for (i in 1:length(cut_train)) {
+  lista_d1d2<- list()
+  for (j in 1:2) {
+    data_predict<- cut_train[[i]][[j]]
+    data_predict2<- cut_predict[[i]][[j]]
+    
+    fit_1  <- svm(aport_SMA  ~ prep_hourly , data = data_predict)
+    fit_2  <- svm(aport_SMA  ~ prep_hourly + aport_SMA1, data = data_predict)
+    fit_3  <- svm(aport_SMA  ~ prep_hourly * aport_SMA1, data = data_predict)
+    
+    
+    uncorrected<-data_predict2$prep_hourly
+    prediction_rain<- predict(fit_1, data.frame(prep_hourly =data_predict2$prep_hourly))
+    prediction_rain2<- predict(fit_2, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                 aport_SMA1 =data_predict2$aport_SMA1))
+    
+    prediction_rain3<- predict(fit_3, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                                 aport_SMA1 =data_predict2$aport_SMA1))
+  
+    
+    observed_rain<-data_predict2$aport_SMA 
+    
+    
+    
+    tabla_cor<-cbind(cor(uncorrected, observed_rain,use="complete.obs"),
+                     cor(prediction_rain, observed_rain,use="complete.obs"),
+                     cor(prediction_rain2, observed_rain,use="complete.obs"),
+                     cor(prediction_rain3, observed_rain,use="complete.obs"))
+    
+   
+    
+    colnames(tabla_cor)<- c("uncorrected", "1","2", "3")
+    lista_d1d2[[j]]<- tabla_cor
+  }
+  
+  names(lista_d1d2)<- c("D1", "D2")
+  lista_TL[[i]]<- lista_d1d2
+}
+
+
+
+
+
+Lista_TL_names<-lapply(lista_TL, function(x){
+  y<- lapply(x, function(r) {
+    r<- as.data.frame(r)
+    names(r)<- c("uncorrected", "1","2", "3")
+    return(r)
+  })
+  names(y)<- c("D1", "D2")
+  return(y)
+})
+names(Lista_TL_names)<- names(cut_predict)
+
+
+x<- lapply(Lista_TL_names, function(x){bind_rows(as.data.frame(x))})
+y<- bind_rows(x, .id="id")
+
+cor_table<- as.data.frame(matrix(ncol = 3, nrow = 43))
+colnames(cor_table)<- c("id","corr", "name")
+
+for (i in 2:length(y[1,])) {
+  f<- as.data.frame(cbind(y[which.max(y[,i]), c(1,i)], names( y[which.max(y[,i]), c(1,i)])[2]))
+  colnames(f)<- c("id","corr", "name")
+  cor_table<- rbind(cor_table,f )
+}
+
+cor_table<- cor_table[complete.cases(cor_table),]
+
+punto_Belesar<- c(42.628577,-7.713948)
+extract_lat_lon<- lapply(str_split(cor_table$id,"__"), function(x){
+  return(as.data.frame(cbind(x[[1]],x[[2]])))
+})
+
+extract_lat_lon<- as.data.frame(bind_rows(extract_lat_lon))
+
+
+cor_table<- as.data.frame(cbind(extract_lat_lon, cor_table[,2:3]))
+colnames(cor_table)<- c("LON","LAT", "Corr", "Method")
+
+LON<- cor_table$LON[which.max(cor_table$Corr)]
+LAT<- cor_table$LAT[which.max(cor_table$Corr)]
+method_max<- cor_table$Method[which.max(cor_table$Corr)] %>% str_detect(.,"D1") 
+
+name_max<- paste0(LON,"__",LAT)
+
+if(method_max==TRUE){
+  data_predict<- cut_train[[which(names(cut_train)==name_max)]]$D1
+  data_predict2<- cut_predict[[which(names(cut_train)==name_max)]]$D1
+}else{
+  data_predict<- cut_train[[which(names(cut_train)==name_max)]]$D2
+  data_predict2<- cut_predict[[which(names(cut_train)==name_max)]]$D2
+}
+
+
+fit_1  <- lm(aport_SMA  ~ prep_hourly , data = data_predict)
+fit_2  <- lm(aport_SMA  ~ prep_hourly + aport_SMA1, data = data_predict)
+fit_3  <- lm(aport_SMA  ~ prep_hourly * aport_SMA1, data = data_predict)
+
+
+uncorrected<-data_predict2$prep_hourly
+prediction_rain<- predict(fit_1, data.frame(prep_hourly =data_predict2$prep_hourly))
+prediction_rain2<- predict(fit_2, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                             aport_SMA1 =data_predict2$aport_SMA1))
+
+prediction_rain3<- predict(fit_3, data.frame(prep_hourly =data_predict2$prep_hourly,
+                                             aport_SMA1 =data_predict2$aport_SMA1))
+
+
+observed_rain<-data_predict2$aport_SMA 
+
+
+tabla_plot<-as.data.frame( cbind(data_predict2$Date,
+                                 observed_rain, uncorrected, 
+                                 prediction_rain,
+                                 prediction_rain2,
+                                 prediction_rain3))
+colnames(tabla_plot)<- c("Date", "Observed", "Rain", 
+                         "Rain_aport1",
+                         "Rain_aport2",
+                         "Rain_aport3")
+
+ggplot(data=tabla_plot, aes(x=Date))+
+  geom_line(aes(y=c(Observed)), colour="red")+
+  geom_line(aes(y=c(Rain)), colour="blue")+
+  geom_line(aes(y=c(Rain_aport1)), colour="green")+
+  geom_line(aes(y=c(Rain_aport2)), colour="yellow")+
+  geom_line(aes(y=c(Rain_aport3)), colour="orange")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -731,43 +1284,10 @@ cor_table<- as.data.frame(cbind(cor_table, vec_dist))
 # Parte sin incluir -------------------------------------------------------
 
 
-#importar
-path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
-clean_data<- readRDS(path_hist_WRF)
-
-
-#cortar en entrenamiento y predicción
-cut_train<- lapply(clean_data, function(x){
-  y<- lapply(x, function(r){
-    
-    fecha_ini<- ymd("2018/10/01")
-    fecha_end<- ymd("2019/02/01")
-    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-})
-cut_predict<- lapply(clean_data, function(x){
-  y<- lapply(x, function(r){
-    
-    fecha_ini<- ymd("2019/02/01")
-    fecha_end<- ymd("2019/02/20")
-    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-})
-
-
-
-
-
 data_predict<- cut_train$`-8.02328491210938__42.1343421936035`$D1
 data_predict2<- cut_predict$`-8.02328491210938__42.1343421936035`$D1
 
-fit_1  <- lm(Lluvia_mm ~ prep_hourly, data = data_predict)
+fit_1  <- lm( ~ prep_hourly, data = data_predict)
 fit_2  <- lm(Lluvia_mm  ~ prep_hourly + T02_MEAN, data = data_predict)
 fit_3  <- lm(Lluvia_mm  ~ prep_hourly + PSFC, data = data_predict)
 fit_4  <- lm(Lluvia_mm  ~ prep_hourly + WS_MAX, data = data_predict)
