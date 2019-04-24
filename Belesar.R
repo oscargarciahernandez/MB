@@ -64,7 +64,7 @@ Belesar_CSV_Generator_Point<- function(Belesar_ultimo, point){
 # Descargar Data_ Internet ------------------------------------------------
 
 
-# Down_E001_Belesar()
+#Down_E001_Belesar()
 
 
 
@@ -552,3 +552,7 @@ plot(SMA(prueba, 50), type = "l", ylim = c(0,400))
 plot(SMA(prueba, 70), type = "l", ylim = c(0,400))
 plot(SMA(prueba,100), type = "l", ylim = c(0,400))
 plot(SMA(prueba,150), type = "l",ylim = c(0,400))
+
+
+
+

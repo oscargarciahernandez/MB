@@ -1055,8 +1055,10 @@ colnames(Cor_rain_place_ccf)<-  c("LON","LAT","AWRF_aport1",
                                   "MWRF_MDHI","Dist")
 
 
+Corr_mean<- colMeans(Cor_rain_place_ccf[3:(length(Cor_rain_place_ccf)-1)])
+colMax <- function(data) sapply(data, max, na.rm = TRUE)
 
-
+colMax(Cor_rain_place_ccf)[3:(length(Cor_rain_place_ccf)-1)]
 # Prediction aportacion  --------------------------------------------------
 #cortar en entrenamiento y predicción
 clean_data_dec<-lapply(clean_data, function(x){
@@ -1679,3 +1681,166 @@ for (i in 1:length(Belesar_Merge_cc)) {
          height = 7,
          units = "in")
 }
+
+
+
+
+
+
+# Prediccion 24/04 --------------------------------------------------------
+
+path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
+clean_data<- readRDS(path_hist_WRF)
+clean_data_oct<-lapply(clean_data, function(x){
+  y<- lapply(x, function(r) r[which(r$Date > ymd("2018/10/01")),])
+})
+
+
+fecha_cut<- ymd("2019/01/15")
+#cortar en entrenamiento y predicción
+cut_train<- lapply(clean_data_oct[c(14,18,19)], function(x,fecha_end){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2018/12/01")
+    
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+},
+fecha_end=fecha_cut)
+cut_train<- lapply(cut_train, function(x){
+  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
+            "aport_mean_SMA", "nivel_mean_SMA")]
+  
+  
+})
+
+
+cut_predict<- lapply(clean_data_oct[c(14,18,19)], function(x, fecha_ini){
+  y<- lapply(x, function(r){
+    
+    
+    fecha_end<- ymd("2019/02/20")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+}, 
+fecha_ini=fecha_cut)
+cut_predict<- lapply(cut_predict, function(x){
+  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
+            "aport_mean_SMA", "nivel_mean_SMA")]
+  
+  
+})
+
+
+x<- cut_train[[1]]
+x$aport1<- lag(x$aport_mean_SMA, 24)
+x$aport2<- lag(x$aport_mean_SMA, 48)
+x$aport3<- lag(x$aport_mean_SMA, 72)
+x$aport4<- lag(x$aport_mean_SMA, 96)
+x$aport5<- lag(x$aport_mean_SMA, 120)
+
+x$prep_hourly1<- lead(x$prep_hourly, 24)
+x$prep_hourlySMA12<- SMA(x$prep_hourly, 12)
+x$prep_hourlySMA24<- SMA(x$prep_hourly, 24)
+x$prep_hourlySMA36<- SMA(x$prep_hourly, 36)
+x$prep_hourlySMA48<- SMA(x$prep_hourly, 48)
+x$prep_hourlySMA48_lag<- lag(x$prep_hourlySMA48, 24)
+
+x<- x[complete.cases(x),]
+
+
+y<- cut_predict[[1]]
+y$aport1<- lag(y$aport_mean_SMA, 24)
+y$aport2<- lag(y$aport_mean_SMA, 48)
+y$aport3<- lag(y$aport_mean_SMA, 72)
+y$prep_hourly1<- lead(y$prep_hourly, 24)
+y$prep_hourlySMA12<- SMA(y$prep_hourly, 12)
+y$prep_hourlySMA24<- SMA(y$prep_hourly, 24)
+y$prep_hourlySMA36<- SMA(y$prep_hourly, 36)
+y$prep_hourlySMA48<- SMA(y$prep_hourly, 48)
+y$prep_hourlySMA48_lag<- lag(y$prep_hourlySMA48, 24)
+
+y<- y[complete.cases(y),]
+
+indexxx<- 285
+fecha_ini<- y$Date[indexxx]
+fecha_end<- y$Date[indexxx]+ as.difftime(3, units = "days")
+
+#y<- y[which(y$Date> fecha_ini & y$Date< fecha_end), ]
+
+
+
+
+fit_1  <- svm(aport_mean_SMA ~ prep_hourlySMA48_lag * prep_hourlySMA48 , data = x)
+fit_2  <- svm(aport_mean_SMA  ~ prep_hourlySMA48_lag + aport3 +  prep_hourlySMA48, data = x)
+fit_3  <- svm(aport_mean_SMA  ~ prep_hourlySMA48_lag * aport3 * prep_hourlySMA48, data = x)
+
+fit_4  <- lm(aport_mean_SMA ~ prep_hourlySMA48_lag * prep_hourlySMA48, data = x)
+fit_5  <- lm(aport_mean_SMA  ~ prep_hourlySMA48_lag + aport3 + prep_hourlySMA48, data = x)
+fit_6  <- lm(aport_mean_SMA  ~ prep_hourlySMA48_lag * aport3 * prep_hourlySMA48, data = x)
+
+
+uncorrected<-y$aport_mean_SMA
+pred_aport1<- predict(fit_1, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+pred_aport2<- predict(fit_2, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        aport3= y$aport3,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+pred_aport3<- predict(fit_3, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        aport3= y$aport3,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+
+pred_aport4<- predict(fit_4, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+pred_aport5<- predict(fit_5, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        aport3= y$aport3,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+pred_aport6<- predict(fit_6, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        aport3= y$aport3,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+
+
+plot(uncorrected, x=y$Date, type = "l",
+     ylim = c(0,400), 
+     xlab = paste0(range(y$Date)),
+     ylab = "Aportación [m³/s]")
+lines(pred_aport1,x=y$Date, col="red")
+lines(pred_aport2,x=y$Date, col="green")
+lines(pred_aport3,x=y$Date,col="blue")
+lines(pred_aport4,x=y$Date, col="red", lty=2)
+lines(pred_aport5,x=y$Date, col="green", lty=2)
+lines(pred_aport6,x=y$Date,col="blue", lty=2)
+
+
+
+
+lines(SMA(pred_aport4,12),x=y$Date, col="red", lty=5)
+lines(SMA(pred_aport5,12),x=y$Date, col="green", lty=5)
+lines(SMA(pred_aport6,12),x=y$Date,col="blue", lty=5)
+
+
+
+
+
+
+
+
+
+
+plot(x$aport_mean_SMA, type = "l", ylim = c(0, 200))
+lines(x$prep_hourlySMA48*50, col="red")
+
+
+x$aport_mean_SMA
+
+  
+xx<- x[which(x$Date> ymd("2018/12/10")),]  
+  
+plot(diff(xx$nivel_mean_SMA)*20,  ylim = c(-1.5,2), type = "l")
+lines(xx$aport_mean_SMA/100-1, col="red")
