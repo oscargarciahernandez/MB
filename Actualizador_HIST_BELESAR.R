@@ -339,3 +339,40 @@ path_hist<- here::here('Data/Parques/Belesar/Historico/WEB/')
 name<- paste0("HIST_WEB_",str_replace(as.character(ymd_hms(now())), " ", "_"), ".RDS")
 path_total<- paste0(path_hist, name)
 saveRDS(completado, path_total)
+
+
+
+
+# Completar DHI y WEB -----------------------------------------------------
+
+DHI<- readRDS(here::here('Data/Parques/Belesar/Historico/DHI_historico_afinado'))
+prueba<- DHI[,c("Date","Lluvia_mm",
+                "aport_mean",
+                "nivel_mean")]
+colnames(prueba)<- c("Date", "lluvia","aport", "nivel")
+
+
+
+hist1<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/'), full.names = T)
+hist2<- hist1[str_detect(hist1, "HIST_WEB_")]
+hist3<- str_remove(str_remove(hist2,  "HIST_WEB_"), ".RDS") %>% 
+  str_replace(.,"_"," ") %>% ymd_hms()
+path_hist<- hist2[which.max(hist3)]
+
+
+hist<- readRDS(path_hist)
+
+
+
+
+
+completando<- prueba[!prueba$Date%in%hist$Date,]
+completado<- bind_rows(hist, completando)
+completado<- completado[order(completado$Date),]
+
+
+path_hist<- here::here('Data/Parques/Belesar/Historico/WEB/')
+name<- paste0("HIST_WEB_",str_replace(as.character(ymd_hms(now())), " ", "_"), ".RDS")
+path_total<- paste0(path_hist, name)
+saveRDS(completado, path_total)
+
