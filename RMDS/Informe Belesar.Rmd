@@ -2462,8 +2462,8 @@ pred_nivel6<- predict(fit_6, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48
 
 plot(uncorrected, x=y$Date, type = "l",ylim=c(0, 0.2),
      xlab = paste0(range(y$Date)),
-     ylab = "nivelación [m³/s]",
-     main =  "Predicción de nivelación \n empleando diferentes métodos")
+     ylab = "nivel [msnm]",
+     main =  "Predicción de nivel \n empleando diferentes métodos")
 lines(pred_nivel1,x=y$Date, col="red")
 lines(pred_nivel2,x=y$Date, col="green")
 lines(pred_nivel3,x=y$Date,col="blue")

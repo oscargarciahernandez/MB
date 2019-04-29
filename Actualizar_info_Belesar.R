@@ -1,102 +1,8 @@
 library(here)
 source(here::here('libraries.R'))
 
-# Completar histórico Belesar ---------------------------------------------
 
-x<- read.csv(here::here('Data/Parques/Belesar/Historico/marzlluviaBelesarmarz9.csv'))
-x<- x[6:length(x$Estación),1:2 ]
-colnames(x)<- c("Date", "lluvia")
-x$Date<- dmy_hm(x$Date)
-x$lluvia<- as.numeric(str_replace(as.character(x$lluvia), ",", "."))
-x<- x[complete.cases(x),]
-
-head(x)
-
-
-x2<- read.csv(here::here('Data/Parques/Belesar/Historico/marzlluviaBelesar.csv'), sep = ";")
-x2<- x2[6:length(x2$Estación),1:2 ]
-colnames(x2)<- c("Date", "lluvia")
-x2$Date<- dmy_hm(x2$Date)
-x2$lluvia<- as.numeric(str_replace(as.character(x2$lluvia), ",", "."))
-x2<- x2[complete.cases(x2),]
-
-head(x2)
-
-
-x22<- read.csv(here::here('Data/Parques/Belesar/Historico/marzlluviaBelesarmarz26.csv'), sep = ";")
-x22<- x22[6:length(x22$Estación),1:2 ]
-colnames(x22)<- c("Date", "lluvia")
-x22$Date<- dmy_hm(x22$Date)
-x22$lluvia<- as.numeric(str_replace(as.character(x22$lluvia), ",", "."))
-x22<- x22[complete.cases(x22),]
-
-
-x12<- x2[!x2$Date%in%x$Date,]
-x6<- rbind(x,x12)
-colnames(x6)<- c("Date", "lluvia")
-
-x26<- x22[!x22$Date%in%x6$Date,]
-x7<- rbind(x6,x26)
-
-x7<- x7[order(x7$Date),]
-
-##Nivel
-x3<- read.csv(here::here('Data/Parques/Belesar/Historico/marznivelBelesar.csv'), sep = ";")
-x3<- x3[6:length(x3$Estación),1:2 ]
-colnames(x3)<- c("Date", "lluvia")
-head(x3)
-x3$Date<- dmy_hm(x3$Date)
-x3$lluvia<- as.numeric(str_replace(as.character(x3$lluvia), ",", "."))
-x3<- x3[complete.cases(x3),]
-
-
-x4<- read.csv(here::here('Data/Parques/Belesar/Historico/Nivelfeb6-mar6.csv'), sep = ";")
-x4<- x4[6:length(x4$Estación),1:2 ]
-colnames(x4)<- c("Date", "lluvia")
-head(x4)
-x4$Date<- dmy_hm(x4$Date)
-x4$lluvia<- as.numeric(str_replace(as.character(x4$lluvia), ",", "."))
-x4<- x4[complete.cases(x4),]
-
-
-
-x44<- read.csv(here::here('Data/Parques/Belesar/Historico/nivelBelesarmarz26.csv'), sep = ";")
-x44<- x44[6:length(x44$Estación),1:2 ]
-colnames(x44)<- c("Date", "lluvia")
-head(x44)
-x44$Date<- dmy_hm(x44$Date)
-x44$lluvia<- as.numeric(str_replace(as.character(x44$lluvia), ",", "."))
-x44<- x44[complete.cases(x44),]
-
-
-length(x4$Date)
-x34<- x3[!x3$Date%in%x4$Date,]
-x5<- rbind(x4,x34)
-colnames(x5)<- c("Date", "lluvia")
-
-x45<- x44[!x44$Date%in%x5$Date,]
-x8<- rbind(x5,x45)
-colnames(x8)<- c("Date", "lluvia")
-
-
-x8<- x8[order(x8$Date),]
-
-
-
-Nivel_lluvia_marzo<- left_join(x7,x8, by = "Date")
-Nivel_lluvia_marzo<-Nivel_lluvia_marzo[complete.cases(Nivel_lluvia_marzo),]
-colnames(Nivel_lluvia_marzo)<- c("Date", "lluvia", "nivel")
-
-
-
-
-
-
-
-write.table(Nivel_lluvia_marzo,here::here('Data/Parques/Belesar/Historico/HIST_lluvia_nivel_marzo.csv'), sep = ";")
-
-
-# Download Belesar --------------------------------------------------------
+# Función de descarga -----------------------------------------------------
 Down_E001_Belesar<- function(){
   
   ###LLUVIA
@@ -248,57 +154,14 @@ Down_E001_Belesar<- function(){
   
 }
 
-
 Down_E001_Belesar()
 
 
-
-# Construir febrero marzo -------------------------------------------------
-marzo<- read.csv(file=here::here('Data/Parques/Belesar/Historico/HIST_lluvia_nivel_marzo.csv'),
-           sep = ";",
-           dec = ".",
-         header = TRUE)
-colnames(marzo)<- c("Date", "lluvia", "nivel")
-
-marzo$Date<- ymd_hms(as.character(marzo$Date))
-
-
-RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/'), 
-                      full.names = T) %>%
-  .[str_detect(.,"E001")]
-
-
-pagina_web<- readRDS(RDS_down_path[1])
-df1<- pagina_web[,1:3]
-colnames(df1)<- c("Date", "lluvia", "nivel")
-df1$lluvia<- as.numeric(str_replace(as.character(df1$lluvia), ",", "."))
-df1$nivel<- as.numeric(str_replace(as.character(df1$nivel), ",", "."))
-
-
-
-
-rr<- marzo[!marzo$Date%in%df1$Date,]
-rr2<- rbind(df1,rr)
-colnames(rr2)<- c("Date", "lluvia", "nivel")
-
-
-rr2<- rr2[order(rr2$Date),]
-saveRDS(rr2, here::here('Data/Parques/Belesar/Historico/WEB/HIST_WEB.RDS'))
-
-
-
-
-
-# Actualizar HIST_WEB -----------------------------------------------------
-#dir.create(here::here('Data/Parques/Belesar/Historico/WEB'))
-
-Down_E001_Belesar()
-Down_E001_Belesar()
-
+# Juntar y guardar histórico ----------------------------------------------
 hist1<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/'), full.names = T)
 hist2<- hist1[str_detect(hist1, "HIST_WEB_")]
 hist3<- str_remove(str_remove(hist2,  "HIST_WEB_"), ".RDS") %>% 
-str_replace(.,"_"," ") %>% ymd_hms()
+  str_replace(.,"_"," ") %>% ymd_hms()
 path_hist<- hist2[which.max(hist3)]
 
 
@@ -306,13 +169,13 @@ hist<- readRDS(path_hist)
 
 
 
-RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/'), 
+RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
                            full.names = T) %>%
   .[str_detect(.,"E001")]
 
 
 download_day<- str_remove(sapply(str_split(RDS_down_path, "_"), function(x) x[3])
-, ".RDS") %>%  ymd(.)
+                          , ".RDS") %>%  ymd(.)
 
 Last_Day_historico<- range(hist$Date)[2]
 
