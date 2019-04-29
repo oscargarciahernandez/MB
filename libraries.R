@@ -1028,6 +1028,9 @@ if(!dir.exists(here::here('graph/'))){dir.create(here::here('graph/'))}
 if(!dir.exists(here::here('graph/Belesar/'))){dir.create(here::here('graph/Belesar/'))}
 if(!dir.exists( here::here('Data/Parques/Belesar/CSV/'))){dir.create(here::here('Data/Parques/Belesar/CSV/'))}
 if(!dir.exists(here::here('Data/Parques/Belesar/Historico/'))){dir.create(here::here('Data/Parques/Belesar/Historico/'))}
+if(!dir.exists(here::here('Data/Parques/Belesar/Historico/WEB/'))){dir.create(here::here('Data/Parques/Belesar/Historico/WEB/'))}
+
+
 
 
 # Maps --------------------------------------------------------------------
