@@ -305,3 +305,12 @@ Last_Day_historico<- range(hist$Date)[2]
 
 
 index_min<- which.min(abs(difftime(as.Date(Last_Day_historico), download_day, units = "day")))
+
+
+
+RDS_download<- readRDS(RDS_down_path[index_min])
+RDS_download1<-as.data.frame(apply(RDS_download[2:length(RDS_download)],2, function(x) as.numeric(as.character(str_replace_all( x,",", "."))) ))
+RDS_download1$Date<- ymd_hms(RDS_download$Date)
+RDS_download1<- RDS_download1[, c(6,1,2,3,4,5)]
+colnames(RDS_download1)<- c("Date", "lluvia","nivel","Temp", "Vol", "porcentaje")
+
