@@ -290,10 +290,10 @@ saveRDS(rr2, here::here('Data/Parques/Belesar/Historico/WEB/HIST_WEB.RDS'))
 
 
 # Actualizar HIST_WEB -----------------------------------------------------
-dir.create(here::here('Data/Parques/Belesar/Historico/WEB'))
+#dir.create(here::here('Data/Parques/Belesar/Historico/WEB'))
 hist<- readRDS(here::here('Data/Parques/Belesar/Historico/WEB/HIST_WEB.RDS'))
 
-RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/'), 
+RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/'), 
                            full.names = T) %>%
   .[str_detect(.,"E001")]
 
