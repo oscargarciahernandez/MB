@@ -10,11 +10,16 @@ type<- lapply(x, function(y) {if(length(y$type > 1)){
 
 
 Tabla_method<- as.data.frame(cbind(names(x),unlist(type)) , row.names = F) 
-colnames(Tabla_method)<- c("Method", "Type")
+colnames(Tabla_method)<- c("Method", "type")
 
+Tabla_both<- Tabla_method[which(str_detect(Tabla_method$type, 
+                                           "Regression")),] %>% 
+  .[str_detect(.$type,"_"),]
 
-Tabla_regresion<- Tabla_method[which(str_detect(Tabla_method$Type,
-                                                "Regression")),]
+Tabla_regresion<- Tabla_method[which(str_detect(Tabla_method$type, 
+                                                "Regression")),] %>% 
+  .[!str_detect(.$type,"_"),]
+
 
 RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
                            full.names = T) %>%
@@ -81,7 +86,7 @@ cut_predict<- lapply(cut_predict, function(x){
 registerDoMC(cores = 4)
 i<- 48
 j<- 54 
-nmodel<- 1
+nmodel<- 2
 
 
 
@@ -184,7 +189,7 @@ print(gg_graph)
 
 if(!dir.exists(here::here('Data/Parques/Belesar/Modelos'))){dir.create(here::here('Data/Parques/Belesar/Modelos'))}
 path_modelo<- here::here('Data/Parques/Belesar/Modelos/')
-nombre<- paste0(as.character(Tabla_regresion$Method[nmodel]), "_2.RDS")
+nombre<- paste0(as.character(Tabla_regresion$Method[nmodel]), "_3.RDS")
 
 
 saveRDS(modelo_knn2, file=paste0(path_modelo, nombre))
