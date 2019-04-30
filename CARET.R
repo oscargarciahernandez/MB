@@ -167,9 +167,7 @@ gg_graph<- ggplot(data = prediccion)+
   geom_line(aes(y=SMA_difnivel,
                 x=Date), 
             col="black", lty=2)+
-  geom_line(aes(y=predict(modelo_knn, 
-                          newdata = prediccion),
-                x=Date), 
+  geom_line(aes(y=predict(modelo_knn,newdata = prediccion),x=Date), 
             col="red")+
   geom_line(aes(y=predict(modelo_knn1, 
                           newdata = prediccion),
@@ -184,6 +182,12 @@ gg_graph<- ggplot(data = prediccion)+
 print(gg_graph)
 
 
+if(!dir.exists(here::here('Data/Parques/Belesar/Modelos'))){dir.create(here::here('Data/Parques/Belesar/Modelos'))}
+path_modelo<- here::here('Data/Parques/Belesar/Modelos/')
+nombre<- paste0(as.character(Tabla_regresion$Method[nmodel]), "_2.RDS")
+
+
+saveRDS(modelo_knn2, file=paste0(path_modelo, nombre))
 
 
 

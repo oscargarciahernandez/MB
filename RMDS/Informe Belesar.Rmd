@@ -3034,13 +3034,276 @@ ggplot(Tabla_caudales, aes(x=Date))+
   geom_line(aes(y=aport_mean_SMA), col="red")+
   geom_line(aes(y=c(diff(nivel_mean_SMA),0)*1000), col="blue")+
   geom_line(aes(y=turbinado_SMA1), col="green")+
-  geom_line(aes(y=caudal_net), col="orange")
+  geom_line(aes(y=caudal_net), col="orange")+
+  theme_light()
 
 ```
 ```{r}
+Tabla_caudales1<- Tabla_caudales[Tabla_caudales$Date>ymd("2019/01/01"),]
 
-Tabla_caudales$diff_nivel<- c(diff(Tabla_caudales$nivel_mean_SMA),0)
+ggplot(Tabla_caudales1, aes(x=Date))+
+  geom_line(aes(y=aport_mean_SMA), col="red")+
+  geom_line(aes(y=c(diff(nivel_mean_SMA),0)*1000), col="blue")+
+  geom_line(aes(y=turbinado_SMA1), col="green")+
+  geom_line(aes(y=caudal_net), col="orange")+
+  theme_linedraw()+
+  xlab("Date")+
+  ylab("Caudal")+
+  labs(subtitle = "Aportacion (rojo), Caudal turbinado (verde) \nCaudal neto (naranja), Diferencia nivel * 1000 (azul)")
+  
+```
+
+
+
+
+
+
+```{r, echo=FALSE,results='hide',fig.keep='all'}
+
+Tabla_caudales$diff_nivel<- SMA(c(diff(Tabla_caudales$nivel_mean_SMA),0),24)
 
 ggpairs(Tabla_caudales[,2:length(Tabla_caudales)])
+```
+```{r}
+Tabla_caudales1<- Tabla_caudales1[complete.cases(Tabla_caudales1),]
+r<- ccf(Tabla_caudales1$diff_nivel*1000,Tabla_caudales1$aport_mean_SMA, lag.max = 1000)
+
+print(paste0("Cor max = ", round(max(r$acf), digits = 3),". Para un retraso de ",
+      r$lag[which.max(r$acf)], " horas"))
+
+```
+Entonces... si saco una buena relaciónd e aqui, y puedo predecir la diferencia de nivel del embalse... tambien puedo saber la aportación. 
+
+
+```{r}
+fecha_cut<- ymd("2019/01/25")
+fecha_ini<- ymd("2018/11/01")
+#cortar en entrenamiento y predicción
+
+cut_train<- Tabla_caudales[which(Tabla_caudales$Date<fecha_cut & Tabla_caudales$Date>fecha_ini),]
+cut_train$SMA_diff_nivel<- SMA(cut_train$diff) 
+
+cut_predict<- Tabla_caudales[which(Tabla_caudales$Date>fecha_cut),]
+    
+```
+
+
+```{r}
+
+    
+fit_1  <- svm(aport_mean_SMA ~  diff_nivel, data = cut_train)
+
+fit_2  <- lm(aport_mean_SMA ~  diff_nivel, data = cut_train)
+
+uncorrected<-cut_predict$aport_mean_SMA
+
+pred_nivel1<- predict(fit_1, data.frame(diff_nivel =cut_predict$diff_nivel))
+
+pred_nivel2<- predict(fit_2, data.frame(diff_nivel =cut_predict$diff_nivel))
+
+
+gg_graph<- ggplot(data = cut_predict)+
+  geom_line(aes(y=uncorrected, x=cut_predict$Date))+
+     xlab(paste0(range(cut_predict$Date)))+
+     ylab ("Aportacion [m³/s]")+
+     ggtitle(paste0("Predicción de aportacion con diferencia de nivel \nSVM(verde) y linear(rojo)"))+
+  labs(subtitle = paste0("Cor = ", round(cor(uncorrected,
+                                       pred_nivel2), digits = 3)))+
+    
+geom_line(aes(y=pred_nivel2,x=Date), col="red", lty=2)+
+  geom_line(aes(y=pred_nivel1,x=Date), col="green", lty=2)+
+  theme_light()+
+  theme(plot.title = element_text(hjust = 0.5))
+                      
+       print(gg_graph)
+ 
+
+
+```
+
+
+
+#Caret 
+
+Empezamos a probar caret siguiendo este [documento](https://rstudio-pubs-static.s3.amazonaws.com/383283_cea99ccd8c794261be023895ac09d305.html#randomforest)... esta muy bien por cierto.  Empezamos a probar algunos algoritmos que se desarrollan en este tutorial peeeeeeeeeeero hay que diferenciar entre algoritmos de clasificacion y regresion.... nuestro caso es de regresion, porque estamos intentando predecir una variable continua... Entonces lo que hice fue.... clasificar todos los métodos que contiene el paquete caret y cojer los métodos de regresión. 
+
+```{r}
+library(doMC)
+library(caret)
+
+
+x<- getModelInfo()
+type<- lapply(x, function(y) {if(length(y$type > 1)){
+  return(paste(y$type, collapse = "_"))
+}else{return(y$type)}})
+
+
+Tabla_method<- as.data.frame(cbind(names(x),unlist(type)) , row.names = F) 
+colnames(Tabla_method)<- c("Method", "Type")
+
+
+Tabla_regresion<- Tabla_method[which(str_detect(Tabla_method$Type,
+                                                "Regression")),]
+
+Tabla_regresion
+```
+
+Vemos que existen métodos mixtos... es decir... se contemplan para prediccion de clasificacion y por regresión tambien. 
+
+
+```{r, eval=FALSE}
+
+RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
+                           full.names = T) %>%
+  .[str_detect(.,"WRF_WEB_")] %>% .[str_detect(., ":")]
+
+
+download_day<- sapply(str_split(RDS_down_path, "_"), 
+                      function(x) paste0(x[3], " ",
+                                         str_remove(x[4], ".RDS")))%>%  ymd_hms(.)
+
+
+clean_data<- readRDS(RDS_down_path[which.max(download_day)])
+clean_data1<- lapply(clean_data, function(x){
+  y<- lapply(x, function(r){
+    r$dif_nivel<- c(diff(r$nivel)[],0)
+    r$dif_nivel[diff(r$Date)>3600]<- 0
+    return(r)
+  })
+})
+
+fecha_cut<- ymd("2019/04/15")
+#cortar en entrenamiento y predicción
+cut_train<- lapply(clean_data1, function(x,fecha_end){
+  y<- lapply(x, function(r){
+    
+    
+    fecha_ini<- ymd("2018/12/01")
+    
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+},fecha_end=fecha_cut)
+cut_train<- lapply(cut_train, function(x){
+  r<- x[[1]][,c("Date","LON", "LAT", "prep_hourly", "lluvia", 
+                "nivel", "dif_nivel")]
+  return(r[complete.cases(r),])
+  
+})
+
+
+cut_predict<- lapply(clean_data1, function(x, fecha_ini){
+  y<- lapply(x, function(r){
+    Jan_data<- r[which(r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+}, fecha_ini=fecha_cut)
+cut_predict<- lapply(cut_predict, function(x){
+  r<- x[[1]][,c("Date","LON", "LAT", "prep_hourly", "lluvia",
+                "nivel", "dif_nivel")]
+  return(r[complete.cases(r), ])
+  
+})
+
+
+
+
+#La predicción de la diferencia de nivel la hacemos con SMA sobre la lluvia de 48
+#   lag sobre la lluvia de 54 valores...
+
+# ANFIS ---------------------------------------------------------------------
+registerDoMC(cores = 4)
+i<- 48
+j<- 54 
+nmodel<- 1
+
+
+
+entrenamiento<- cut_train[[23]]
+entrenamiento$SMA_prep<- SMA(entrenamiento$prep_hourly,i)
+entrenamiento$SMA_difnivel<- SMA(entrenamiento$dif_nivel, 36)
+entrenamiento$SMA_prep_lag1<- lag(entrenamiento$SMA_prep,j)
+entrenamiento<- entrenamiento[complete.cases(entrenamiento),]
+
+
+
+
+
+prediccion<- cut_predict[[23]]
+prediccion$SMA_prep<- SMA(prediccion$prep_hourly,i)
+prediccion$SMA_difnivel<- SMA(prediccion$dif_nivel, 36)
+prediccion$SMA_prep_lag1<- lag(prediccion$SMA_prep,j)
+prediccion<- prediccion[complete.cases(prediccion),]
+
+
+
+
+
+
+particiones  <- 10
+repeticiones <- 5
+
+# Hiperparámetros
+hiperparametros <- data.frame(k = seq(1,500,by=10))
+
+set.seed(123)
+seeds <- vector(mode = "list", length = (particiones * repeticiones) + 1)
+for (i in 1:(particiones * repeticiones)) {
+  seeds[[i]] <- sample.int(1000, nrow(hiperparametros)) 
+}
+seeds[[(particiones * repeticiones) + 1]] <- sample.int(1000, 1)
+
+# DEFINICIÓN DEL ENTRENAMIENTO
+#===============================================================================
+control_train <- trainControl(method = "repeatedcv", number = particiones,
+                              repeats = repeticiones, seeds = seeds,
+                              returnResamp = "final", verboseIter = FALSE,
+                              allowParallel = TRUE)
+
+# AJUSTE DEL MODELO
+# ==============================================================================
+set.seed(342)
+modelo_knn1 <- train(SMA_difnivel ~ SMA_prep_lag1 + SMA_prep, data = entrenamiento,
+                    method = as.character(Tabla_regresion$Method[nmodel]),
+                    trControl = control_train)
+
+modelo_knn2 <- train(SMA_difnivel ~ SMA_prep_lag1 * SMA_prep, data = entrenamiento,
+                    method = as.character(Tabla_regresion$Method[nmodel]),
+                    trControl = control_train)
+
+```
+
+```{r}
+uncorrected<-prediccion$dif_nivel
+
+
+gg_graph<- ggplot(data = prediccion)+
+  geom_line(aes(y=uncorrected, x=prediccion$Date))+
+  xlab(paste0(range(prediccion$Date)))+
+  ylab ("nivel [msnm]")+
+  ggtitle(paste0("Predicción de nivel \n solo con lluvia WRF  \n  con un lag de  ", j, " horas"))+
+  labs(subtitle = paste0("Cor = ", round(cor(prediccion$SMA_difnivel,
+                                             predict(modelo_knn, 
+                                                     newdata = prediccion)), digits = 3)))+
+  
+  ylim( c(-0.1,0.1))+
+  geom_line(aes(y=SMA_difnivel,
+                x=Date), 
+            col="black", lty=2)+
+  geom_line(aes(y=predict(modelo_knn1, 
+                          newdata = prediccion),
+                x=Date), 
+            col="blue")+
+  geom_line(aes(y=predict(modelo_knn2, 
+                          newdata = prediccion),
+                x=Date), 
+            col="green")+
+  theme_light()+theme(plot.title = element_text(hjust = 0.5))
+
+print(gg_graph)
 ```
 
