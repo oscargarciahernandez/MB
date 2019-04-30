@@ -3287,7 +3287,7 @@ gg_graph<- ggplot(data = prediccion)+
   ylab ("nivel [msnm]")+
   ggtitle(paste0("Predicción de nivel \n solo con lluvia WRF  \n  con un lag de  ", j, " horas"))+
   labs(subtitle = paste0("Cor = ", round(cor(prediccion$SMA_difnivel,
-                                             predict(modelo_knn, 
+                                             predict(modelo_knn2, 
                                                      newdata = prediccion)), digits = 3)))+
   
   ylim( c(-0.1,0.1))+
