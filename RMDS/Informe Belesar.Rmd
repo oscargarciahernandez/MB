@@ -2619,7 +2619,7 @@ colnames(x1)<- colnames(x[[1]])
 ```
 
 ```{r}
-x1
+x1[order(x1$Max, decreasing = T),]
 x1[which.max(x1$Max),]
 
 ```
@@ -2629,20 +2629,24 @@ Apreciamos que la máxima correlación se obtiene para el punto 23 realizando un
 
 
 ```{r}
-prueba<- cut_train[[23]]
+for (i in c(23,17,22,18)) {
+  prueba<- cut_train[[i]]
 prueba$SMA_prep<- SMA(prueba$prep_hourly,48)
 prueba$SMA_difnivel<- SMA(prueba$dif_nivel, 36)
 prueba<- prueba[complete.cases(prueba),]
 
-r<- ccf(prueba$SMA_prep,prueba$SMA_difnivel,lag.max = 1000)
+r<- ccf(prueba$SMA_prep,prueba$SMA_difnivel,
+        lag.max = 1000)
+  
+}
 ```
-Vemos que la máxima correlacion se obtiene para un desfase de 18 horas. 
+Vemos que la máxima correlacion se obtiene para un desfase de 16-18 horas... Tambien vemos que las gráficas de cross-correlation son practicamente iguales
 ```{r}
 plot(r$acf, x= r$lag, 
      xlim = c(-72,72),
      xlab = "lag",
      ylab = "cor",
-     main = "Cross-correlation punto 23")
+     main = "Cross-correlation punto 18")
 ```
 
 
@@ -2669,25 +2673,26 @@ De la gráfica anterior se puede ver como la lluvia y la variación del nivel es
 
 
 ```{r}
-for (i in seq(24,144,24)) {
+for (i in seq(24,144,12)) {
   predict_1<- cut_predict[[23]]
 predict_1$SMA_prep<- SMA(predict_1$prep_hourly,i)
 predict_1$SMA_difnivel<- SMA(predict_1$dif_nivel, 36)
-predict_1$SMA_prep_lag1<- lag(predict_1$SMA_prep,24)
+predict_1$SMA_prep_lag1<- lag(predict_1$SMA_prep,18)
 
 predict_1<- predict_1[complete.cases(predict_1),]
 
 train<- cut_train[[23]]
 train$SMA_prep<- SMA(train$prep_hourly,i)
 train$SMA_difnivel<- SMA(train$dif_nivel, 36)
-train$SMA_prep_lag1<- lag(train$SMA_prep,24)
+train$SMA_prep_lag1<- lag(train$SMA_prep,18)
 train<- train[complete.cases(train),]
 
 
 
 fit_1  <- lm(dif_nivel ~  SMA_prep, data = train)
-fit_2  <- lm(dif_nivel ~  SMA_prep + SMA_prep_lag1, data = train)
+fit_2  <- lm(dif_nivel ~  SMA_prep_lag1, data = train)
 fit_3  <- lm(dif_nivel ~  SMA_prep * SMA_prep_lag1, data = train)
+fit_4  <- lm(dif_nivel ~  SMA_prep + SMA_prep_lag1, data = train)
 
 
 
@@ -2695,28 +2700,32 @@ fit_3  <- lm(dif_nivel ~  SMA_prep * SMA_prep_lag1, data = train)
 
 uncorrected<-predict_1$dif_nivel
 pred_nivel1<- predict(fit_1, data.frame(SMA_prep =predict_1$SMA_prep))
-pred_nivel2<- predict(fit_2, data.frame(SMA_prep =predict_1$SMA_prep,
-                                        SMA_prep_lag1 =predict_1$SMA_prep_lag1))
+pred_nivel2<- predict(fit_2, data.frame(SMA_prep_lag1 =predict_1$SMA_prep_lag1))
 pred_nivel3<- predict(fit_3, data.frame(SMA_prep =predict_1$SMA_prep,
                                         SMA_prep_lag1 =predict_1$SMA_prep_lag1))
-
+pred_nivel4<- predict(fit_4, data.frame(SMA_prep =predict_1$SMA_prep,
+                                        SMA_prep_lag1=predict_1$SMA_prep_lag1))
                       
     
 plot(uncorrected, x=predict_1$Date, type = "l",
      xlab = paste0(range(predict_1$Date)),
      ylab = "nivel [msnm]",
-     main =  paste0("Predicción de nivel \n  SMA de la lluvia de ", i),
+     main =  paste0("Predicción de nivel \n solo con lluvia WRF con 4 métodos diferentes \n  SMA de la lluvia de ", i),
      ylim = c(-0.1,0.1))
 lines(predict_1$SMA_difnivel,x=predict_1$Date, col="black", lty=2)
 lines(pred_nivel1,x=predict_1$Date, col="red")
 lines(pred_nivel2,x=predict_1$Date, col="blue")
 lines(pred_nivel3,x=predict_1$Date, col="green")
+lines(pred_nivel4,x=predict_1$Date, col="purple")
+
 }
 
 ```
 
 
-Se puede ver que aumentando SMA de la lluvia, la predicción de la variación de nivel es muy buena... imagino que será por cositas de inercia.  A continuación... hacemos exactamente lo mismo pero metiendo 
+
+
+Se puede ver que aumentando SMA de la lluvia, la predicción de la variación de nivel es muy buena... imagino que será por cositas de inercia.  A continuación... hacemos exactamente lo mismo pero metiendo variación de nivel -1
 
 
 ```{r}
@@ -2724,14 +2733,14 @@ for (i in seq(24,144,24)) {
   predict_1<- cut_predict[[23]]
 predict_1$SMA_prep<- SMA(predict_1$prep_hourly,i)
 predict_1$SMA_difnivel<- SMA(predict_1$dif_nivel, 36)
-predict_1$SMA_prep_lag1<- lag(predict_1$nivel,24)
+predict_1$SMA_prep_lag1<- lag(predict_1$SMA_difnivel,24)
 
 predict_1<- predict_1[complete.cases(predict_1),]
 
 train<- cut_train[[23]]
 train$SMA_prep<- SMA(train$prep_hourly,i)
 train$SMA_difnivel<- SMA(train$dif_nivel, 36)
-train$SMA_prep_lag1<- lag(train$nivel,24)
+train$SMA_prep_lag1<- lag(train$SMA_difnivel,24)
 train<- train[complete.cases(train),]
 
 
@@ -2767,37 +2776,53 @@ lines(pred_nivel3,x=predict_1$Date, col="green")
 ```
 Seguimos probando SMA's.... por curiosidad... en principio no tienen mucho sentido hacer esto. 
 ```{r}
-for (i in seq(144,144*2,24)) {
+for (i in seq(24,144,24)) {
   predict_1<- cut_predict[[23]]
 predict_1$SMA_prep<- SMA(predict_1$prep_hourly,i)
 predict_1$SMA_difnivel<- SMA(predict_1$dif_nivel, 36)
-predict_1$SMA_prep_lag1<- lag(predict_1$nivel,24)
+predict_1$SMA_nivel_lag1<- lag(predict_1$SMA_difnivel,24)
+predict_1$SMA_prep_lag1<- lag(predict_1$SMA_prep,18)
+
 
 predict_1<- predict_1[complete.cases(predict_1),]
 
 train<- cut_train[[23]]
 train$SMA_prep<- SMA(train$prep_hourly,i)
 train$SMA_difnivel<- SMA(train$dif_nivel, 36)
-train$SMA_prep_lag1<- lag(train$nivel,24)
+train$SMA_nivel_lag1<- lag(train$SMA_difnivel,24)
+train$SMA_prep_lag1<- lag(train$SMA_prep,18)
+
 train<- train[complete.cases(train),]
 
-
-
 fit_1  <- lm(dif_nivel ~  SMA_prep, data = train)
-fit_2  <- lm(dif_nivel ~  SMA_prep + SMA_prep_lag1, data = train)
+fit_2  <- lm(dif_nivel ~  SMA_prep_lag1, data = train)
 fit_3  <- lm(dif_nivel ~  SMA_prep * SMA_prep_lag1, data = train)
+fit_4  <- lm(dif_nivel ~  SMA_prep + SMA_prep_lag1, data = train)
+
+fit_5  <- lm(dif_nivel ~  SMA_prep + SMA_nivel_lag1, data = train)
+fit_6  <- lm(dif_nivel ~  SMA_prep * SMA_nivel_lag1, data = train)
 
 
+fit_7  <- lm(dif_nivel ~  SMA_prep_lag1 + SMA_nivel_lag1, data = train)
+fit_8  <- lm(dif_nivel ~  SMA_prep_lag1 * SMA_nivel_lag1, data = train)
 
 
 
 uncorrected<-predict_1$dif_nivel
 pred_nivel1<- predict(fit_1, data.frame(SMA_prep =predict_1$SMA_prep))
-pred_nivel2<- predict(fit_2, data.frame(SMA_prep =predict_1$SMA_prep,
-                                        SMA_prep_lag1 =predict_1$SMA_prep_lag1))
+pred_nivel2<- predict(fit_2, data.frame(SMA_prep_lag1 =predict_1$SMA_prep_lag1))
 pred_nivel3<- predict(fit_3, data.frame(SMA_prep =predict_1$SMA_prep,
                                         SMA_prep_lag1 =predict_1$SMA_prep_lag1))
-
+pred_nivel4<- predict(fit_4, data.frame(SMA_prep =predict_1$SMA_prep,
+                                        SMA_prep_lag1 =predict_1$SMA_prep_lag1))
+pred_nivel5<- predict(fit_5, data.frame(SMA_prep =predict_1$SMA_prep,
+                                        SMA_nivel_lag1 =predict_1$SMA_nivel_lag1))
+pred_nivel6<- predict(fit_6, data.frame(SMA_prep =predict_1$SMA_prep,
+                                        SMA_nivel_lag1 =predict_1$SMA_nivel_lag1))
+pred_nivel7<- predict(fit_7, data.frame(SMA_prep_lag1 =predict_1$SMA_prep_lag1,
+                                        SMA_nivel_lag1 =predict_1$SMA_nivel_lag1))
+pred_nivel8<- predict(fit_8, data.frame(SMA_prep_lag1 =predict_1$SMA_prep_lag1,
+                                        SMA_nivel_lag1 =predict_1$SMA_nivel_lag1))
                       
     
 plot(uncorrected, x=predict_1$Date, type = "l",
@@ -2807,14 +2832,73 @@ plot(uncorrected, x=predict_1$Date, type = "l",
      ylim = c(-0.07,0.07))
 lines(predict_1$SMA_difnivel,x=predict_1$Date, col="black", lty=2)
 lines(pred_nivel1,x=predict_1$Date, col="red")
-lines(pred_nivel2,x=predict_1$Date, col="blue")
-lines(pred_nivel3,x=predict_1$Date, col="green")
+lines(pred_nivel2,x=predict_1$Date, col="red1", lty=2)
+lines(pred_nivel3,x=predict_1$Date, col="red2", lty=3)
+lines(pred_nivel4,x=predict_1$Date, col="red3", lty=4)
+   
+lines(pred_nivel5,x=predict_1$Date, col="blue")
+lines(pred_nivel6,x=predict_1$Date, col="blue1",lty=2)
+
+lines(pred_nivel7,x=predict_1$Date, col="green")
+lines(pred_nivel8,x=predict_1$Date, col="green1",lty=2)
 }
 
 ```
 
 
-partiendo de estas conclusiones a continuación realizo las mismas gráficas pero variando el valor de nivel que entra a nuestro modelo... nivel -1, nivel -2 nivel -3 etc. 
+Es una apreciación mia, pero creo que lo mejor es predecir la variación de nivel teniendo en cuenta solo la lluvia WRF con un desfase. 
+
+```{r}
+i<- 48
+  for (j in seq(6,96,6)) {
+    
+  predict_1<- cut_predict[[23]]
+predict_1$SMA_prep<- SMA(predict_1$prep_hourly,i)
+predict_1$SMA_difnivel<- SMA(predict_1$dif_nivel, 36)
+predict_1$SMA_prep_lag1<- lag(predict_1$SMA_prep,j)
+
+predict_1<- predict_1[complete.cases(predict_1),]
+
+train<- cut_train[[23]]
+train$SMA_prep<- SMA(train$prep_hourly,i)
+train$SMA_difnivel<- SMA(train$dif_nivel, 36)
+train$SMA_prep_lag1<- lag(train$SMA_prep,j)
+train<- train[complete.cases(train),]
+
+
+
+fit_2  <- lm(dif_nivel ~  SMA_prep_lag1, data = train)
+
+
+
+
+
+
+uncorrected<-predict_1$dif_nivel
+
+pred_nivel2<- predict(fit_2, data.frame(SMA_prep_lag1 =predict_1$SMA_prep_lag1))
+assign(paste0("pred_nivel",j), pred_nivel2)
+
+
+gg_graph<- ggplot(data = predict_1)+
+  geom_line(aes(y=uncorrected, x=predict_1$Date))+
+     xlab(paste0(range(predict_1$Date)))+
+     ylab ("nivel [msnm]")+
+     ggtitle(paste0("Predicción de nivel \n solo con lluvia WRF  \n  con un lag de  ", j, " horas"))+
+  labs(subtitle = paste0("Cor = ", round(cor(predict_1$SMA_difnivel,
+                                       eval(parse(text = paste0("pred_nivel",j))) ), digits = 3)))+
+    
+     ylim( c(-0.1,0.1))+
+geom_line(aes(y=SMA_difnivel,x=Date), col="black", lty=2)+
+geom_line(aes(y=eval(parse(text = paste0("pred_nivel",j))),x=Date), col="red")+
+  theme_light()+theme(plot.title = element_text(hjust = 0.5))
+                      
+       print(gg_graph)
+ 
+  }
+
+```
+
 
 ```{r}
 for (i in seq(24,144,24)) {
@@ -2873,7 +2957,7 @@ Del histórico de DHI se puede sacar información interesante... como... cual es
 
 DHI<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar_Todas_Variables.RDS'))
 
-DHI$turbinado<- prueba2$`Turbinado_BCE[m³/s]`+prueba2$`Turbinado[m³/s]`
+DHI$turbinado<- DHI$`Turbinado_BCE[m³/s]`+DHI$`Turbinado[m³/s]`
 
 summary(DHI$turbinado)
 
@@ -2881,7 +2965,7 @@ DHI$turbinado<- na.interpolation(DHI$turbinado)
 DHI$aport<- na.interpolation(DHI$`Aportacion[m³/s]`)
 
 
-for (i in seq(6,48,12)) {
+for (i in seq(24,96,24)) {
   DHI$turbinado_SMA<- SMA(DHI$turbinado,i)
 plot(DHI$turbinado_SMA, x=DHI$Date, type = "l", 
      ylab="Caudal turbinado",
@@ -2919,14 +3003,44 @@ DHI$turbinado<- DHI$`Turbinado[m³/s]`+DHI$`Turbinado_BCE[m³/s]`
 DHI$turbinado<- na.interpolation(DHI$turbinado)
 
 
-DHI$turbinado_SMA1<- SMA(DHI$turbinado, 48)
+DHI$turbinado_SMA1<- SMA(DHI$turbinado, 96)
+
+summary(DHI$turbinado_SMA1)
+
+```
 
 
 
+```{r}
+path_dataDHI <- here::here('Data/Parques/Belesar/Historico/DHI_historico_afinado.RDS')
 
-plot(DHI$turbinado_SMA, x=DHI$Date, type = "l", 
-     ylab="Caudal turbinado",
-     xlab = "Date",
-     main = paste0("Caudal turbinado \n SMA= ", 48))
+DHI_aport_nivel<- readRDS(path_dataDHI)
+
+
+merge_DHI<- left_join(DHI_aport_nivel, DHI, by="Date")
+
+
+merge_DHI$caudal_net<- merge_DHI$aport_mean_SMA - merge_DHI$turbinado_SMA1
+
+Tabla_caudales<- merge_DHI[,c(1,2,7,8,19,20)]
+Tabla_caudales<- Tabla_caudales[complete.cases(Tabla_caudales),]
+
+
+
+head(Tabla_caudales)
+```
+```{r}
+ggplot(Tabla_caudales, aes(x=Date))+
+  geom_line(aes(y=aport_mean_SMA), col="red")+
+  geom_line(aes(y=c(diff(nivel_mean_SMA),0)*1000), col="blue")+
+  geom_line(aes(y=turbinado_SMA1), col="green")+
+  geom_line(aes(y=caudal_net), col="orange")
+
+```
+```{r}
+
+Tabla_caudales$diff_nivel<- c(diff(Tabla_caudales$nivel_mean_SMA),0)
+
+ggpairs(Tabla_caudales[,2:length(Tabla_caudales)])
 ```
 
