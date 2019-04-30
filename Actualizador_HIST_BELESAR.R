@@ -3,6 +3,9 @@ source(here::here('libraries.R'))
 
 # Completar histórico Belesar ---------------------------------------------
 
+# Download Belesar --------------------------------------------------------
+Down_E001_Belesar<- function(){
+  
 x<- read.csv(here::here('Data/Parques/Belesar/Historico/marzlluviaBelesarmarz9.csv'))
 x<- x[6:length(x$Estación),1:2 ]
 colnames(x)<- c("Date", "lluvia")
@@ -96,9 +99,6 @@ colnames(Nivel_lluvia_marzo)<- c("Date", "lluvia", "nivel")
 write.table(Nivel_lluvia_marzo,here::here('Data/Parques/Belesar/Historico/HIST_lluvia_nivel_marzo.csv'), sep = ";")
 
 
-# Download Belesar --------------------------------------------------------
-Down_E001_Belesar<- function(){
-  
   ###LLUVIA
   url<- "http://saih.chminosil.es/index.php?url=/datos/graficas_numeros/tag:E001_ACPA01H&historia="
   Lluvia_list<- list()
