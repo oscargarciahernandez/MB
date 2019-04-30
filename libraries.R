@@ -1023,6 +1023,7 @@ if(!dir.exists(here::here('Data/Parques'))){dir.create(here::here('Data/Parques'
 if(!dir.exists(here::here('Data/Parques/Lubian'))){dir.create(here::here('Data/Parques/Lubian'))}
 if(!dir.exists(here::here('Data/Parques/ElCerro'))){dir.create(here::here('Data/Parques/ElCerro'))}
 if(!dir.exists(here::here('Data/Parques/LaSia'))){dir.create(here::here('Data/Parques/LaSia'))}
+if(!dir.exists(here::here('Data/Parques/Salteras'))){dir.create(here::here('Data/Parques/Salteras'))}
 if(!dir.exists(here::here('Data/Parques/Belesar'))){dir.create(here::here('Data/Parques/Belesar'))}
 if(!dir.exists(here::here('graph/'))){dir.create(here::here('graph/'))}
 if(!dir.exists(here::here('graph/Belesar/'))){dir.create(here::here('graph/Belesar/'))}
