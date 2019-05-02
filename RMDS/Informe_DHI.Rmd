@@ -1,6 +1,6 @@
 ---
-title: "Predictive model"
-author: "Óscar García Hernández"
+title: "Predictive model for Belesar dam"
+author: "Eduardo Roman y Óscar García"
 date: "17/4/2019"
 output:
   html_document:
@@ -33,11 +33,35 @@ library(imputeTS)
 ```
 
 
-# Indroducción
+# Indroduction
 
 <br />
 <br />
 
+In this document the progress achived in the development of the predictive model for the streamflow of Belesar Dam during the last weeks will be explained. 
+
+<br />
+<br />
+For this purpose we count with a historical data from january of 2018 to februrary of 2019. It should be note that the quality of the data was medium-low, with very noisy data and also a lot of outliers, such as, negative values in the streamflow dataset.  
+
+
+<br />
+<br />
+
+For the elaboration of this predicctive model we will use ARW-WRF model rain output. It's remarkable that we are getting very good correlations between WRF model data and the historical data.  Maybe the best noticce is that the best correlation is for the long-term cumulative rain results. 
+
+<br />
+<br />
+
+All the procces is being carried out using R and Rstudio tools, because of it's verstatility and good performance for machine learning purposes. The first predictive models that we have elaborate are being developed using common regression techniques, but the are getting good performance only for the next 3 days. For getting a good long-term prediction, more sofisticated methods should be implemented. 
+
+<br />
+<br />
+
+Nowadays, we are calculating the best predictive model for achieved a good performance for a long-term prediction. For this purpose we are using the R "caret" package that is and recognized tool for machine learning using R lenguaje. For getting the best model using this tool we are using cross-validation techniques for more that 45 algorithms, integrated in caret package. After the best algorithms are being selected, another procces for adjusting the parameters will be carried out. 
+
+<br />
+<br />
 ```{r cols.print= 5, rows.print=3, include=FALSE}
 DHI<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar.RDS'))
 
@@ -896,133 +920,23 @@ Cor_order<- Cor_rain_place[order(Cor_rain_place$Corr, decreasing = T),]
 plot_rain3<- function(data,data2, titulo){
   ggplot(data=data, aes(x=Date))+
     geom_line(aes(y=rain), stat="identity")+
-    xlab("Date")+ylab("Lluvia por hora [mm/h]")+theme(panel.background = element_blank(), 
-                                                      panel.grid = element_blank()) +
-    geom_line(data= data2, aes(x=Date, y=rain), color="red", alpha=0.5)+
-    geom_text(aes(as.POSIXct(ymd("2019/02/01")),10, label=paste0("Cor: ",round(cor(data$rain,data2$rain), 
-                                                                               digits = 2)))) +
+    xlab("Date")+ylab("Hourly rainfall [mm/h]")+
+    theme(panel.background = element_blank(),
+          panel.grid = element_blank()) +
+    geom_line(data= data2, 
+              aes(x=Date, y=rain),
+              color="red", 
+              alpha=0.5)+
+    geom_text(aes(as.POSIXct(ymd("2019/02/01")),10, 
+                  label=paste0("Cor: ",
+                               round(cor(data$rain,
+                                         data2$rain),
+                                     digits = 2)))) +
     ggtitle(titulo) + 
-     theme(plot.title = element_text(hjust = 0.5))
-  
-}
-```
-
-
-
-```{r include=FALSE}
-#Ploteamos los 5 puntos con mejor correlacion
-for (i in order(Cor_rain_place$Corr, decreasing = T)[1:5]) {
-  data1<- as.data.frame(cbind(as.character(clean_data_oct[[i]][[1]]$Date),
-                              clean_data_oct[[i]][[1]]$prep_hourly))
-  
-  names(data1)<- c("Date", "rain")
-  data1$Date<- ymd_hms(data1$Date)
-  data1$rain<- as.numeric(as.character(data1$rain))
-  
-  
-  
-  data2<- as.data.frame(cbind(as.character(clean_data_oct[[i]][[1]]$Date),
-                              clean_data_oct[[i]][[1]]$Lluvia_mm))
-  
-  names(data2)<- c("Date", "rain")
-  data2$Date<- ymd_hms(data2$Date)
-  data2$rain<- as.numeric(as.character(data2$rain))
-  
-  
-  x<- plot_rain3(data = data1 ,
-             data2 = data2,
-             titulo = paste0(paste(round(as.numeric(str_split(names(clean_data_oct)[i],
-                                                       "_")[[1]][c(1,3)]),
-                                  digits = 3), 
-                            collapse = " "), "\n n = ", 
-                            i, " Dist = ",
-                            round((Cor_rain_place$Dist[i]/1000), digits = 2), " km" ))
-  print(x)
-  
-  
-  
+     theme(plot.title = element_text(hjust = 0.5)) 
   
 }
 
-```
-
-## Enero-Febrero
- 
-```{r}
-clean_data_jan<-lapply(clean_data_oct, function(x){
-  y<- lapply(x, function(r) r[which(r$Date > ymd("2019/01/01")),])
-})
-
-Cor_rain_place<- data.frame(matrix(ncol = 4))
-colnames(Cor_rain_place)<- c("LON", "LAT", "Corr", "Dist")
-for (i in 1:length(clean_data_jan)) {
-  Corr<- cor(clean_data_jan[[i]][[1]]$prep_hourly, 
-             clean_data_jan[[i]][[1]]$Lluvia_mm)
-  LON<- as.numeric(str_split(names(clean_data_jan)[i], "_")[[1]][1])
-  LAT<- as.numeric(str_split(names(clean_data_jan)[i], "_")[[1]][3])
-  Dist<- distm(c(-7.713948, 42.628577), 
-               c(as.numeric(LON),
-                 as.numeric(LAT)),
-               fun = distHaversine)
-  Cor_rain_place[i,]<- as.data.frame(cbind(LON, LAT, Corr, Dist))
-  
-  
-}
-
-Cor_order<- Cor_rain_place[order(Cor_rain_place$Corr, decreasing = T),]
-
-
-
-
-```
-
-```{r  rows.print= length(Cor_rain_place[,1])}
-Cor_order<- Cor_rain_place[order(Cor_rain_place$Corr, decreasing = T),]
-
-#Cor_order
-```
-
-```{r}
-#Ploteamos los 5 puntos con mejor correlacion
-for (i in order(Cor_rain_place$Corr, decreasing = T)[1:5]) {
-  data1<- as.data.frame(cbind(as.character(clean_data_jan[[i]][[1]]$Date),
-                              clean_data_jan[[i]][[1]]$prep_hourly))
-  
-  names(data1)<- c("Date", "rain")
-  data1$Date<- ymd_hms(data1$Date)
-  data1$rain<- as.numeric(as.character(data1$rain))
-  
-  
-  
-  data2<- as.data.frame(cbind(as.character(clean_data_jan[[i]][[1]]$Date),
-                              clean_data_jan[[i]][[1]]$Lluvia_mm))
-  
-  names(data2)<- c("Date", "rain")
-  data2$Date<- ymd_hms(data2$Date)
-  data2$rain<- as.numeric(as.character(data2$rain))
-  
-  
-  x<- plot_rain3(data = data1 ,
-             data2 = data2,
-             titulo = paste0(paste(round(as.numeric(str_split(names(clean_data_jan)[i],
-                                                       "_")[[1]][c(1,3)]),
-                                  digits = 3), 
-                            collapse = " "), "\n n = ", 
-                            i, " Dist = ",
-                            round((Cor_rain_place$Dist[i]/1000), digits = 2), " km" ))
-  print(x)
-  
-  
-  
-  
-}
-
-```
-
-
-## 15 de Enero- 10 de febrero
-
-```{r}
 clean_data_jan<-lapply(clean_data_oct, function(x){
   y<- lapply(x, function(r) r[which(r$Date > ymd("2019/01/15") & r$Date < ymd("2019/02/10")),])
 })
@@ -1042,16 +956,9 @@ for (i in 1:length(clean_data_jan)) {
   
   
 }
-```
 
-```{r  rows.print= length(Cor_rain_place[,1])}
-Cor_order<- Cor_rain_place[order(Cor_rain_place$Corr, decreasing = T),]
-#Cor_order
-```
-
-```{r}
 #Ploteamos los 5 puntos con mejor correlacion
-for (i in order(Cor_rain_place$Corr, decreasing = T)[1:5]) {
+for (i in order(Cor_rain_place$Corr, decreasing = T)[1]) {
   data1<- as.data.frame(cbind(as.character(clean_data_jan[[i]][[1]]$Date),
                               clean_data_jan[[i]][[1]]$prep_hourly))
   
@@ -1071,12 +978,7 @@ for (i in order(Cor_rain_place$Corr, decreasing = T)[1:5]) {
   
   x<- plot_rain3(data = data1 ,
              data2 = data2,
-             titulo = paste0(paste(round(as.numeric(str_split(names(clean_data_jan)[i],
-                                                       "_")[[1]][c(1,3)]),
-                                  digits = 3), 
-                            collapse = " "), "\n n = ", 
-                            i, " Dist = ",
-                            round((Cor_rain_place$Dist[i]/1000), digits = 2), " km" ))
+             titulo ="Observed rain (red) vs WRF estimated rain (black)")
   print(x)
   
   
@@ -1086,9 +988,6 @@ for (i in order(Cor_rain_place$Corr, decreasing = T)[1:5]) {
 
 ```
 
-# Comprobación de Medias Diarias
-
-A continuacion se realizan las medias diarias de todos los datos y se comprueba la correlación entre los datos de lluvia y aportación. 
 
 ```{r}
 Daiyli_avgs<- lapply(clean_data_oct, function(x){
@@ -1165,14 +1064,10 @@ colnames(Cor_rain_place)<- c("LON","LAT","AWRF_aport1",
 ```
 
 
-Se aprecia que los datos de aportación son muy malos
-
-
 ```{r  rows.print= length(Cor_rain_place[,1])}
 Cor_order<- Cor_rain_place[order(Cor_rain_place$Dist),]
 #Cor_order
 ```
-
 ```{r include=FALSE}
 Cor_rain_place_ccf<- data.frame(matrix(ncol = 11))
 for (i in 1:length(Daiyli_avgs2)) {
@@ -1233,13 +1128,6 @@ colnames(Cor_rain_place_ccf)<-  c("LON","LAT","AWRF_aport1",
 Cor_order<- Cor_rain_place_ccf[order(Cor_rain_place_ccf$Dist),]
 #Cor_order
 ```
-
-
-
-## Reducimos el tiempo
-
-Antes estabamos usando los datos desde octubre hasta febrero... Ahora empleamos solo los datos desde diciembre hasta febrero. 
-
 ```{r}
 
 clean_data_dec<-lapply(clean_data, function(x){
@@ -1317,9 +1205,6 @@ colnames(Cor_rain_place)<- c("LON","LAT","AWRF_aport1",
                              "MWRF_MDHI","Dist")
 
 ```
-
-
-
 ```{r  rows.print= length(Cor_rain_place[,1])}
 Cor_order<- Cor_rain_place[order(Cor_rain_place$Dist),]
 #Cor_order
@@ -1385,9 +1270,6 @@ colnames(Cor_rain_place_ccf)<-  c("LON","LAT","AWRF_aport1",
 Cor_order<- Cor_rain_place_ccf[order(Cor_rain_place_ccf$Dist),]
 #Cor_order
 ```
-
-A continuación extraemos la media y el máximo de cada columna. 
-
 ```{r include=FALSE}
 #Media de cada columna
 colMeans(Cor_rain_place_ccf[3:(length(Cor_rain_place_ccf)-1)])
@@ -1408,21 +1290,15 @@ which_colMax <- function(data) sapply(data, which.max)
 which_colMax(Cor_rain_place_ccf)[3:(length(Cor_rain_place_ccf)-1)]
 ```
 
-Vemos que en cuanto a correlación entre WRF y aportación el mejor punto es el numero 40. 
 
 ```{r}
 #Cor_rain_place_ccf[40,]
 ```
-Apreciamos que se encuentra a una distancia de 82 km. Esto es peligroso. 
-
-
-En cuanto a la lluvia...
+ 
 ```{r}
 #Cor_rain_place_ccf[4,]
 
 ```
-
-Vemos que se encuentra a 52 km.
 
 
 ```{r include=FALSE}
@@ -1435,7 +1311,7 @@ Cor_rain_place_ccf[c(19,23,24,14),c("LON","LAT","AWRF_aport3","AWRF_ADHI", "Dist
 
 
 ```
-Construimos una lista solo con los puntos las variables que nos interesan. Hemos ido reduciendo el rango de tiempo viendo como las correlaciones aumentaban, ahora que hemos escogido el mejor punto vamos a cojer los datos desde finales de octubre. 
+
 ```{r}
 clean_data_oct<-lapply(clean_data, function(x){
   y<- lapply(x, function(r) {
@@ -1480,10 +1356,8 @@ Daiyli_avgs3<-lapply(Daiyli_avgs2[c(19,23,24,14)], function(x)x[, c("Date","rWRF
 #range(Daiyli_avgs3[[1]]$Date)
 
 ```
-Apreciamos que tenemos un un dato diario entre el 26 de octubre y el 22 de febrero. 
 
-
-```{r}
+```{r include=FALSE}
 
 lapply(Daiyli_avgs3, function(x, titulo){
    k<- (max(c(cumsum(x$rWRF_acum),cumsum(x$rWRF_acum)))/max(c(x$rWRF_acum, x$rDHI_acum)))
@@ -1528,14 +1402,12 @@ vec_diff<- as.vector(unlist(lapply(Daiyli_avgs2, function(x){
 
 ```
 
-Vemos que entre las dos tablas que hemos sacado... la localización que se repite es la número 14, que se encuentra a 29 km. Esto es muy interesante para realizar luego las predicciones en base a esta localización. 
 
 ```{r}
 #Cor_rain_place_ccf[order(Cor_rain_place_ccf$AWRF_aport3, decreasing = T)[1:10],c("AWRF_aport3","AWRF_ADHI", "Dist")]
 
 ```
 
-Vemos que los puntos que se repiten en ambas listas... buscando mejor correlación con aportación, cercania y mejor resultado con la lluvia acumulada. 
 ```{r}
 best_points<- order(abs(vec_diff))[1:10][order(abs(vec_diff))[1:10]%in%order(Cor_rain_place_ccf$AWRF_aport3, decreasing = T)[1:10]]
 
@@ -1546,10 +1418,6 @@ litros_acum_diff<- vec_diff[best_points]
 #cbind(litros_acum_diff,Cor_rain_place_ccf[best_points,c("AWRF_aport3","AWRF_ADHI", "Dist")])
 
 ```
-
-Para un futuro tendremos que elegir entre estos 3 puntos. Añadimos también datos de correlación. 
-
-
 ```{r}
 Daiyli_avgs4<-lapply(Daiyli_avgs2[c(14,18,19)], function(x)x[, c("Date","rWRF_acum",
                                       "aport_mean_SMA_diario", 
@@ -1560,19 +1428,19 @@ Daiyli_avgs4<-lapply(Daiyli_avgs2[c(14,18,19)], function(x)x[, c("Date","rWRF_ac
 ```
 
 ```{r}
-lapply(Daiyli_avgs4[[1]], function(x, titulo){
+lapply(Daiyli_avgs4[1], function(x, titulo){
    k<- (max(c(cumsum(x$rWRF_acum),cumsum(x$rWRF_acum)))/max(c(x$rWRF_acum, x$rDHI_acum)))
   ggplot(data=x, aes(x=ymd(Date)))+
-    geom_bar(aes(y=rWRF_acum), stat="identity", fill="red", alpha=0.5, size=0.05)+
+    geom_bar(aes(y=rWRF_acum), stat="identity", fill="black", alpha=0.5, size=0.05)+
     xlab("Date")+ylab("Lluvia diaria [mm/h]")+theme(panel.background = element_blank(), 
                                                       panel.grid = element_blank())+
-    geom_line(aes(y = cumsum(rWRF_acum)/k), group = 1, col="red") +
-    geom_bar(aes(y=rDHI_acum), stat="identity", fill="blue", alpha=0.4, size=0.05)+
-    xlab("Date")+ylab("Lluvia diaria [mm/h]")+
+    geom_line(aes(y = cumsum(rWRF_acum)/k), group = 1, col="black") +
+    geom_bar(aes(y=rDHI_acum), stat="identity", fill="red", alpha=0.4, size=0.05)+
+    xlab("Date")+ylab("Daily rain [mm/day]")+
     theme(panel.background = element_blank(),panel.grid = element_blank())+
-    geom_line(aes(y = cumsum(rDHI_acum)/k), group = 1, col="blue") +
+    geom_line(aes(y = cumsum(rDHI_acum)/k), group = 1, col="red") +
     scale_y_continuous(sec.axis = sec_axis(trans = ~ . / (1/k),
-                                           name = " LLuvia acumulada [mm]", 
+                                           name = " Cumulative rain [mm]", 
                                            breaks = seq(min(cumsum(x$rDHI_acum)),
                                                         max(cumsum(x$rDHI_acum)),
                                                         by=50)),
@@ -1583,468 +1451,12 @@ lapply(Daiyli_avgs4[[1]], function(x, titulo){
     theme(plot.title = element_text(hjust = 0.5))+
     geom_line(aes(y=aport_mean_SMA_diario/k), col="green",alpha= 0.9)
 
-}, titulo=names(Daiyli_avgs4))
+}, titulo="Observed rain (red) vs WRF estimated rain (black) \n Observed Streamflow (green)")
 ```
 
 
 # Predictive Model
-
-```{r}
-path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
-clean_data<- readRDS(path_hist_WRF)
-clean_data_oct<-lapply(clean_data, function(x){
-  y<- lapply(x, function(r) r[which(r$Date > ymd("2018/10/01")),])
-})
-
-
-fecha_cut<- ymd("2019/01/15")
-#cortar en entrenamiento y predicción
-cut_train<- lapply(clean_data_oct[c(14,18,19)], function(x,fecha_end){
-  y<- lapply(x, function(r){
-    
-    fecha_ini<- ymd("2018/12/01")
-    
-    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-},
-fecha_end=fecha_cut)
-cut_train<- lapply(cut_train, function(x){
-  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
-            "aport_mean_SMA", "nivel_mean_SMA")]
-  
-  
-})
-
-
-cut_predict<- lapply(clean_data_oct[c(14,18,19)], function(x, fecha_ini){
-  y<- lapply(x, function(r){
-    
-    
-    fecha_end<- ymd("2019/02/20")
-    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-}, 
-fecha_ini=fecha_cut)
-cut_predict<- lapply(cut_predict, function(x){
-  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
-            "aport_mean_SMA", "nivel_mean_SMA")]
-  
-  
-})
-
-
-```
-
 ```{r include=FALSE}
-x<- cut_train[[1]]
-plot(diff(x$nivel_mean_SMA)*20,  
-     ylim = c(-1.5,2), 
-     type = "l", 
-     xlab = "",
-     xaxt="n",
-     yaxt="n",
-     ylab = " ")
-lines(x$aport_mean_SMA/100-1, col="red")
-```
-
-
-```{r include=FALSE}
-xx<- x[which(x$Date> ymd("2018/12/10")),]  
-plot(diff(xx$nivel_mean_SMA)*20,  
-     ylim = c(-1.5,2), 
-     type = "l", 
-     xlab = "",
-     xaxt="n",
-     yaxt="n",
-     ylab = " ")
-lines(xx$aport_mean_SMA/100-1, col="red")
-
-```
-```{r}
-ccf_nivel_aport<- ccf(diff(xx$nivel_mean_SMA),
-                      xx$aport_mean_SMA,
-                      lag.max = 1000)
-
-print(paste0("Correlación máxima: ",
-             max(ccf_nivel_aport$acf), " Se produce para un retraso de ",
-             ccf_nivel_aport$lag[
-               which.max(ccf_nivel_aport$acf)], " horas"))
-```
-```{r include=FALSE}
-vec_cor<- vector()
-
-for (i in seq(6, 144, by=2)) {
-  x<- cut_train[[1]]
-  x$prep_hourlySMA<- SMA(x$prep_hourly, i)
-  x<- x[complete.cases(x),]
-
-  rain_aport<- ccf(x$prep_hourlySMA, 
-      x$aport_mean_SMA, 
-      lag.max = 1000, 
-      plot = F)
-  
-  vec_cor[i]<- max(rain_aport$acf)
-  
-  
-}
-
-plot(vec_cor, 
-     xlab = "SMA points",
-     ylab = "Corr")
-
-```
-Se ha decidido que el SMA ha emplear será de 48 puntos. A continuación realizamos una predicción de la aportación empleando diferentes métodos y variables. 
-
-+ Aportación de hace 3 días
-+ Lluvia de hace 1 día 
-+ Lluvia actual
-
-```{r }
-path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
-clean_data<- readRDS(path_hist_WRF)
-clean_data_oct<-lapply(clean_data, function(x){
-  y<- lapply(x, function(r) r[which(r$Date > ymd("2018/10/01")),])
-})
-
-
-fecha_cut<- ymd("2019/01/15")
-#cortar en entrenamiento y predicción
-cut_train<- lapply(clean_data_oct[c(14,18,19)], function(x,fecha_end){
-  y<- lapply(x, function(r){
-    
-    fecha_ini<- ymd("2018/12/01")
-    
-    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-},
-fecha_end=fecha_cut)
-cut_train<- lapply(cut_train, function(x){
-  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
-            "aport_mean_SMA", "nivel_mean_SMA")]
-  
-  
-})
-
-
-cut_predict<- lapply(clean_data_oct[c(14,18,19)], function(x, fecha_ini){
-  y<- lapply(x, function(r){
-    
-    
-    fecha_end<- ymd("2019/02/20")
-    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-}, 
-fecha_ini=fecha_cut)
-cut_predict<- lapply(cut_predict, function(x){
-  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
-            "aport_mean_SMA", "nivel_mean_SMA")]
-  
-  
-})
-
-
-x<- cut_train[[1]]
-x$aport1<- lag(x$aport_mean_SMA, 24)
-x$aport2<- lag(x$aport_mean_SMA, 48)
-x$aport3<- lag(x$aport_mean_SMA, 72)
-x$aport4<- lag(x$aport_mean_SMA, 96)
-x$aport5<- lag(x$aport_mean_SMA, 120)
-
-x$prep_hourly1<- lead(x$prep_hourly, 24)
-x$prep_hourlySMA12<- SMA(x$prep_hourly, 12)
-x$prep_hourlySMA24<- SMA(x$prep_hourly, 24)
-x$prep_hourlySMA36<- SMA(x$prep_hourly, 36)
-x$prep_hourlySMA48<- SMA(x$prep_hourly, 48)
-x$prep_hourlySMA48_lag<- lag(x$prep_hourlySMA48, 24)
-
-x<- x[complete.cases(x),]
-
-
-y<- cut_predict[[1]]
-y$aport1<- lag(y$aport_mean_SMA, 24)
-y$aport2<- lag(y$aport_mean_SMA, 48)
-y$aport3<- lag(y$aport_mean_SMA, 72)
-y$prep_hourly1<- lead(y$prep_hourly, 24)
-y$prep_hourlySMA12<- SMA(y$prep_hourly, 12)
-y$prep_hourlySMA24<- SMA(y$prep_hourly, 24)
-y$prep_hourlySMA36<- SMA(y$prep_hourly, 36)
-y$prep_hourlySMA48<- SMA(y$prep_hourly, 48)
-y$prep_hourlySMA48_lag<- lag(y$prep_hourlySMA48, 24)
-
-y<- y[complete.cases(y),]
-
-indexxx<- 285
-fecha_ini<- y$Date[indexxx]
-fecha_end<- y$Date[indexxx]+ as.difftime(3, units = "days")
-
-y<- y[which(y$Date> fecha_ini & y$Date< fecha_end), ]
-
-
-
-
-fit_1  <- svm(aport_mean_SMA ~ prep_hourlySMA48_lag * prep_hourlySMA48 , data = x)
-fit_2  <- svm(aport_mean_SMA  ~ prep_hourlySMA48_lag + aport3 +  prep_hourlySMA48, data = x)
-fit_3  <- svm(aport_mean_SMA  ~ prep_hourlySMA48_lag * aport3 * prep_hourlySMA48, data = x)
-
-fit_4  <- lm(aport_mean_SMA ~ prep_hourlySMA48_lag * prep_hourlySMA48, data = x)
-fit_5  <- lm(aport_mean_SMA  ~ prep_hourlySMA48_lag + aport3 + prep_hourlySMA48, data = x)
-fit_6  <- lm(aport_mean_SMA  ~ prep_hourlySMA48_lag * aport3 * prep_hourlySMA48, data = x)
-
-
-uncorrected<-y$aport_mean_SMA
-pred_aport1<- predict(fit_1, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-pred_aport2<- predict(fit_2, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        aport3= y$aport3,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-pred_aport3<- predict(fit_3, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        aport3= y$aport3,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-
-pred_aport4<- predict(fit_4, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-pred_aport5<- predict(fit_5, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        aport3= y$aport3,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-pred_aport6<- predict(fit_6, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        aport3= y$aport3,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-
-
-plot(uncorrected, x=y$Date, type = "l",
-     ylim = c(0,600), 
-     xlab = paste0(range(y$Date)),
-     ylab = "Aportación [m³/s]",
-     main =  "Predicción de aportación \n empleando diferentes métodos")
-lines(pred_aport1,x=y$Date, col="red")
-lines(pred_aport2,x=y$Date, col="green")
-lines(pred_aport3,x=y$Date,col="blue")
-lines(pred_aport4,x=y$Date, col="red", lty=2)
-lines(pred_aport5,x=y$Date, col="green", lty=2)
-lines(pred_aport6,x=y$Date,col="blue", lty=2)
-
-
-```
-
-
-
-```{r}
-ccf(diff(x$nivel_mean_SMA), x$prep_hourlySMA48, lag.max = 1000)
-print(paste0("Correlación máxima: ",
-             max(ccf_nivel_aport$acf), " Se produce para un retraso de ",
-             ccf_nivel_aport$lag[
-               which.max(ccf_nivel_aport$acf)], " horas"))
-
-```
-
-
-
-No tenemos valores de aportación en la página web, solamente nivel... por lo tanto hay que conseguir una buena correlación entre nivel y aportación. O directamente predecir el nivel con la lluvia. 
-
-
-```{r}
-path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
-clean_data<- readRDS(path_hist_WRF)
-clean_data_oct<-lapply(clean_data, function(x){
-  y<- lapply(x, function(r){ 
-    r<- r[which(r$Date > ymd("2018/10/01")),]
-  r$nivel_mean_SMA1<- c(diff(r$nivel_mean_SMA),0)
-  return(r)
-  })
-})
-
-
-fecha_cut<- ymd("2019/01/15")
-#cortar en entrenamiento y predicción
-cut_train<- lapply(clean_data_oct[c(14,18,19)], function(x,fecha_end){
-  y<- lapply(x, function(r){
-    
-    fecha_ini<- ymd("2018/12/01")
-    
-    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-},
-fecha_end=fecha_cut)
-cut_train<- lapply(cut_train, function(x){
-  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
-            "aport_mean_SMA", "nivel_mean_SMA","nivel_mean_SMA1")]
-  
-  
-})
-
-
-cut_predict<- lapply(clean_data_oct[c(14,18,19)], function(x, fecha_ini){
-  y<- lapply(x, function(r){
-    
-    
-    fecha_end<- ymd("2019/02/20")
-    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-}, 
-fecha_ini=fecha_cut)
-cut_predict<- lapply(cut_predict, function(x){
-  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
-            "aport_mean_SMA", "nivel_mean_SMA","nivel_mean_SMA1")]
-  
-  
-})
-
-
-x<- cut_train[[1]]
-x$nivel1<- lag(x$nivel_mean_SMA1, 24)
-x$nivel2<- lag(x$nivel_mean_SMA1, 48)
-x$nivel3<- lag(x$nivel_mean_SMA1, 72)
-x$nivel4<- lag(x$nivel_mean_SMA1, 96)
-x$nivel5<- lag(x$nivel_mean_SMA1, 120)
-
-x$prep_hourly1<- lead(x$prep_hourly, 24)
-x$prep_hourlySMA12<- SMA(x$prep_hourly, 12)
-x$prep_hourlySMA24<- SMA(x$prep_hourly, 24)
-x$prep_hourlySMA36<- SMA(x$prep_hourly, 36)
-x$prep_hourlySMA48<- SMA(x$prep_hourly, 48)
-x$prep_hourlySMA48_lag<- lag(x$prep_hourlySMA48, 24)
-
-x<- x[complete.cases(x),]
-
-
-y<- cut_predict[[1]]
-y$nivel1<- lag(y$nivel_mean_SMA1, 24)
-y$nivel2<- lag(y$nivel_mean_SMA1, 48)
-y$nivel3<- lag(y$nivel_mean_SMA1, 72)
-y$prep_hourly1<- lead(y$prep_hourly, 24)
-y$prep_hourlySMA12<- SMA(y$prep_hourly, 12)
-y$prep_hourlySMA24<- SMA(y$prep_hourly, 24)
-y$prep_hourlySMA36<- SMA(y$prep_hourly, 36)
-y$prep_hourlySMA48<- SMA(y$prep_hourly, 48)
-y$prep_hourlySMA48_lag<- lag(y$prep_hourlySMA48, 24)
-
-y<- y[complete.cases(y),]
-
-indexxx<- 285
-fecha_ini<- y$Date[indexxx]
-fecha_end<- y$Date[indexxx]+ as.difftime(3, units = "days")
-
-y<- y[which(y$Date> fecha_ini & y$Date< fecha_end), ]
-
-
-
-
-fit_1  <- svm(nivel_mean_SMA1 ~ prep_hourlySMA48_lag * prep_hourlySMA48 , data = x)
-fit_2  <- svm(nivel_mean_SMA1  ~ prep_hourlySMA48_lag + nivel3 +  prep_hourlySMA48, data = x)
-fit_3  <- svm(nivel_mean_SMA1  ~ prep_hourlySMA48_lag * nivel3 * prep_hourlySMA48, data = x)
-
-fit_4  <- lm(nivel_mean_SMA1 ~ prep_hourlySMA48_lag * prep_hourlySMA48, data = x)
-fit_5  <- lm(nivel_mean_SMA1  ~ prep_hourlySMA48_lag + nivel3 + prep_hourlySMA48, data = x)
-fit_6  <- lm(nivel_mean_SMA1  ~ prep_hourlySMA48_lag * nivel3 * prep_hourlySMA48, data = x)
-
-
-uncorrected<-y$nivel_mean_SMA1
-pred_nivel1<- predict(fit_1, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-pred_nivel2<- predict(fit_2, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        nivel3= y$nivel3,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-pred_nivel3<- predict(fit_3, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        nivel3= y$nivel3,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-
-pred_nivel4<- predict(fit_4, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-pred_nivel5<- predict(fit_5, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        nivel3= y$nivel3,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-pred_nivel6<- predict(fit_6, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
-                                        nivel3= y$nivel3,
-                                        prep_hourlySMA48 =y$prep_hourlySMA48))
-
-
-plot(uncorrected, x=y$Date, type = "l",ylim=c(0, 0.2),
-     xlab = paste0(range(y$Date)),
-     ylab = "nivel [msnm]",
-     main =  "Predicción de nivel \n empleando diferentes métodos")
-lines(pred_nivel1,x=y$Date, col="red")
-lines(pred_nivel2,x=y$Date, col="green")
-lines(pred_nivel3,x=y$Date,col="blue")
-lines(pred_nivel4,x=y$Date, col="red", lty=2)
-lines(pred_nivel5,x=y$Date, col="green", lty=2)
-lines(pred_nivel6,x=y$Date,col="blue", lty=2)
-
-```
-
-
-
-
-# Empleando historial obtenido en la Web SAIH
-
-```{r}
-hist1<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/'), full.names = T)
-hist2<- hist1[str_detect(hist1, "HIST_WEB_")]
-hist3<- str_remove(str_remove(hist2,  "HIST_WEB_"), ".RDS") %>% 
-  str_replace(.,"_"," ") %>% ymd_hms()
-path_hist<- hist2[which.max(hist3)]
-
-
-hist<- readRDS(path_hist)
-
-
-
-RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
-                           full.names = T) %>%
-  .[str_detect(.,"E001")] %>% .[str_detect(., ":")]
-
-
-download_day<- sapply(str_split(RDS_down_path, "_"), 
-                                 function(x) paste0(x[2], " ",
-                                                    str_remove(x[3], ".RDS")))%>%  ymd_hms(.)
-
-
-
-index_min<- which.max(download_day)
-
-
-
-RDS_download<- readRDS(RDS_down_path[index_min])
-RDS_download1<-as.data.frame(apply(RDS_download[2:length(RDS_download)],2, function(x) as.numeric(as.character(str_replace_all( x,",", "."))) ))
-RDS_download1$Date<- ymd_hms(RDS_download$Date)
-RDS_download1<- RDS_download1[, c(6,1,2,3,4,5)]
-colnames(RDS_download1)<- c("Date", "lluvia","nivel",
-                            "Temp", "Vol", "porcentaje")
-
-
-
-completando<- hist[!hist$Date%in%RDS_download1$Date,]
-completado<- bind_rows(RDS_download1, completando)
-completado<- completado[order(completado$Date),]
-
-
-path_hist<- here::here('Data/Parques/Belesar/Historico/WEB/')
-name<- paste0("HIST_WEB_",str_replace(as.character(ymd_hms(now())), " ", "_"), ".RDS")
-path_total<- paste0(path_hist, name)
-#saveRDS(completado, path_total)
-```
-
-
-
-
-```{r}
 RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
                            full.names = T) %>%
   .[str_detect(.,"WRF_WEB_")] %>% .[str_detect(., ":")]
@@ -2161,7 +1573,7 @@ plot(r$acf, x= r$lag,
 ```
 
 
-```{r}
+```{r include=FALSE}
 
 plot(prueba$SMA_prep,
      x=prueba$Date, 
@@ -2174,9 +1586,405 @@ lines(prueba$SMA_difnivel*15,
       x=prueba$Date, col="red")
 
 ```
+```{r include=FALSE}
+path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
+clean_data<- readRDS(path_hist_WRF)
+clean_data_oct<-lapply(clean_data, function(x){
+  y<- lapply(x, function(r) r[which(r$Date > ymd("2018/10/01")),])
+})
 
 
-De la gráfica anterior se puede ver como la lluvia y la variación del nivel están bastante correlacionadas... 
+fecha_cut<- ymd("2019/01/15")
+#cortar en entrenamiento y predicción
+cut_train<- lapply(clean_data_oct[c(14,18,19)], function(x,fecha_end){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2018/12/01")
+    
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+},
+fecha_end=fecha_cut)
+cut_train<- lapply(cut_train, function(x){
+  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
+            "aport_mean_SMA", "nivel_mean_SMA")]
+  
+  
+})
+
+
+cut_predict<- lapply(clean_data_oct[c(14,18,19)], function(x, fecha_ini){
+  y<- lapply(x, function(r){
+    
+    
+    fecha_end<- ymd("2019/02/20")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+}, 
+fecha_ini=fecha_cut)
+cut_predict<- lapply(cut_predict, function(x){
+  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
+            "aport_mean_SMA", "nivel_mean_SMA")]
+  
+  
+})
+
+
+```
+
+```{r include=FALSE}
+x<- cut_train[[1]]
+plot(diff(x$nivel_mean_SMA)*20,  
+     ylim = c(-1.5,2), 
+     type = "l", 
+     xlab = "",
+     xaxt="n",
+     yaxt="n",
+     ylab = " ")
+lines(x$aport_mean_SMA/100-1, col="red")
+```
+
+
+```{r include=FALSE}
+xx<- x[which(x$Date> ymd("2018/12/10")),]  
+plot(diff(xx$nivel_mean_SMA)*20,  
+     ylim = c(-1.5,2), 
+     type = "l", 
+     xlab = "",
+     xaxt="n",
+     yaxt="n",
+     ylab = " ")
+lines(xx$aport_mean_SMA/100-1, col="red")
+
+```
+```{r include=FALSE}
+ccf_nivel_aport<- ccf(diff(xx$nivel_mean_SMA),
+                      xx$aport_mean_SMA,
+                      lag.max = 1000)
+
+print(paste0("Correlación máxima: ",
+             max(ccf_nivel_aport$acf), " Se produce para un retraso de ",
+             ccf_nivel_aport$lag[
+               which.max(ccf_nivel_aport$acf)], " horas"))
+```
+```{r include=FALSE}
+vec_cor<- vector()
+
+for (i in seq(6, 144, by=2)) {
+  x<- cut_train[[1]]
+  x$prep_hourlySMA<- SMA(x$prep_hourly, i)
+  x<- x[complete.cases(x),]
+
+  rain_aport<- ccf(x$prep_hourlySMA, 
+      x$aport_mean_SMA, 
+      lag.max = 1000, 
+      plot = F)
+  
+  vec_cor[i]<- max(rain_aport$acf)
+  
+  
+}
+
+plot(vec_cor, 
+     xlab = "SMA points",
+     ylab = "Corr")
+
+```
+
+
+
+```{r}
+path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
+clean_data<- readRDS(path_hist_WRF)
+clean_data_oct<-lapply(clean_data, function(x){
+  y<- lapply(x, function(r){ 
+    r<- r[which(r$Date > ymd("2018/10/01")),]
+  r$nivel_mean_SMA1<- c(diff(r$nivel_mean_SMA),0)
+  return(r)
+  })
+})
+
+
+fecha_cut<- ymd("2019/01/15")
+#cortar en entrenamiento y predicción
+cut_train<- lapply(clean_data_oct[c(14,18,19)], function(x,fecha_end){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2018/12/01")
+    
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+},
+fecha_end=fecha_cut)
+cut_train<- lapply(cut_train, function(x){
+  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
+            "aport_mean_SMA", "nivel_mean_SMA","nivel_mean_SMA1")]
+  
+  
+})
+
+
+cut_predict<- lapply(clean_data_oct[c(14,18,19)], function(x, fecha_ini){
+  y<- lapply(x, function(r){
+    
+    
+    fecha_end<- ymd("2019/02/20")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+}, 
+fecha_ini=fecha_cut)
+cut_predict<- lapply(cut_predict, function(x){
+  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
+            "aport_mean_SMA", "nivel_mean_SMA","nivel_mean_SMA1")]
+  
+  
+})
+
+
+x<- cut_train[[1]]
+x$nivel1<- lag(x$nivel_mean_SMA1, 24)
+x$nivel2<- lag(x$nivel_mean_SMA1, 48)
+x$nivel3<- lag(x$nivel_mean_SMA1, 72)
+x$nivel4<- lag(x$nivel_mean_SMA1, 96)
+x$nivel5<- lag(x$nivel_mean_SMA1, 120)
+
+x$prep_hourly1<- lead(x$prep_hourly, 24)
+x$prep_hourlySMA12<- SMA(x$prep_hourly, 12)
+x$prep_hourlySMA24<- SMA(x$prep_hourly, 24)
+x$prep_hourlySMA36<- SMA(x$prep_hourly, 36)
+x$prep_hourlySMA48<- SMA(x$prep_hourly, 48)
+x$prep_hourlySMA48_lag<- lag(x$prep_hourlySMA48, 24)
+
+x<- x[complete.cases(x),]
+
+
+y<- cut_predict[[1]]
+y$nivel1<- lag(y$nivel_mean_SMA1, 24)
+y$nivel2<- lag(y$nivel_mean_SMA1, 48)
+y$nivel3<- lag(y$nivel_mean_SMA1, 72)
+y$prep_hourly1<- lead(y$prep_hourly, 24)
+y$prep_hourlySMA12<- SMA(y$prep_hourly, 12)
+y$prep_hourlySMA24<- SMA(y$prep_hourly, 24)
+y$prep_hourlySMA36<- SMA(y$prep_hourly, 36)
+y$prep_hourlySMA48<- SMA(y$prep_hourly, 48)
+y$prep_hourlySMA48_lag<- lag(y$prep_hourlySMA48, 24)
+
+y<- y[complete.cases(y),]
+
+indexxx<- 285
+fecha_ini<- y$Date[indexxx]
+fecha_end<- y$Date[indexxx]+ as.difftime(3, units = "days")
+
+y<- y[which(y$Date> fecha_ini & y$Date< fecha_end), ]
+
+
+
+
+
+fit_4  <- lm(nivel_mean_SMA1 ~ prep_hourlySMA48_lag * prep_hourlySMA48, data = x)
+fit_5  <- lm(nivel_mean_SMA1  ~ prep_hourlySMA48_lag + nivel3 + prep_hourlySMA48, data = x)
+fit_6  <- lm(nivel_mean_SMA1  ~ prep_hourlySMA48_lag * nivel3 * prep_hourlySMA48, data = x)
+
+pred_nivel4<- predict(fit_4, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+pred_nivel5<- predict(fit_5, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        nivel3= y$nivel3,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+pred_nivel6<- predict(fit_6, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        nivel3= y$nivel3,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+
+
+plot(uncorrected, x=y$Date, type = "l",ylim=c(0, 0.2),
+     xlab = paste0(range(y$Date)),
+     ylab = "Level variation [m]",
+     main =  "Dam level variation prediction \n using common regression methods")
+lines(pred_nivel4,x=y$Date, col="red", lty=2)
+lines(pred_nivel5,x=y$Date, col="green", lty=2)
+lines(pred_nivel6,x=y$Date,col="blue", lty=2)
+
+```
+
+
+
+
+
+```{r }
+path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
+clean_data<- readRDS(path_hist_WRF)
+clean_data_oct<-lapply(clean_data, function(x){
+  y<- lapply(x, function(r) r[which(r$Date > ymd("2018/10/01")),])
+})
+
+
+fecha_cut<- ymd("2019/01/15")
+#cortar en entrenamiento y predicción
+cut_train<- lapply(clean_data_oct[c(14,18,19)], function(x,fecha_end){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2018/12/01")
+    
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+},
+fecha_end=fecha_cut)
+cut_train<- lapply(cut_train, function(x){
+  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
+            "aport_mean_SMA", "nivel_mean_SMA")]
+  
+  
+})
+
+
+cut_predict<- lapply(clean_data_oct[c(14,18,19)], function(x, fecha_ini){
+  y<- lapply(x, function(r){
+    
+    
+    fecha_end<- ymd("2019/02/20")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+}, 
+fecha_ini=fecha_cut)
+cut_predict<- lapply(cut_predict, function(x){
+  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
+            "aport_mean_SMA", "nivel_mean_SMA")]
+  
+  
+})
+
+
+x<- cut_train[[1]]
+x$aport1<- lag(x$aport_mean_SMA, 24)
+x$aport2<- lag(x$aport_mean_SMA, 48)
+x$aport3<- lag(x$aport_mean_SMA, 72)
+x$aport4<- lag(x$aport_mean_SMA, 96)
+x$aport5<- lag(x$aport_mean_SMA, 120)
+
+x$prep_hourly1<- lead(x$prep_hourly, 24)
+x$prep_hourlySMA12<- SMA(x$prep_hourly, 12)
+x$prep_hourlySMA24<- SMA(x$prep_hourly, 24)
+x$prep_hourlySMA36<- SMA(x$prep_hourly, 36)
+x$prep_hourlySMA48<- SMA(x$prep_hourly, 48)
+x$prep_hourlySMA48_lag<- lag(x$prep_hourlySMA48, 24)
+
+x<- x[complete.cases(x),]
+
+
+y<- cut_predict[[1]]
+y$aport1<- lag(y$aport_mean_SMA, 24)
+y$aport2<- lag(y$aport_mean_SMA, 48)
+y$aport3<- lag(y$aport_mean_SMA, 72)
+y$prep_hourly1<- lead(y$prep_hourly, 24)
+y$prep_hourlySMA12<- SMA(y$prep_hourly, 12)
+y$prep_hourlySMA24<- SMA(y$prep_hourly, 24)
+y$prep_hourlySMA36<- SMA(y$prep_hourly, 36)
+y$prep_hourlySMA48<- SMA(y$prep_hourly, 48)
+y$prep_hourlySMA48_lag<- lag(y$prep_hourlySMA48, 24)
+
+y<- y[complete.cases(y),]
+
+indexxx<- 285
+fecha_ini<- y$Date[indexxx]
+fecha_end<- y$Date[indexxx]+ as.difftime(3, units = "days")
+
+y<- y[which(y$Date> fecha_ini & y$Date< fecha_end), ]
+
+
+fit_4  <- lm(aport_mean_SMA ~ prep_hourlySMA48_lag * prep_hourlySMA48, data = x)
+fit_5  <- lm(aport_mean_SMA  ~ prep_hourlySMA48_lag + aport3 + prep_hourlySMA48, data = x)
+fit_6  <- lm(aport_mean_SMA  ~ prep_hourlySMA48_lag * aport3 * prep_hourlySMA48, data = x)
+
+
+uncorrected<-y$aport_mean_SMA
+
+pred_aport4<- predict(fit_4, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+pred_aport5<- predict(fit_5, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        aport3= y$aport3,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+pred_aport6<- predict(fit_6, data.frame(prep_hourlySMA48_lag =y$prep_hourlySMA48_lag,
+                                        aport3= y$aport3,
+                                        prep_hourlySMA48 =y$prep_hourlySMA48))
+
+
+plot(uncorrected, x=y$Date, type = "l",
+     ylim = c(0,600), 
+     xlab = paste0(range(y$Date)),
+     ylab = "Streamflow [m³/s]",
+     main =  "Streamflow prediction \n using common regression methods")
+lines(pred_aport4,x=y$Date, col="red", lty=2)
+lines(pred_aport5,x=y$Date, col="green", lty=2)
+lines(pred_aport6,x=y$Date,col="blue", lty=2)
+
+
+```
+
+# Empleando historial obtenido en la Web SAIH
+
+```{r include=FALSE}
+hist1<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/'), full.names = T)
+hist2<- hist1[str_detect(hist1, "HIST_WEB_")]
+hist3<- str_remove(str_remove(hist2,  "HIST_WEB_"), ".RDS") %>% 
+  str_replace(.,"_"," ") %>% ymd_hms()
+path_hist<- hist2[which.max(hist3)]
+
+
+hist<- readRDS(path_hist)
+
+
+
+RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
+                           full.names = T) %>%
+  .[str_detect(.,"E001")] %>% .[str_detect(., ":")]
+
+
+download_day<- sapply(str_split(RDS_down_path, "_"), 
+                                 function(x) paste0(x[2], " ",
+                                                    str_remove(x[3], ".RDS")))%>%  ymd_hms(.)
+
+
+
+index_min<- which.max(download_day)
+
+
+
+RDS_download<- readRDS(RDS_down_path[index_min])
+RDS_download1<-as.data.frame(apply(RDS_download[2:length(RDS_download)],2, function(x) as.numeric(as.character(str_replace_all( x,",", "."))) ))
+RDS_download1$Date<- ymd_hms(RDS_download$Date)
+RDS_download1<- RDS_download1[, c(6,1,2,3,4,5)]
+colnames(RDS_download1)<- c("Date", "lluvia","nivel",
+                            "Temp", "Vol", "porcentaje")
+
+
+
+completando<- hist[!hist$Date%in%RDS_download1$Date,]
+completado<- bind_rows(RDS_download1, completando)
+completado<- completado[order(completado$Date),]
+
+
+path_hist<- here::here('Data/Parques/Belesar/Historico/WEB/')
+name<- paste0("HIST_WEB_",str_replace(as.character(ymd_hms(now())), " ", "_"), ".RDS")
+path_total<- paste0(path_hist, name)
+#saveRDS(completado, path_total)
+```
 
 
 ```{r include=FALSE}
@@ -2228,13 +2036,6 @@ lines(pred_nivel4,x=predict_1$Date, col="purple")
 }
 
 ```
-
-
-
-
-Se puede ver que aumentando SMA de la lluvia, la predicción de la variación de nivel es muy buena... imagino que será por cositas de inercia.  A continuación... hacemos exactamente lo mismo pero metiendo variación de nivel -1
-
-
 ``` {r include=FALSE}
 for (i in seq(24,144,24)) {
   predict_1<- cut_predict[[23]]
@@ -2281,7 +2082,7 @@ lines(pred_nivel3,x=predict_1$Date, col="green")
 }
 
 ```
-Seguimos probando SMA's.... por curiosidad... en principio no tienen mucho sentido hacer esto. 
+
 ```{r include=FALSE}
 for (i in seq(24,144,24)) {
   predict_1<- cut_predict[[23]]
@@ -2351,10 +2152,6 @@ lines(pred_nivel8,x=predict_1$Date, col="green1",lty=2)
 }
 
 ```
-
-
-Es una apreciación mia, pero creo que lo mejor es predecir la variación de nivel teniendo en cuenta solo la lluvia WRF con un desfase. 
-
 ```{r include=FALSE}
 i<- 48
   for (j in seq(6,96,6)) {
@@ -2479,10 +2276,6 @@ plot(DHI$turbinado_SMA, x=DHI$Date, type = "l",
 
 
 ```
-Se puede observar como existe un incremento en el caudal turbinado en los meses lluviosos y un descenso en los meses de verano. 
-
-Lo que vamos ha hacer es realizar una comparación
-
 
 ```{r include=FALSE}
 DHI$`Turbinado[m³/s]`<- DHI$`Turbinado[m³/s]`[DHI$`Turbinado[m³/s]`>= 0]
@@ -2575,10 +2368,9 @@ print(paste0("Cor max = ", round(max(r$acf), digits = 3),". Para un retraso de "
       r$lag[which.max(r$acf)], " horas"))
 
 ```
-Entonces... si saco una buena relaciónd e aqui, y puedo predecir la diferencia de nivel del embalse... tambien puedo saber la aportación. 
 
 
-```{r}
+```{r include=FALSE}
 fecha_cut<- ymd("2019/01/25")
 fecha_ini<- ymd("2018/11/01")
 #cortar en entrenamiento y predicción
@@ -2626,9 +2418,7 @@ geom_line(aes(y=pred_nivel2,x=Date), col="red", lty=2)+
 
 
 
-#Caret 
 
-Empezamos a probar caret siguiendo este [documento](https://rstudio-pubs-static.s3.amazonaws.com/383283_cea99ccd8c794261be023895ac09d305.html#randomforest)... esta muy bien por cierto.  Empezamos a probar algunos algoritmos que se desarrollan en este tutorial peeeeeeeeeeero hay que diferenciar entre algoritmos de clasificacion y regresion.... nuestro caso es de regresion, porque estamos intentando predecir una variable continua... Entonces lo que hice fue.... clasificar todos los métodos que contiene el paquete caret y cojer los métodos de regresión. 
 
 ```{r include=FALSE}
 library(doMC)
@@ -2654,136 +2444,11 @@ Tabla_regresion<- Tabla_method[which(str_detect(Tabla_method$type,
 
 ```
 
-Vemos que existen métodos mixtos... es decir... se contemplan para prediccion de clasificacion y por regresión tambien. 
-
-
-```{r, eval=FALSE}
-
-RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
-                           full.names = T) %>%
-  .[str_detect(.,"WRF_WEB_")] %>% .[str_detect(., ":")]
-
-
-download_day<- sapply(str_split(RDS_down_path, "_"), 
-                      function(x) paste0(x[3], " ",
-                                         str_remove(x[4], ".RDS")))%>%  ymd_hms(.)
-
-
-clean_data<- readRDS(RDS_down_path[which.max(download_day)])
-clean_data1<- lapply(clean_data, function(x){
-  y<- lapply(x, function(r){
-    r$dif_nivel<- c(diff(r$nivel)[],0)
-    r$dif_nivel[diff(r$Date)>3600]<- 0
-    return(r)
-  })
-})
-
-fecha_cut<- ymd("2019/04/15")
-#cortar en entrenamiento y predicción
-cut_train<- lapply(clean_data1, function(x,fecha_end){
-  y<- lapply(x, function(r){
-    
-    
-    fecha_ini<- ymd("2018/12/01")
-    
-    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-},fecha_end=fecha_cut)
-cut_train<- lapply(cut_train, function(x){
-  r<- x[[1]][,c("Date","LON", "LAT", "prep_hourly", "lluvia", 
-                "nivel", "dif_nivel")]
-  return(r[complete.cases(r),])
-  
-})
-
-
-cut_predict<- lapply(clean_data1, function(x, fecha_ini){
-  y<- lapply(x, function(r){
-    Jan_data<- r[which(r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-}, fecha_ini=fecha_cut)
-cut_predict<- lapply(cut_predict, function(x){
-  r<- x[[1]][,c("Date","LON", "LAT", "prep_hourly", "lluvia",
-                "nivel", "dif_nivel")]
-  return(r[complete.cases(r), ])
-  
-})
-
-
-
-
-#La predicción de la diferencia de nivel la hacemos con SMA sobre la lluvia de 48
-#   lag sobre la lluvia de 54 valores...
-
-# ANFIS ---------------------------------------------------------------------
-#registerDoMC(cores = 4)
-i<- 48
-j<- 54 
-nmodel<- 1
-
-
-
-entrenamiento<- cut_train[[23]]
-entrenamiento$SMA_prep<- SMA(entrenamiento$prep_hourly,i)
-entrenamiento$SMA_difnivel<- SMA(entrenamiento$dif_nivel, 36)
-entrenamiento$SMA_prep_lag1<- lag(entrenamiento$SMA_prep,j)
-entrenamiento<- entrenamiento[complete.cases(entrenamiento),]
-
-
-
-
-
-prediccion<- cut_predict[[23]]
-prediccion$SMA_prep<- SMA(prediccion$prep_hourly,i)
-prediccion$SMA_difnivel<- SMA(prediccion$dif_nivel, 36)
-prediccion$SMA_prep_lag1<- lag(prediccion$SMA_prep,j)
-prediccion<- prediccion[complete.cases(prediccion),]
-
-
-
-
-
-
-particiones  <- 10
-repeticiones <- 5
-
-# Hiperparámetros
-hiperparametros <- data.frame(k = seq(1,500,by=10))
-
-set.seed(123)
-seeds <- vector(mode = "list", length = (particiones * repeticiones) + 1)
-for (i in 1:(particiones * repeticiones)) {
-  seeds[[i]] <- sample.int(1000, nrow(hiperparametros)) 
-}
-seeds[[(particiones * repeticiones) + 1]] <- sample.int(1000, 1)
-
-# DEFINICIÓN DEL ENTRENAMIENTO
-#===============================================================================
-control_train <- trainControl(method = "repeatedcv", number = particiones,
-                              repeats = repeticiones, seeds = seeds,
-                              returnResamp = "final", verboseIter = FALSE,
-                              allowParallel = TRUE)
-
-# AJUSTE DEL MODELO
-# ==============================================================================
-set.seed(342)
-modelo_knn1 <- train(SMA_difnivel ~ SMA_prep_lag1 + SMA_prep, data = entrenamiento,
-                    method = as.character(Tabla_regresion$Method[nmodel]),
-                    trControl = control_train)
-
-modelo_knn2 <- train(SMA_difnivel ~ SMA_prep_lag1 * SMA_prep, data = entrenamiento,
-                    method = as.character(Tabla_regresion$Method[nmodel]),
-                    trControl = control_train)
-
+```{r  rows.print= 6}
+Tabla_regresion
 ```
 
-```{r}
+```{r include=FALSE}
 uncorrected<-prediccion$dif_nivel
 
 
