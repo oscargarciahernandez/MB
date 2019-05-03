@@ -42,23 +42,23 @@ In this document the progress achived in the development of the predictive model
 
 <br />
 <br />
-For this purpose we count with a historical data from january of 2018 to februrary of 2019. It should be note that the quality of the data was medium-low, with very noisy data and also a lot of outliers, such as, negative values in the streamflow dataset.  
+For this purpose we count with a historical data from january of 2018 to februrary of 2019. It should be note that **the quality of the data was medium-low, with very noisy data and also a lot of outliers, such as, negative values in the streamflow dataset**.   
 
 
 <br />
 <br />
 
-For the elaboration of this predicctive model we will use ARW-WRF model rain output. It's remarkable that we are getting very good correlations between WRF model data and the historical data.  Maybe the best noticce is that the best correlation is for the long-term cumulative rain results. 
+For the elaboration of this predicctive model we will use ARW-WRF model rain output. **It's remarkable that we are getting very good correlations between WRF model data and the historical data**.  Maybe the best noticce is that the best correlation is for the long-term cumulative rain results. This resutls are shown next in figures in this document. 
 
 <br />
 <br />
 
-All the procces is being carried out using R and Rstudio tools, because of it's verstatility and good performance for machine learning purposes. The first predictive models that we have elaborate are being developed using common regression techniques, but the are getting good performance only for the next 3 days. For getting a good long-term prediction, more sofisticated methods should be implemented. 
+All the procces is being carried out using **R and Rstudio tools**, because of it's verstatility and good performance for machine learning purposes. **The first predictive models that we have elaborate are being developed using common regression techniques, these first models are getting good performance, but only for the next 3 days. For getting a good long-term prediction, more sofisticated methods should be implemented**. 
 
 <br />
 <br />
 
-Nowadays, we are calculating the best predictive model for achieved a good performance for a long-term prediction. For this purpose we are using the R "caret" package that is and recognized tool for machine learning using R lenguaje. For getting the best model using this tool we are using cross-validation techniques for more that 45 algorithms, integrated in caret package. After the best algorithms are being selected, another procces for adjusting the parameters will be carried out. 
+Nowadays, we are calculating the best predictive model for achieved a good performance for a long-term prediction. For this purpose we are using the **R "caret" package** that is and recognized tool for machine learning using R lenguaje. For getting the best model using this tool we are using **cross-validation techniques for more that 45 algorithms**, integrated in caret package. After the best algorithms are being selected, another procces for adjusting the parameters will be carried out. 
 
 <br />
 <br />
@@ -1492,7 +1492,7 @@ Tabla_regresion
 ```
 <br />
 <br />
-All the tests needed are not actually made but, this is one of the first results using Adaptive neuro fuzzy inference system (ANFIS).
+All the tests needed are not actually made but, this is one of the first results using Adaptive Neuro Fuzzy Inference System (ANFIS). We have take into account that this preliminary results are not very good because of **it's important to adjust some parameters meticulously and also test with different input variables before get the final predictivie model.**
 <br />
 <br />
 ```{r }
@@ -1587,26 +1587,23 @@ modelo_knn2<- readRDS(here::here('Data/Parques/Belesar/Modelos/ANFIS_2.RDS'))
 
 
 gg_graph<- ggplot(data = prediccion)+
-  geom_line(aes(y=uncorrected, x=prediccion$Date))+
   ylab("Dam level variation [m]")+
   xlab("Date")+
   ggtitle("Level variation prediction \n using ANFIS algorithm")+
-  labs(subtitle = paste0("Cor = ", round(cor(prediccion$SMA_difnivel,
-                                             predict(modelo_knn2, 
-                                                     newdata = prediccion)), digits = 3)))+
+  labs(subtitle = "Actual dam level variation (black) \nTwo different predictive models using ANFIS (green, blue)")+
   
   ylim( c(-0.1,0.1))+
   geom_line(aes(y=SMA_difnivel,
                 x=Date), 
-            col="black", lty=2)+
+            col="black")+
   geom_line(aes(y=predict(modelo_knn1, 
                           newdata = prediccion),
                 x=Date), 
-            col="blue")+
+            col="blue", lty=2)+
   geom_line(aes(y=predict(modelo_knn2, 
                           newdata = prediccion),
                 x=Date), 
-            col="green")+
+            col="green", lty=2)+
   theme_light()+theme(plot.title = element_text(hjust = 0.5))
 
 print(gg_graph)

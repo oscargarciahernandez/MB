@@ -3,6 +3,11 @@ library(rvest)
 library(request)
 library(doMC)
 
+
+
+# OBTENEMOS INFORMACION DE MODELOS DISPONIBLES ----------------------------
+
+
 x<- getModelInfo()
 type<- lapply(x, function(y) {if(length(y$type > 1)){
   return(paste(y$type, collapse = "_"))
@@ -19,6 +24,11 @@ Tabla_both<- Tabla_method[which(str_detect(Tabla_method$type,
 Tabla_regresion<- Tabla_method[which(str_detect(Tabla_method$type, 
                                                 "Regression")),] %>% 
   .[!str_detect(.$type,"_"),]
+
+
+
+
+# IMPORTAMOS DATOS --------------------------------------------------------
 
 
 RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
@@ -39,6 +49,11 @@ clean_data1<- lapply(clean_data, function(x){
     return(r)
   })
 })
+
+
+
+# CORTAMOS DATOS EN ENTRENAMIENTO Y PREDICCION  ---------------------------
+
 
 fecha_cut<- ymd("2019/04/15")
 #cortar en entrenamiento y predicción
@@ -82,8 +97,13 @@ cut_predict<- lapply(cut_predict, function(x){
 
 
 
-# Knn ---------------------------------------------------------------------
-registerDoMC(cores = 4)
+# MODELOS DE PREDICCION  ---------------------------------------------------------------------
+## SERIA INTERESANTE HECHAR UN VISTAZO AL TEMA DE DOMC
+# PARALEL COMPUTATION Y DEMÁS
+# i= SMA SOBRE LOS DATOS DE LLUVIA
+# j= LAG SOBRE LOS DATOS DE LLUVIA PARA METER AL MODELO
+
+#registerDoMC(cores = 4)
 i<- 48
 j<- 54 
 nmodel<- 2
