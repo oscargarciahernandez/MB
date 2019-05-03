@@ -149,7 +149,7 @@ control_train <- trainControl(method = "repeatedcv", number = particiones,
 # ==============================================================================
 set.seed(342)
 
-for (nmodel in 1:length(Tabla_regresion$Method)) {
+for (nmodel in 2:length(Tabla_regresion$Method)) {
   
   tryCatch({modelo_knn <- train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
                                 method = as.character(Tabla_regresion$Method[nmodel]),
