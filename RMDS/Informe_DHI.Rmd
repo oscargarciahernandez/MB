@@ -7,7 +7,6 @@ output:
     toc: true
     toc_float: true
     number_sections:  true
-    code_folding: hide
     df_print: paged
     
 ---
@@ -53,12 +52,12 @@ For the elaboration of this predicctive model we will use ARW-WRF model rain out
 <br />
 <br />
 
-All the procces is being carried out using **R and Rstudio tools**, because of it's verstatility and good performance for machine learning purposes. **The first predictive models that we have elaborate are being developed using common regression techniques, these first models are getting good performance, but only for the next 3 days. For getting a good long-term prediction, more sofisticated methods should be implemented**. 
+All the procces is being carried out using several machine learning tools. **The first predictive models that we have elaborate are being developed using common regression techniques, these first models are getting good performance, but only for the next 3 days. For getting a good long-term prediction, more sofisticated methods should be implemented**. 
 
 <br />
 <br />
 
-Nowadays, we are calculating the best predictive model for achieved a good performance for a long-term prediction. For this purpose we are using the **R "caret" package** that is and recognized tool for machine learning using R lenguaje. For getting the best model using this tool we are using **cross-validation techniques for more that 45 algorithms**, integrated in caret package. After the best algorithms are being selected, another procces for adjusting the parameters will be carried out. 
+Nowadays, we are calculating the best predictive model for achieved a good performance for a long-term prediction. For getting the best model using this tool we are using **cross-validation techniques for more that 45 algorithms**. After the best algorithms are being selected, another procces for adjusting the parameters will be carried out, this requires high computational cost and also time. 
 
 <br />
 <br />
@@ -946,11 +945,11 @@ Daiyli_avgs4<-lapply(Daiyli_avgs2[c(14,18,19)], function(x)x[, c("Date","rWRF_ac
 <br />
 <br />
 
-This figure shows that WRF model is even better in the daily rainfall stimation and also in the total cumulative rain. Also, this figure shows that the streamflow is highly correlated whith the rainfall with some lag. 
+This figure shows that WRF model is even better in the daily rainfall estimation and also in the total cumulative rain. Also, this figure shows that the streamflow is highly correlated whith the rainfall with some lag. 
 <br />
 <br />
 
-```{r echo=FALSE}
+```{r echo=FALSE,results='hide',fig.keep='all'}
 lapply(Daiyli_avgs4[1], function(x, titulo){
    k<- (max(c(cumsum(x$rWRF_acum),cumsum(x$rWRF_acum)))/max(c(x$rWRF_acum, x$rDHI_acum)))
   ggplot(data=x, aes(x=ymd(Date)))+
@@ -1210,7 +1209,7 @@ plot(vec_cor,
 <br />
 <br />
 
-Next figures shows that, because of the high correlation between WRF rainfall stimation and streamflow, we are able to make an accurate short term prediction using simple regression techniques. for the estimation of the level variation of the dam and also the streamflow reaching the dam. 
+Next figures shows that, because of the high correlation between WRF rainfall stimation and streamflow, we are able to make an accurate short term prediction using different regression techniques. for the estimation of the level variation of the dam and also the streamflow reaching the dam. 
 <br />
 <br />
 
@@ -1460,9 +1459,13 @@ type<- lapply(x, function(y) {if(length(y$type > 1)){
   return(paste(y$type, collapse = "_"))
 }else{return(y$type)}})
 
+label<- lapply(x, function(y) y$label)
 
-Tabla_method<- as.data.frame(cbind(names(x),unlist(type)) , row.names = F) 
-colnames(Tabla_method)<- c("Method", "type")
+
+Tabla_method<- as.data.frame(cbind(names(x),
+                                   unlist(type), 
+                                   unlist(label)) , row.names = F) 
+colnames(Tabla_method)<- c("Method", "type", "Long-name")
 
 Tabla_both<- Tabla_method[which(str_detect(Tabla_method$type, 
                                            "Regression")),] %>% 
@@ -1480,130 +1483,27 @@ Tabla_regresion<- Tabla_method[which(str_detect(Tabla_method$type,
 <br />
 
 # Dam level and streamflow prediccion using complex machine learning algorithms 
-<br />
-<br />
-In the next table all the complex algorithms that are going to be tested using R "caret" package are shown. 
-
 
 <br />
 <br />
-```{r  rows.print= 6}
-Tabla_regresion
-```
+All the tests needed are not actually made but,the next figure shows that in preliminary test good results are achieved.  **It's important to adjust some parameters meticulously and also test with different input variables before get the final predictivie model.**
 <br />
 <br />
-All the tests needed are not actually made but, this is one of the first results using Adaptive Neuro Fuzzy Inference System (ANFIS). We have take into account that this preliminary results are not very good because of **it's important to adjust some parameters meticulously and also test with different input variables before get the final predictivie model.**
-<br />
-<br />
-```{r }
-library(caret)
-RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
-                           full.names = T) %>%
-  .[str_detect(.,"WRF_WEB_")] %>% .[str_detect(., ":")]
 
+```{r}
+#here::here('Data/Parques/Belesar/Belesarinflow.csv')
+CSV_weka<-read.table( "/home/asus/MB/Data/Parques/Belesar/Belesarinflow.csv", 
+                      sep = ";",header = T)
 
-download_day<- sapply(str_split(RDS_down_path, "_"), 
-                      function(x) paste0(x[3], " ",
-                                         str_remove(x[4], ".RDS")))%>%  ymd_hms(.)
-
-
-clean_data<- readRDS(RDS_down_path[which.max(download_day)])
-clean_data1<- lapply(clean_data, function(x){
-  y<- lapply(x, function(r){
-    r$dif_nivel<- c(diff(r$nivel)[],0)
-    r$dif_nivel[diff(r$Date)>3600]<- 0
-    return(r)
-  })
-})
-
-fecha_cut<- ymd("2019/04/15")
-#cortar en entrenamiento y predicción
-cut_train<- lapply(clean_data1, function(x,fecha_end){
-  y<- lapply(x, function(r){
-    
-    
-    fecha_ini<- ymd("2018/12/01")
-    
-    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-},fecha_end=fecha_cut)
-cut_train<- lapply(cut_train, function(x){
-  r<- x[[1]][,c("Date","LON", "LAT", "prep_hourly", "lluvia", 
-                "nivel", "dif_nivel")]
-  return(r[complete.cases(r),])
-  
-})
-
-
-cut_predict<- lapply(clean_data1, function(x, fecha_ini){
-  y<- lapply(x, function(r){
-    Jan_data<- r[which(r$Date>fecha_ini),]
-    return(Jan_data)
-    
-  })
-  return(y)
-}, fecha_ini=fecha_cut)
-cut_predict<- lapply(cut_predict, function(x){
-  r<- x[[1]][,c("Date","LON", "LAT", "prep_hourly", "lluvia",
-                "nivel", "dif_nivel")]
-  return(r[complete.cases(r), ])
-  
-})
-
-
-
-i<- 48
-j<- 54 
-nmodel<- 2
-
-
-
-entrenamiento<- cut_train[[23]]
-entrenamiento$SMA_prep<- SMA(entrenamiento$prep_hourly,i)
-entrenamiento$SMA_difnivel<- SMA(entrenamiento$dif_nivel, 36)
-entrenamiento$SMA_prep_lag1<- lag(entrenamiento$SMA_prep,j)
-entrenamiento<- entrenamiento[complete.cases(entrenamiento),]
-
-
-
-
-
-prediccion<- cut_predict[[23]]
-prediccion$SMA_prep<- SMA(prediccion$prep_hourly,i)
-prediccion$SMA_difnivel<- SMA(prediccion$dif_nivel, 36)
-prediccion$SMA_prep_lag1<- lag(prediccion$SMA_prep,j)
-prediccion<- prediccion[complete.cases(prediccion),]
-
-
-uncorrected<-prediccion$dif_nivel
-
-modelo_knn1<- readRDS(here::here('Data/Parques/Belesar/Modelos/ANFIS_1.RDS'))
-
-modelo_knn2<- readRDS(here::here('Data/Parques/Belesar/Modelos/ANFIS_2.RDS'))
-
-
-
-gg_graph<- ggplot(data = prediccion)+
+gg_graph<- ggplot(data = CSV_weka)+
   ylab("Dam level variation [m]")+
   xlab("Date")+
-  ggtitle("Level variation prediction \n using ANFIS algorithm")+
-  labs(subtitle = "Actual dam level variation (black) \nTwo different predictive models using ANFIS (green, blue)")+
-  
-  ylim( c(-0.1,0.1))+
-  geom_line(aes(y=SMA_difnivel,
-                x=Date), 
+  ggtitle("Inflow  prediction")+
+  labs(subtitle = "Actual Inflow  (black) \nPredicted inflow (red)")+
+  geom_line(aes(y=actual, x=1:length(actual)), 
             col="black")+
-  geom_line(aes(y=predict(modelo_knn1, 
-                          newdata = prediccion),
-                x=Date), 
-            col="blue", lty=2)+
-  geom_line(aes(y=predict(modelo_knn2, 
-                          newdata = prediccion),
-                x=Date), 
-            col="green", lty=2)+
+  geom_line(aes(y=predicted, x=1:length(predicted)), 
+            col="red", lty=1, alpha=0.6)+
   theme_light()+theme(plot.title = element_text(hjust = 0.5))
 
 print(gg_graph)
