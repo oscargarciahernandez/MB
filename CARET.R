@@ -236,6 +236,4 @@ for (nmodel in 2:length(Tabla_regresion$Method)) {
   saveRDS(modelo_knn2, file=paste0(path_modelo, nombre3))
   
   
-  
-  
 }
