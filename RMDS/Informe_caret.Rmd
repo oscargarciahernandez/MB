@@ -1839,9 +1839,9 @@ Ahora vamos a jugar con SVM y variando los parámetros i y j.... SMA sobre los d
 ```{r}
 # i= SMA lluvia
 # j= retraso WRF_SMA 
-for(i in seq(24, 96, by=24)){
+for(i in seq(24, 96, by=6)){
   
-  for (j in seq(24, 72, by=24)) {
+  for (j in seq(24, 72, by=6)) {
     
 entrenamiento<- cut_train[[23]]
 entrenamiento$SMA_prep<- SMA(entrenamiento$prep_hourly,i)
@@ -1880,7 +1880,11 @@ modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
                                    return("Modelo vacio")
                                  })               
   
-  
+  cor1<- round(cor(prediccion$SMA_difnivel,predict(modelo_knn,newdata = prediccion)), digits = 3)
+  cor2<- round(cor(prediccion$SMA_difnivel,predict(modelo_knn1,newdata = prediccion)), digits = 3)
+  cor3<- round(cor(prediccion$SMA_difnivel,predict(modelo_knn2,newdata = prediccion)), digits = 3)
+  cormax<- max(cor1, cor2,cor3, na.rm = T)
+  posmax<- which.max(c(cor1, cor2, cor3))
   
   
   uncorrected<-prediccion$dif_nivel
@@ -1892,7 +1896,8 @@ modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
               alpha=0.5)+
     xlab(paste0(range(prediccion$Date)))+
     ylab ("nivel [msnm]")+
-    ggtitle(paste0("Predicción de nivel \n solo con lluvia WRF  \n  con un lag de  ", j, " horas"))+
+    ggtitle(paste0("Predicción de nivel \n solo con lluvia WRF  \n  con un SMA",i, " y lag de  ", j, " horas"))+
+    labs(subtitle = paste0("Cor = ", cormax, "_",posmax))+
     ylim( c(-0.1,0.1))+
     geom_line(aes(y=SMA_difnivel,
                   x=Date), 
@@ -1940,4 +1945,5 @@ modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
   
 }
 ```
+
 
