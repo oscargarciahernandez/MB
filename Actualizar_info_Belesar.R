@@ -400,26 +400,3 @@ saveRDS(Belesar_Merge_cc,path_hist_WRF)
 
 
 
-# Investigando vol --------------------------------------------------------
-prueba<- readRDS(path_hist_WRF)
-prueba1<- prueba[23]
-prueba2<- prueba1[prueba1$Date>ymd("2018/11/01"),]
-prueba3<- prueba2[!is.na(prueba$Vol),]
-
-
-rr<- SMA(diff(prueba1$nivel),24)
-rr2<-SMA(diff(prueba1$Vol)/4,24)
-plot(rr, type = "l", ylim = c(-0.1,0.15))
-lines(rr2, col="red")
-
-
-#1 hm³ son  10⁶ m³ 
-
-
-prueba2<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_DHI_Belesar_Todas_Variables.RDS'))
-
-summary(prueba2$`Turbinado_BCE[m³/s]`+prueba2$`Turbinado[m³/s]`)
-
-
-
-
