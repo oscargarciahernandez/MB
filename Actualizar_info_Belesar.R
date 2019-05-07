@@ -157,43 +157,38 @@ Down_E001_Belesar()
 
 
 # Juntar y guardar histórico ----------------------------------------------
-hist1<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/'), full.names = T)
-hist2<- hist1[str_detect(hist1, "HIST_WEB_")]
-hist3<- str_remove(str_remove(hist2,  "HIST_WEB_"), ".RDS") %>% 
-  str_replace(.,"_"," ") %>% ymd_hms()
-path_hist<- hist2[which.max(hist3)]
+#Accedemos al último hiscorico guardado 
+
+Hist_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/'), 
+                   full.names = T) %>% .[str_detect(., "HIST_WEB_")] %>%
+  .[which.max(
+    str_remove(str_remove(.,  "HIST_WEB_"), ".RDS") %>% 
+      str_replace(.,"_"," ") %>% ymd_hms())]
 
 
-hist<- readRDS(path_hist)
+Hist_web<- readRDS(Hist_path)
 
 
-
-RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
+##Accedemos al ultimo archivo descargado de la web
+Last_Web<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
                            full.names = T) %>%
-  .[str_detect(.,"E001")] %>% .[str_detect(., ":")]
+  .[str_detect(.,"E001")] %>% .[str_detect(., ":")] %>% 
+  .[which.max(
+    str_remove(str_remove(.,  "BelesarE001_"), ".RDS") %>% 
+      str_replace(.,"_"," ") %>% ymd_hms())]
 
 
-download_day<- sapply(str_split(RDS_down_path, "_"), 
-                                 function(x) paste0(x[2], " ",
-                                                    str_remove(x[3], ".RDS")))%>%  ymd_hms(.)
+WEB<- readRDS(Last_Web) %>% cbind(ymd_hms(.[,1]),   apply(.[,2:length(.)],2, 
+                                                                   function(x) 
+                                                                     as.numeric(as.character(str_replace_all( x,",", "."))) )) %>% 
+  as.data.frame() %>% .[,7:12]
 
-
-
-index_min<- which.max(download_day)
-
-
-
-RDS_download<- readRDS(RDS_down_path[index_min])
-RDS_download1<-as.data.frame(apply(RDS_download[2:length(RDS_download)],2, function(x) as.numeric(as.character(str_replace_all( x,",", "."))) ))
-RDS_download1$Date<- ymd_hms(RDS_download$Date)
-RDS_download1<- RDS_download1[, c(6,1,2,3,4,5)]
-colnames(RDS_download1)<- c("Date", "lluvia","nivel",
+colnames(WEB)<- c("Date", "lluvia","nivel",
                             "Temp", "Vol", "porcentaje")
 
 
-
-completando<- hist[!hist$Date%in%RDS_download1$Date,]
-completado<- bind_rows(RDS_download1, completando)
+completando<- Hist_web[!Hist_web$Date%in%WEB$Date,]
+completado<- bind_rows(WEB, completando)
 completado<- completado[order(completado$Date),]
 
 
@@ -338,65 +333,28 @@ saveRDS(Lista_d1_d2_loc3,path_hist_WRF)
 
 # Actualizar WRF-WEB ------------------------------------------------------
 
-RDS_down_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB'), 
-                           full.names = T) %>%
-  .[str_detect(.,"HIST_WEB_")] %>% .[str_detect(., ":")]
+Hist_path<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/'), 
+                       full.names = T) %>% .[str_detect(., "HIST_WEB_")] %>%
+  .[which.max(
+    str_remove(str_remove(.,  "HIST_WEB_"), ".RDS") %>% 
+      str_replace(.,"_"," ") %>% ymd_hms())]
 
 
-download_day<- sapply(str_split(RDS_down_path, "_"), 
-                      function(x) paste0(x[3], " ",
-                                         str_remove(x[4], ".RDS")))%>%  ymd_hms(.)
+Belesar_hist<- readRDS(Hist_path)
 
 
-
-Belesar_DHI<- readRDS(RDS_down_path[which.max(download_day)])
-Belesar_WRF<- readRDS(here::here('Data/Parques/Belesar/Historico/Historico_WRF_Belesar_Variables_D1D2.RDS'))
-
-df2<- Belesar_DHI
-
-Belesar_Merge<- list()
-for (j in 1:length(Belesar_WRF)) {
-  lista_retorno<- list()
-  for(i in 1:2){
-    df1<-  Belesar_WRF[[j]][[i]]
-    Merge_table<- left_join(df1, df2, by=c("Date"))
-    lista_retorno[[i]]<- Merge_table
-  }
-  names(lista_retorno)<- c("D1", "D2")
-  Belesar_Merge[[j]]<- lista_retorno 
-}
-names(Belesar_Merge)<- names(Belesar_WRF)
+Belesar_WRF<- readRDS(path_hist_WRF)
 
 
+path_PM<- here::here('Data/Parques/Belesar/Historico/WEB/PM/')
+if(!dir.exists(path_PM)){dir.create(path_PM)}
+
+nombre_hist<- as.character(now()) %>% str_replace(.," ","--") %>% 
+  paste0("Obs_",., ".RDS")
+
+nombre_WRF<- as.character(now()) %>% str_replace(.," ","--") %>% 
+  paste0("WRF_",., ".RDS")
 
 
-
-
-#Belesar merge completecases
-Belesar_Merge_cc<- list()
-for (j in 1:length(Belesar_Merge)) {
-  lista_retorno<- list()
-  for(i in 1:2){
-    df1<-  Belesar_Merge[[j]][[i]]
-    df1$Temp<-NULL
-    df1$T02_MEAN<-NULL
-    df1$PSFC<-NULL
-    df1$WS_MAX<-NULL
-    Table_fine<- df1[order(df1$Date),]
-    lista_retorno[[i]]<- Table_fine
-  }
-  names(lista_retorno)<- c("D1", "D2")
-  Belesar_Merge_cc[[j]]<- lista_retorno 
-}
-names(Belesar_Merge_cc)<- names(Belesar_Merge)
-
-
-#Guardamos
-name<- paste0("WRF_WEB_",str_replace(as.character(ymd_hms(now())), " ", "_"),".RDS" )
-
-path_hist_WRF<-paste0( here::here('Data/Parques/Belesar/Historico/WEB/'), name)
-saveRDS(Belesar_Merge_cc,path_hist_WRF)
-
-
-
-
+saveRDS(Belesar_hist, paste0(path_PM, nombre_hist))
+saveRDS(Belesar_WRF, paste0(path_PM, nombre_WRF))
