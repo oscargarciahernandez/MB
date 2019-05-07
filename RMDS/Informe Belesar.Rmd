@@ -741,7 +741,7 @@ Antes de proseguir guardamos este histórico que hemos construido.
 
 path_dataDHI <- here::here('Data/Parques/Belesar/Historico/DHI_historico_afinado.RDS')
 
-#saveRDS(Tabla_DHI,path_dataDHI)
+saveRDS(Tabla_DHI,path_dataDHI)
 
 ```
 
