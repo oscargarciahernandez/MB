@@ -122,10 +122,12 @@ cut_predict<- lapply(cut_predict, function(x){
 # MODELOS DE PREDICCION  ---------------------------------------------------------------------
 ## SERIA INTERESANTE HECHAR UN VISTAZO AL TEMA DE DOMC
 # PARALEL COMPUTATION Y DEMÁS
+#registerDoMC(cores = 4)
+
+
+# GENERAMOS VARIABLES PARA USAR EN EL MODELO -----------------------------------------------------
 # i= SMA SOBRE LOS DATOS DE LLUVIA
 # j= LAG SOBRE LOS DATOS DE LLUVIA PARA METER AL MODELO
-
-#registerDoMC(cores = 4)
 i<- 48
 j<- 54 
 
@@ -143,6 +145,9 @@ prediccion$SMA_prep_lag1<- lag(prediccion$SMA_prep,j)
 prediccion<- prediccion[complete.cases(prediccion),]
 
 
+
+
+# PARÁMETROS TRAIN CARET --------------------------------------------------
 particiones  <- 10
 repeticiones <- 5
 
@@ -167,10 +172,9 @@ control_train <- trainControl(method = "repeatedcv", number = particiones,
 # ==============================================================================
 set.seed(342)
 
-library(RWeka)
-library(rJava)
 
-########### SVM methods
+# METODOS SVM -------------------------------------------------------------
+####SIMPLE
 for (nmodel in 1:length(SVM_alg$Method)) {
   
   modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
@@ -260,10 +264,7 @@ for (nmodel in 1:length(SVM_alg$Method)) {
 }
 
 
-###########SVM cambiando epsilon 
-
-########### SVM methods
-
+###SVM cambiando epsilon O COSTE---- NO VALE PARA NADA..
 particiones  <- 10
 repeticiones <- 5
 
@@ -377,7 +378,14 @@ control_train <- trainControl(method = "repeatedcv", number = particiones,
     
   }
 
-########### M5 methods
+
+# M5 methods --------------------------------------------------------------
+###PARA ESTE MÉTODO EMPLEAMOS RWEKA Y RJAVA
+### MUCHOS PROBLEMAS 
+
+library(RWeka)
+library(rJava)
+
 for (nmodel in 1:length(M5_alg$Method)) {
   
   modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
@@ -466,187 +474,8 @@ for (nmodel in 1:length(M5_alg$Method)) {
   
 }
 
+# NEURAL NET METHODS ------------------------------------------------------
 
-########### M5 methods
-for (nmodel in 1:length(M5_alg$Method)) {
-  
-  modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
-                              method = as.character(M5_alg$Method[nmodel]),
-                              trControl = control_train)},error=function(e){
-                                cat("Errorzzzito")
-                                
-                                return("Modelo vacio")
-                              })                                
-  
-  
-  
-  modelo_knn1 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 + SMA_prep, data = entrenamiento,
-                                 method = as.character(M5_alg$Method[nmodel]),
-                                 trControl = control_train) },error=function(e){
-                                   cat("Errorzzzito")
-                                   return("Modelo vacio")
-                                 })               
-  
-  modelo_knn2 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 * SMA_prep, data = entrenamiento,
-                                 method = as.character(M5_alg$Method[nmodel]),
-                                 trControl = control_train)},error=function(e){
-                                   cat("Errorzzzito")
-                                   return("Modelo vacio")
-                                 })               
-  
-  
-  
-  
-  uncorrected<-prediccion$dif_nivel
-  
-  
-  gg_graph<- ggplot(data = prediccion)+
-    geom_line(aes(y=uncorrected, 
-                  x=prediccion$Date), 
-              alpha=0.5)+
-    xlab(paste0(range(prediccion$Date)))+
-    ylab ("nivel [msnm]")+
-    ggtitle(paste0("Predicción de nivel \n solo con lluvia WRF  \n  con un lag de  ", j, " horas"))+
-    ylim( c(-0.1,0.1))+
-    geom_line(aes(y=SMA_difnivel,
-                  x=Date), 
-              col="black", lty=2)+
-    geom_line(aes(y=ifelse(rep(is.character(modelo_knn), length(prediccion$Date)), 
-                           rep(0, length(prediccion$Date)),
-                           predict(modelo_knn, 
-                                   newdata = prediccion)),
-                  x=Date), 
-              col="red") +
-    geom_line(aes(y=ifelse(rep(is.character(modelo_knn1), length(prediccion$Date)), 
-                           rep(0, length(prediccion$Date)),
-                           predict(modelo_knn1, 
-                                   newdata = prediccion)),
-                  x=Date), 
-              col="blue")+
-    geom_line(aes(y=ifelse(rep(is.character(modelo_knn2), length(prediccion$Date)), 
-                           rep(0, length(prediccion$Date)),
-                           predict(modelo_knn2, 
-                                   newdata = prediccion)),
-                  x=Date), 
-              col="green")+
-    theme_light()+theme(plot.title = element_text(hjust = 0.5))
-  
-  print(gg_graph)
-  
-  if(!dir.exists(here::here('Data/Parques/Belesar/Modelos'))){dir.create(here::here('Data/Parques/Belesar/Modelos'))}
-  path_modelo<- here::here('Data/Parques/Belesar/Modelos/')
-  
-  name_base<- ifelse(str_detect(as.character(M5_alg$Method[nmodel]), "."), 
-                     str_replace_all(as.character(M5_alg$Method[nmodel]), "[.]", "_"),
-                     as.character(M5_alg$Method[nmodel]))
-  nombre1<- paste0(name_base, "_1.RDS")
-  nombre2<- paste0(name_base, "_2.RDS")
-  nombre3<- paste0(name_base, "_3.RDS")
-  
-  nombre_img<- paste0(name_base, ".PNG")
-  
-  ggsave( filename = paste0(path_modelo, nombre_img),dpi = 200, device = "png" )
-  
-  saveRDS(modelo_knn, file=paste0(path_modelo, nombre1))
-  saveRDS(modelo_knn1, file=paste0(path_modelo, nombre2))
-  saveRDS(modelo_knn2, file=paste0(path_modelo, nombre3))
-  
-  
-  
-  
-}
-
-########### M5 methods
-for (nmodel in 1:length(M5_alg$Method)) {
-  
-  modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
-                              method = as.character(M5_alg$Method[nmodel]),
-                              trControl = control_train)},error=function(e){
-                                cat("Errorzzzito")
-                                
-                                return("Modelo vacio")
-                              })                                
-  
-  
-  
-  modelo_knn1 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 + SMA_prep, data = entrenamiento,
-                                 method = as.character(M5_alg$Method[nmodel]),
-                                 trControl = control_train) },error=function(e){
-                                   cat("Errorzzzito")
-                                   return("Modelo vacio")
-                                 })               
-  
-  modelo_knn2 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 * SMA_prep, data = entrenamiento,
-                                 method = as.character(M5_alg$Method[nmodel]),
-                                 trControl = control_train)},error=function(e){
-                                   cat("Errorzzzito")
-                                   return("Modelo vacio")
-                                 })               
-  
-  
-  
-  
-  uncorrected<-prediccion$dif_nivel
-  
-  
-  gg_graph<- ggplot(data = prediccion)+
-    geom_line(aes(y=uncorrected, 
-                  x=prediccion$Date), 
-              alpha=0.5)+
-    xlab(paste0(range(prediccion$Date)))+
-    ylab ("nivel [msnm]")+
-    ggtitle(paste0("Predicción de nivel \n solo con lluvia WRF  \n  con un lag de  ", j, " horas"))+
-    ylim( c(-0.1,0.1))+
-    geom_line(aes(y=SMA_difnivel,
-                  x=Date), 
-              col="black", lty=2)+
-    geom_line(aes(y=ifelse(rep(is.character(modelo_knn), length(prediccion$Date)), 
-                           rep(0, length(prediccion$Date)),
-                           predict(modelo_knn, 
-                                   newdata = prediccion)),
-                  x=Date), 
-              col="red") +
-    geom_line(aes(y=ifelse(rep(is.character(modelo_knn1), length(prediccion$Date)), 
-                           rep(0, length(prediccion$Date)),
-                           predict(modelo_knn1, 
-                                   newdata = prediccion)),
-                  x=Date), 
-              col="blue")+
-    geom_line(aes(y=ifelse(rep(is.character(modelo_knn2), length(prediccion$Date)), 
-                           rep(0, length(prediccion$Date)),
-                           predict(modelo_knn2, 
-                                   newdata = prediccion)),
-                  x=Date), 
-              col="green")+
-    theme_light()+theme(plot.title = element_text(hjust = 0.5))
-  
-  print(gg_graph)
-  
-  if(!dir.exists(here::here('Data/Parques/Belesar/Modelos'))){dir.create(here::here('Data/Parques/Belesar/Modelos'))}
-  path_modelo<- here::here('Data/Parques/Belesar/Modelos/')
-  
-  name_base<- ifelse(str_detect(as.character(M5_alg$Method[nmodel]), "."), 
-                     str_replace_all(as.character(M5_alg$Method[nmodel]), "[.]", "_"),
-                     as.character(M5_alg$Method[nmodel]))
-  nombre1<- paste0(name_base, "_1.RDS")
-  nombre2<- paste0(name_base, "_2.RDS")
-  nombre3<- paste0(name_base, "_3.RDS")
-  
-  nombre_img<- paste0(name_base, ".PNG")
-  
-  ggsave( filename = paste0(path_modelo, nombre_img),dpi = 200, device = "png" )
-  
-  saveRDS(modelo_knn, file=paste0(path_modelo, nombre1))
-  saveRDS(modelo_knn1, file=paste0(path_modelo, nombre2))
-  saveRDS(modelo_knn2, file=paste0(path_modelo, nombre3))
-  
-  
-  
-  
-}
-
-
-########### M5 methods
 for (nmodel in 1:length(Neural_alg$Method)) {
   
   modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
@@ -729,8 +558,329 @@ for (nmodel in 1:length(Neural_alg$Method)) {
   saveRDS(modelo_knn, file=paste0(path_modelo, nombre1))
   saveRDS(modelo_knn1, file=paste0(path_modelo, nombre2))
   saveRDS(modelo_knn2, file=paste0(path_modelo, nombre3))
+}
+
+
+
+
+
+# RONDA 2.... -------------------------------------------------------------
+#HACEMOS EXACTAMENTE LOS MISMO PERO AÑADIENDO DIFERENCIA DE NIVEL
+
+
+i<- 48
+j<- 54 
+
+entrenamiento<- cut_train[[23]]
+entrenamiento$SMA_prep<- SMA(entrenamiento$prep_hourly,i)
+entrenamiento$SMA_difnivel<- SMA(entrenamiento$dif_nivel, 36)
+entrenamiento$SMA_prep_lag1<- lag(entrenamiento$SMA_difnivel,j)
+entrenamiento<- entrenamiento[complete.cases(entrenamiento),]
+
+
+prediccion<- cut_predict[[23]]
+prediccion$SMA_prep<- SMA(prediccion$prep_hourly,i)
+prediccion$SMA_difnivel<- SMA(prediccion$dif_nivel, 36)
+prediccion$SMA_prep_lag1<- lag(prediccion$SMA_difnivel,j)
+prediccion<- prediccion[complete.cases(prediccion),]
+
+
+
+
+# PARÁMETROS TRAIN CARET --------------------------------------------------
+particiones  <- 10
+repeticiones <- 5
+
+# Hiperparámetros
+hiperparametros <- data.frame(C = seq(1,500,by=50))
+
+set.seed(123)
+seeds <- vector(mode = "list", length = (particiones * repeticiones) + 1)
+for (i in 1:(particiones * repeticiones)) {
+  seeds[[i]] <- sample.int(1000, nrow(hiperparametros)) 
+}
+seeds[[(particiones * repeticiones) + 1]] <- sample.int(1000, 1)
+
+# DEFINICIÓN DEL ENTRENAMIENTO
+#===============================================================================
+control_train <- trainControl(method = "repeatedcv", number = particiones,
+                              repeats = repeticiones, seeds = seeds,
+                              returnResamp = "final", verboseIter = FALSE,
+                              allowParallel = TRUE)
+
+# AJUSTE DEL MODELO
+# ==============================================================================
+set.seed(342)
+
+
+# METODOS SVM -------------------------------------------------------------
+####SIMPLE
+for (nmodel in 1:length(SVM_alg$Method)) {
+  
+  modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
+                              method = as.character(SVM_alg$Method[nmodel]),
+                              trControl = control_train)},error=function(e){
+                                cat("Errorzzzito")
+                                
+                                return("Modelo vacio")
+                              })                                
+  
+  
+  
+  modelo_knn1 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 + SMA_prep, data = entrenamiento,
+                                 method = as.character(SVM_alg$Method[nmodel]),
+                                 trControl = control_train) },error=function(e){
+                                   cat("Errorzzzito")
+                                   return("Modelo vacio")
+                                 })               
+  
+  modelo_knn2 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 * SMA_prep, data = entrenamiento,
+                                 method = as.character(SVM_alg$Method[nmodel]),
+                                 trControl = control_train)},error=function(e){
+                                   cat("Errorzzzito")
+                                   return("Modelo vacio")
+                                 })               
+  
+  
+  
+  
+  uncorrected<-prediccion$dif_nivel
+  
+  
+  gg_graph<- ggplot(data = prediccion)+
+    geom_line(aes(y=uncorrected, 
+                  x=prediccion$Date), 
+              alpha=0.5)+
+    xlab(paste0(range(prediccion$Date)))+
+    ylab ("nivel [msnm]")+
+    ggtitle(paste0("Predicción de nivel \n solo con lluvia WRF  \n  con un lag de  ", j, " horas"))+
+    ylim( c(-0.1,0.1))+
+    geom_line(aes(y=SMA_difnivel,
+                  x=Date), 
+              col="black", lty=2)+
+    geom_line(aes(y=ifelse(rep(is.character(modelo_knn), length(prediccion$Date)), 
+                           rep(0, length(prediccion$Date)),
+                           predict(modelo_knn, 
+                                   newdata = prediccion)),
+                  x=Date), 
+              col="red") +
+    geom_line(aes(y=ifelse(rep(is.character(modelo_knn1), length(prediccion$Date)), 
+                           rep(0, length(prediccion$Date)),
+                           predict(modelo_knn1, 
+                                   newdata = prediccion)),
+                  x=Date), 
+              col="blue")+
+    geom_line(aes(y=ifelse(rep(is.character(modelo_knn2), length(prediccion$Date)), 
+                           rep(0, length(prediccion$Date)),
+                           predict(modelo_knn2, 
+                                   newdata = prediccion)),
+                  x=Date), 
+              col="green")+
+    theme_light()+theme(plot.title = element_text(hjust = 0.5))
+  
+  print(gg_graph)
+  
+  if(!dir.exists(here::here('Data/Parques/Belesar/Modelos'))){dir.create(here::here('Data/Parques/Belesar/Modelos'))}
+  path_modelo<- here::here('Data/Parques/Belesar/Modelos/')
+  
+  name_base<- ifelse(str_detect(as.character(SVM_alg$Method[nmodel]), "."), 
+                     str_replace_all(as.character(SVM_alg$Method[nmodel]), "[.]", "_"),
+                     as.character(SVM_alg$Method[nmodel]))
+  nombre1<- paste0(name_base, "_1_DIF.RDS")
+  nombre2<- paste0(name_base, "_2_DIF.RDS")
+  nombre3<- paste0(name_base, "_3_DIF.RDS")
+  
+  nombre_img<- paste0(name_base, ".PNG")
+  
+  ggsave( filename = paste0(path_modelo, nombre_img),dpi = 200, device = "png" )
+  
+  saveRDS(modelo_knn, file=paste0(path_modelo, nombre1))
+  saveRDS(modelo_knn1, file=paste0(path_modelo, nombre2))
+  saveRDS(modelo_knn2, file=paste0(path_modelo, nombre3))
   
   
   
   
 }
+
+# M5 methods --------------------------------------------------------------
+###PARA ESTE MÉTODO EMPLEAMOS RWEKA Y RJAVA
+### MUCHOS PROBLEMAS 
+
+library(RWeka)
+library(rJava)
+
+for (nmodel in 1:length(M5_alg$Method)) {
+  
+  modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
+                              method = as.character(M5_alg$Method[nmodel]),
+                              trControl = control_train)},error=function(e){
+                                cat("Errorzzzito")
+                                
+                                return("Modelo vacio")
+                              })                                
+  
+  
+  
+  modelo_knn1 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 + SMA_prep, data = entrenamiento,
+                                 method = as.character(M5_alg$Method[nmodel]),
+                                 trControl = control_train) },error=function(e){
+                                   cat("Errorzzzito")
+                                   return("Modelo vacio")
+                                 })               
+  
+  modelo_knn2 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 * SMA_prep, data = entrenamiento,
+                                 method = as.character(M5_alg$Method[nmodel]),
+                                 trControl = control_train)},error=function(e){
+                                   cat("Errorzzzito")
+                                   return("Modelo vacio")
+                                 })               
+  
+  
+  
+  
+  uncorrected<-prediccion$dif_nivel
+  
+  
+  gg_graph<- ggplot(data = prediccion)+
+    geom_line(aes(y=uncorrected, 
+                  x=prediccion$Date), 
+              alpha=0.5)+
+    xlab(paste0(range(prediccion$Date)))+
+    ylab ("nivel [msnm]")+
+    ggtitle(paste0("Predicción de nivel \n solo con lluvia WRF  \n  con un lag de  ", j, " horas"))+
+    ylim( c(-0.1,0.1))+
+    geom_line(aes(y=SMA_difnivel,
+                  x=Date), 
+              col="black", lty=2)+
+    geom_line(aes(y=ifelse(rep(is.character(modelo_knn), length(prediccion$Date)), 
+                           rep(0, length(prediccion$Date)),
+                           predict(modelo_knn, 
+                                   newdata = prediccion)),
+                  x=Date), 
+              col="red") +
+    geom_line(aes(y=ifelse(rep(is.character(modelo_knn1), length(prediccion$Date)), 
+                           rep(0, length(prediccion$Date)),
+                           predict(modelo_knn1, 
+                                   newdata = prediccion)),
+                  x=Date), 
+              col="blue")+
+    geom_line(aes(y=ifelse(rep(is.character(modelo_knn2), length(prediccion$Date)), 
+                           rep(0, length(prediccion$Date)),
+                           predict(modelo_knn2, 
+                                   newdata = prediccion)),
+                  x=Date), 
+              col="green")+
+    theme_light()+theme(plot.title = element_text(hjust = 0.5))
+  
+  print(gg_graph)
+  
+  if(!dir.exists(here::here('Data/Parques/Belesar/Modelos'))){dir.create(here::here('Data/Parques/Belesar/Modelos'))}
+  path_modelo<- here::here('Data/Parques/Belesar/Modelos/')
+  
+  name_base<- ifelse(str_detect(as.character(M5_alg$Method[nmodel]), "."), 
+                     str_replace_all(as.character(M5_alg$Method[nmodel]), "[.]", "_"),
+                     as.character(M5_alg$Method[nmodel]))
+  nombre1<- paste0(name_base, "_1_DIF.RDS")
+  nombre2<- paste0(name_base, "_2_DIF.RDS")
+  nombre3<- paste0(name_base, "_3_DIF.RDS")
+  
+  nombre_img<- paste0(name_base, ".PNG")
+  
+  ggsave( filename = paste0(path_modelo, nombre_img),dpi = 200, device = "png" )
+  
+  saveRDS(modelo_knn, file=paste0(path_modelo, nombre1))
+  saveRDS(modelo_knn1, file=paste0(path_modelo, nombre2))
+  saveRDS(modelo_knn2, file=paste0(path_modelo, nombre3))
+  
+  
+  
+  
+}
+
+# NEURAL NET METHODS ------------------------------------------------------
+
+for (nmodel in 1:length(Neural_alg$Method)) {
+  
+  modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1, data = entrenamiento,
+                              method = as.character(Neural_alg$Method[nmodel]),
+                              trControl = control_train)},error=function(e){
+                                cat("Errorzzzito")
+                                
+                                return("Modelo vacio")
+                              })                                
+  
+  
+  
+  modelo_knn1 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 + SMA_prep, data = entrenamiento,
+                                 method = as.character(Neural_alg$Method[nmodel]),
+                                 trControl = control_train) },error=function(e){
+                                   cat("Errorzzzito")
+                                   return("Modelo vacio")
+                                 })               
+  
+  modelo_knn2 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 * SMA_prep, data = entrenamiento,
+                                 method = as.character(Neural_alg$Method[nmodel]),
+                                 trControl = control_train)},error=function(e){
+                                   cat("Errorzzzito")
+                                   return("Modelo vacio")
+                                 })               
+  
+  
+  
+  
+  uncorrected<-prediccion$dif_nivel
+  
+  
+  gg_graph<- ggplot(data = prediccion)+
+    geom_line(aes(y=uncorrected, 
+                  x=prediccion$Date), 
+              alpha=0.5)+
+    xlab(paste0(range(prediccion$Date)))+
+    ylab ("nivel [msnm]")+
+    ggtitle(paste0("Predicción de nivel \n solo con lluvia WRF  \n  con un lag de  ", j, " horas"))+
+    ylim( c(-0.1,0.1))+
+    geom_line(aes(y=SMA_difnivel,
+                  x=Date), 
+              col="black", lty=2)+
+    geom_line(aes(y=ifelse(rep(is.character(modelo_knn), length(prediccion$Date)), 
+                           rep(0, length(prediccion$Date)),
+                           predict(modelo_knn, 
+                                   newdata = prediccion)),
+                  x=Date), 
+              col="red") +
+    geom_line(aes(y=ifelse(rep(is.character(modelo_knn1), length(prediccion$Date)), 
+                           rep(0, length(prediccion$Date)),
+                           predict(modelo_knn1, 
+                                   newdata = prediccion)),
+                  x=Date), 
+              col="blue")+
+    geom_line(aes(y=ifelse(rep(is.character(modelo_knn2), length(prediccion$Date)), 
+                           rep(0, length(prediccion$Date)),
+                           predict(modelo_knn2, 
+                                   newdata = prediccion)),
+                  x=Date), 
+              col="green")+
+    theme_light()+theme(plot.title = element_text(hjust = 0.5))
+  
+  print(gg_graph)
+  
+  if(!dir.exists(here::here('Data/Parques/Belesar/Modelos'))){dir.create(here::here('Data/Parques/Belesar/Modelos'))}
+  path_modelo<- here::here('Data/Parques/Belesar/Modelos/')
+  
+  name_base<- ifelse(str_detect(as.character(Neural_alg$Method[nmodel]), "."), 
+                     str_replace_all(as.character(Neural_alg$Method[nmodel]), "[.]", "_"),
+                     as.character(Neural_alg$Method[nmodel]))
+  nombre1<- paste0(name_base, "_1_DIF.RDS")
+  nombre2<- paste0(name_base, "_2_DIF.RDS")
+  nombre3<- paste0(name_base, "_3_DIF.RDS")
+  
+  nombre_img<- paste0(name_base, ".PNG")
+  
+  ggsave( filename = paste0(path_modelo, nombre_img),dpi = 200, device = "png" )
+  
+  saveRDS(modelo_knn, file=paste0(path_modelo, nombre1))
+  saveRDS(modelo_knn1, file=paste0(path_modelo, nombre2))
+  saveRDS(modelo_knn2, file=paste0(path_modelo, nombre3))
+}
+

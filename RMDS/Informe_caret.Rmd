@@ -1581,7 +1581,7 @@ control_train <- trainControl(method = "repeatedcv", number = particiones,
                               returnResamp = "final", verboseIter = FALSE,
                               allowParallel = TRUE)
 ```
-```{r}
+```{}
 library(RWeka)
 library(rJava)
 for (nmodel in 1:length(M5_alg$Method)) {
@@ -1675,7 +1675,7 @@ for (nmodel in 1:length(M5_alg$Method)) {
 
 ```
 
-```{r}
+```{}
 library(caret)
 library(RWeka)
 library(rJava)
