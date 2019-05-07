@@ -124,7 +124,7 @@ cut_predict<- lapply(cut_predict, function(x){
 
 
 i<- 48
-j<- 54 
+j<- 48
 
 entrenamiento<- cut_train[[23]]
 entrenamiento$SMA_prep<- SMA(entrenamiento$prep_hourly,i)
@@ -146,11 +146,11 @@ prediccion<- prediccion[complete.cases(prediccion),]
 
 # PARÁMETROS TRAIN CARET --------------------------------------------------
 set.seed(123)
-seeds <- vector(mode = "list", length = 432)
-for(i in 1:431) seeds[[i]] <- sample.int(1000, 5)
+seeds <- vector(mode = "list", length = 715)
+for(i in 1:714) seeds[[i]] <- sample.int(1000, 5)
 
 ## For the last model:
-seeds[[432]] <- sample.int(1000, 1)
+seeds[[715]] <- sample.int(1000, 1)
 # DEFINICIÓN DEL ENTRENAMIENTO
 #===============================================================================
 control_train <- trainControl(method = "timeslice",
@@ -167,33 +167,24 @@ set.seed(342)
 
 # METODOS SVM -------------------------------------------------------------
 ####SIMPLE
-for (nmodel in 1:length(SVM_alg$Method)) {
+
   
-  modelo_knn<-tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 + SMA_difnivel_lag1 + SMA_difnivel_lag1, data = entrenamiento,
-                              method = as.character(SVM_alg$Method[nmodel]),
-                              trControl = control_train)},error=function(e){
-                                cat("Errorzzzito")
-                                
-                                return("Modelo vacio")
-                              })                                
-  
-  
-  
-  modelo_knn1 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 + SMA_prep + SMA_difnivel_lag1, data = entrenamiento,
-                                 method = as.character(SVM_alg$Method[nmodel]),
-                                 trControl = control_train) },error=function(e){
-                                   cat("Errorzzzito")
-                                   return("Modelo vacio")
-                                 })               
-  
-  modelo_knn2 <- tryCatch({train(SMA_difnivel ~ SMA_prep_lag1 * SMA_prep  * SMA_difnivel_lag1, data = entrenamiento,
-                                 method = as.character(SVM_alg$Method[nmodel]),
-                                 trControl = control_train)},error=function(e){
-                                   cat("Errorzzzito")
-                                   return("Modelo vacio")
-                                 })               
-  
-  
+modelo_knn<-train(SMA_difnivel ~ SMA_prep_lag1 + SMA_difnivel_lag1 + SMA_difnivel_lag1, data = entrenamiento,
+                              method = "svmLinear",
+                              trControl = control_train,
+                  tuneLength=5)             
+modelo_knn1 <- train(SMA_difnivel ~ SMA_prep_lag1 + SMA_prep + SMA_difnivel_lag1, data = entrenamiento,
+                                 method = "svmLinear",
+                                 trControl = control_train,
+                     tuneLength=5)                             
+
+modelo_knn2 <- train(SMA_difnivel ~ SMA_prep_lag1 * SMA_prep  * SMA_difnivel_lag1, 
+                     data = entrenamiento,
+                     method = "svmLinear",
+                     trControl = control_train,
+                     tuneLength=5)               
+
+
   
   
   uncorrected<-prediccion$dif_nivel
@@ -232,25 +223,122 @@ for (nmodel in 1:length(SVM_alg$Method)) {
   
   print(gg_graph)
   
-  if(!dir.exists(here::here('Data/Parques/Belesar/Modelos'))){dir.create(here::here('Data/Parques/Belesar/Modelos'))}
-  path_modelo<- here::here('Data/Parques/Belesar/Modelos/')
   
-  name_base<- ifelse(str_detect(as.character(SVM_alg$Method[nmodel]), "."), 
-                     str_replace_all(as.character(SVM_alg$Method[nmodel]), "[.]", "_"),
-                     as.character(SVM_alg$Method[nmodel]))
-  nombre1<- paste0(name_base, "_1_DIF_LL.RDS")
-  nombre2<- paste0(name_base, "_2_DIF_LL.RDS")
-  nombre3<- paste0(name_base, "_3_DIF_LL.RDS")
+
+
+##########Diferencia de nivel y aportacion 
+path_hist_WRF<- here::here('Data/Parques/Belesar/Historico/Hist_D1D2_DHI_MERGED.RDS')
+clean_data<- readRDS(path_hist_WRF)
+clean_data_oct<-lapply(clean_data, function(x){
+  y<- lapply(x, function(r) r[which(r$Date > ymd("2018/10/01")),])
+})
+
+
+fecha_cut<- ymd("2019/01/15")
+#cortar en entrenamiento y predicción
+cut_train<- lapply(clean_data_oct[c(14,18,19)], function(x,fecha_end){
+  y<- lapply(x, function(r){
+    
+    fecha_ini<- ymd("2018/12/01")
+    
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+},
+fecha_end=fecha_cut)
+cut_train<- lapply(cut_train, function(x){
+  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
+            "aport_mean_SMA", "nivel_mean_SMA")]
   
-  nombre_img<- paste0(name_base, ".PNG")
   
-  ggsave( filename = paste0(path_modelo, nombre_img),dpi = 200, device = "png" )
+})
+
+
+cut_predict<- lapply(clean_data_oct[c(14,18,19)], function(x, fecha_ini){
+  y<- lapply(x, function(r){
+    
+    
+    fecha_end<- ymd("2019/02/20")
+    Jan_data<- r[which(r$Date<fecha_end & r$Date>fecha_ini),]
+    return(Jan_data)
+    
+  })
+  return(y)
+}, 
+fecha_ini=fecha_cut)
+cut_predict<- lapply(cut_predict, function(x){
+  x[[1]][,c("Date","LON", "LAT", "prep_hourly", "Lluvia_mm", 
+            "aport_mean_SMA", "nivel_mean_SMA")]
   
-  saveRDS(modelo_knn, file=paste0(path_modelo, nombre1))
-  saveRDS(modelo_knn1, file=paste0(path_modelo, nombre2))
-  saveRDS(modelo_knn2, file=paste0(path_modelo, nombre3))
   
-  
-  
-  
-}
+})
+
+######## usamos clean data oct porque train se ocupa de 
+# cortar los datos. 
+x<- cut_predict[[1]]
+x$aport1<- lag(x$aport_mean_SMA, 24)
+x$aport2<- lag(x$aport_mean_SMA, 48)
+x$aport3<- lag(x$aport_mean_SMA, 72)
+
+x$prep_hourly1<- lead(x$prep_hourly, 24)
+x$prep_hourlySMA12<- SMA(x$prep_hourly, 12)
+x$prep_hourlySMA24<- SMA(x$prep_hourly, 24)
+x$prep_hourlySMA36<- SMA(x$prep_hourly, 36)
+x$prep_hourlySMA48<- SMA(x$prep_hourly, 48)
+x$prep_hourlySMA48_lag<- lag(x$prep_hourlySMA48, 24)
+
+x<- x[complete.cases(x),]
+
+
+y<- cut_train[[1]]
+y$aport1<- lag(y$aport_mean_SMA, 24)
+y$aport2<- lag(y$aport_mean_SMA, 48)
+y$aport3<- lag(y$aport_mean_SMA, 72)
+y$prep_hourly1<- lead(y$prep_hourly, 24)
+y$prep_hourlySMA12<- SMA(y$prep_hourly, 12)
+y$prep_hourlySMA24<- SMA(y$prep_hourly, 24)
+y$prep_hourlySMA36<- SMA(y$prep_hourly, 36)
+y$prep_hourlySMA48<- SMA(y$prep_hourly, 48)
+y$prep_hourlySMA48_lag<- lag(y$prep_hourlySMA48, 24)
+
+y<- y[complete.cases(y),]
+
+indexxx<- 285
+fecha_ini<- y$Date[indexxx]
+fecha_end<- y$Date[indexxx]+ as.difftime(3, units = "days")
+
+y<- y[which(y$Date> fecha_ini & y$Date< fecha_end), ]
+
+# PARÁMETROS TRAIN CARET --------------------------------------------------
+set.seed(123)
+seeds <- vector(mode = "list", length = 715)
+for(i in 1:714) seeds[[i]] <- sample.int(1000, 5)
+
+## For the last model:
+seeds[[715]] <- sample.int(1000, 1)
+control_train <- trainControl(method = "timeslice",
+                              initialWindow = 300,
+                              horizon = 300,
+                              fixedWindow = FALSE,
+                              allowParallel = TRUE,
+                              seeds = seeds)
+
+
+fit_4  <- train(aport_mean_SMA ~ prep_hourlySMA48_lag * prep_hourlySMA48, 
+                data = y,
+                method= "gam")
+
+pred_aport<- predict(fit_4, newdata= x)
+
+
+uncorrected<-x$aport_mean_SMA
+
+plot(uncorrected, x=x$Date, type = "l",
+     ylim = c(0,600), 
+     xlab = paste0(range(y$Date)),
+     ylab = "Aportación [m³/s]",
+     main =  "Predicción de aportación \n empleando diferentes métodos")
+lines(pred_aport,x=x$Date, col="red")
+
