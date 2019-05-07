@@ -89,7 +89,7 @@ prediccion_data<- Tabla_3[Tabla_3$Date> ymd("2019/01/25"), ]
 
 
 
-modelo_WRF_DN<- train(difnivel_SMA ~ WRF_SMA_lag,
+modelo_WRF_DN<- train(difnivel_SMA ~ WRF_SMA_lag * DN_SMA_lag,
                data=train_data,
                method="svmLinear",
                tuneLength=50)
