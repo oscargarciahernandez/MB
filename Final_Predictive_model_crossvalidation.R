@@ -24,7 +24,7 @@
 SMA_APORTACION<- 12
 
 #### MOVING AVERAGE SOBRE DIFERENCIA DE NIVEL 
-SMA_DIFF_NIVEL<- 36
+SMA_DIFF_NIVEL<- 12
 
 #### MOVING AVERAGE SOBRE LLUVIA WRF
 SMA_LLUVIA_WRF<- 48
@@ -114,6 +114,7 @@ NCORES<- 6
 
 
 
+
 library(caret)
 library(doMC)
 library(here)
@@ -121,7 +122,8 @@ source(here::here('libraries.R'))
 
 registerDoMC(cores = NCORES)
 
-source('~/MB/Actualizar_info_Belesar.R')
+
+
 #Cargamos los ultimos datos proporcionados por Actualizar_info_Belesar.R
 
 Obs_Data<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/PM/'), full.names = T) %>% 
@@ -144,7 +146,6 @@ Tabla_1<- Obs_Data %>% mutate(diff_nivel=c(NA,diff(nivel)))
 Tabla_1<- left_join(Tabla_1, WRF_data[[23]]$D1[,c("Date", "prep_hourly")], by="Date")
 
 
-
 # -------------------------------------------------------------------------
 # Parte1: Predecir aportacion a partir de diferencia de nivel... 
 Tabla_2<- Tabla_1
@@ -162,26 +163,9 @@ prediccion_data<- Tabla_2[Tabla_2$Date> ymd("2019/01/25"), ]
 
 
 modelo_DN_AP<- train(aport_SMA ~ difnivel_SMA,
-                     data=train_data,
-                     method=METODO,
-                     tuneLength=TUNELENGTH)
-
-
-ggplot(data = prediccion_data)+
-  geom_line(aes(y=prediccion_data$aport, 
-                x=prediccion_data$Date), 
-            alpha=0.5)+
-  geom_line(aes(y=prediccion_data$aport_SMA, 
-                x=prediccion_data$Date), 
-            alpha=0.8)+
-  ylab("Aportacion [m³/s]")+
-  xlab(paste(range(prediccion_data$Date), collapse = "\n"))+
-  geom_line(aes(y=predict(modelo_DN_AP, newdata= prediccion_data),
-                x=Date), 
-            col="red", lty=2)+
-  theme_light()   
-
-
+               data=train_data,
+               method=METODO,
+               tuneLength=TUNELENGTH)
 
 # -------------------------------------------------------------------------
 # Parte2: Predecir differencia de nivel a través de lluvia WRF 
@@ -209,18 +193,94 @@ prediccion_data<- Tabla_3[Tabla_3$Date> ymd("2019/01/25"), ]
 
 
 
-modelo_WRF_DN<- train(difnivel_SMA ~ WRF_SMA_lag,
+modelo_WRF_DN1<- train(difnivel_SMA ~ WRF_SMA_lag,
                data=train_data,
                method=METODO,
                tuneLength=TUNELENGTH)
+modelo_WRF_DN2<- train(difnivel_SMA ~ WRF_SMA_lag + WRF_SMA,
+                      data=train_data,
+                      method=METODO,
+                      tuneLength=TUNELENGTH)
+modelo_WRF_DN3<- train(difnivel_SMA ~ WRF_SMA_lag * WRF_SMA,
+                      data=train_data,
+                      method=METODO,
+                      tuneLength=TUNELENGTH)
 
 modelo_WRF_DN4<- train(difnivel_SMA ~ WRF_SMA_lag + DN_SMA_lag,
                        data=train_data,
                        method=METODO,
                        tuneLength=TUNELENGTH)
+modelo_WRF_DN5<- train(difnivel_SMA ~ WRF_SMA_lag  * DN_SMA_lag,
+                       data=train_data,
+                       method=METODO,
+                       tuneLength=TUNELENGTH)
+modelo_WRF_DN6<- train(difnivel_SMA ~ WRF_SMA_lag + WRF_SMA * DN_SMA_lag,
+                       data=train_data,
+                       method=METODO,
+                       tuneLength=TUNELENGTH)
+
+modelo_WRF_DN7<- train(difnivel_SMA ~ WRF_SMA_lag * WRF_SMA + DN_SMA_lag,
+                       data=train_data,
+                       method=METODO,
+                       tuneLength=TUNELENGTH)
+modelo_WRF_DN8<- train(difnivel_SMA ~ WRF_SMA_lag + WRF_SMA + DN_SMA_lag,
+                       data=train_data,
+                       method=METODO,
+                       tuneLength=TUNELENGTH)
+
+
+#############GUARDAMOS MODELOS 
+Nombre_archivo<- paste(METODO,SMA_APORTACION,SMA_DIFF_NIVEL,
+                          SMA_LLUVIA_WRF,LAG_DIFF_NIVEL,
+                          LAG_LLUVIA_WRF, TUNELENGTH, sep = "_")
+
+DN_AP_path<- here::here('Data/Parques/Belesar/Modelos/DN_AP/')
+WRF_DN_path<- here::here('Data/Parques/Belesar/Modelos/WRF_DN/')
+WRF_AP_path<- here::here('Data/Parques/Belesar/Modelos/WRF_AP/')
+
+if(!dir.exists(DN_AP_path))dir.create(DN_AP_path)
+if(!dir.exists(WRF_DN_path))dir.create(WRF_DN_path)
+if(!dir.exists(WRF_AP_path))dir.create(WRF_AP_path)
+
+saveRDS(modelo_DN_AP, file = paste0(DN_AP_path,Nombre_archivo,".RDS"))
+
+saveRDS(modelo_WRF_DN1, file = paste0(WRF_DN_path,Nombre_archivo,"_1.RDS"))
+saveRDS(modelo_WRF_DN2, file = paste0(WRF_DN_path,Nombre_archivo,"_2.RDS"))
+saveRDS(modelo_WRF_DN3, file = paste0(WRF_DN_path,Nombre_archivo,"_3.RDS"))
+saveRDS(modelo_WRF_DN4, file = paste0(WRF_DN_path,Nombre_archivo,"_4.RDS"))
+saveRDS(modelo_WRF_DN5, file = paste0(WRF_DN_path,Nombre_archivo,"_5.RDS"))
+saveRDS(modelo_WRF_DN6, file = paste0(WRF_DN_path,Nombre_archivo,"_6.RDS"))
+saveRDS(modelo_WRF_DN7, file = paste0(WRF_DN_path,Nombre_archivo,"_7.RDS"))
+saveRDS(modelo_WRF_DN8, file = paste0(WRF_DN_path,Nombre_archivo,"_8.RDS"))
 
 
 
+
+
+
+saveRDS(modelo_WRF_DN, file = paste0(WRF_DN_path,Nombre_archivo,".RDS"))
+##############GRAFICAMOS MODELO DIFERENCIA NIVEL A APORTACION 
+prediccion_data<- Tabla_2[Tabla_2$Date> ymd("2019/01/25"), ]
+ggplot(data = prediccion_data)+
+  geom_line(aes(y=prediccion_data$aport, 
+                x=prediccion_data$Date), 
+            alpha=0.5)+
+  geom_line(aes(y=prediccion_data$aport_SMA, 
+                x=prediccion_data$Date), 
+            alpha=0.8)+
+  ylab("Aportacion [m³/s]")+
+  xlab(paste(range(prediccion_data$Date), collapse = "\n"))+
+  geom_line(aes(y=predict(modelo_DN_AP, newdata= prediccion_data),
+                x=Date), 
+            col="red", lty=2)+
+  theme_light()
+ggsave(paste0(DN_AP_path,Nombre_archivo,".png"), 
+       dpi = 200, 
+       device = "png")
+
+
+##############GRAFICAMOS MODELO LLUVIA WRF A DIFERENCIA NIVEL 
+prediccion_data<- Tabla_3[Tabla_3$Date> ymd("2019/01/25"), ]
 ggplot(data = prediccion_data)+
   geom_line(aes(y=prediccion_data$diff_nivel, 
                 x=prediccion_data$Date), 
@@ -230,42 +290,91 @@ ggplot(data = prediccion_data)+
             alpha=0.8)+
   ylab("Variacion nivel [msnm]")+
   xlab(paste(range(prediccion_data$Date), collapse = "\n"))+
-  geom_line(aes(y=predict(modelo, newdata= prediccion_data),
+  geom_line(aes(y=predict(modelo_WRF_DN1, newdata= prediccion_data),
                 x=Date), 
             col="red", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN2, newdata= prediccion_data),
+                x=Date), 
+            col="green", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN3, newdata= prediccion_data),
+                x=Date), 
+            col="forestgreen", lty=2)+
   geom_line(aes(y=predict(modelo_WRF_DN4, newdata= prediccion_data),
                 x=Date), 
             col="blue", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN5, newdata= prediccion_data),
+                x=Date), 
+            col="cyan", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN6, newdata= prediccion_data),
+                x=Date), 
+            col="gold", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN7, newdata= prediccion_data),
+                x=Date), 
+            col="gold3", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN8, newdata= prediccion_data),
+                x=Date), 
+            col="gold4", lty=2)+
   theme_light()
 
+ggsave(paste0(WRF_DN_path,Nombre_archivo,".png"), 
+       dpi = 200,
+       device = "png")
 
 
 
+##############GRAFICAMOS MODELO LLUVIA WRF A DIFERENCIA NIVEL PERO LA VERSIÓN CORREGIDA
 
-alfa<- 0-predict(modelo_WRF_DN, newdata= prediccion_data)[1]
-alfa1<- 0-predict(modelo_WRF_DN4, newdata= prediccion_data)[1]
-alfa2<- 0-prediccion_data$difnivel_SMA[1]
+alfa1<- 0-predict(modelo_WRF_DN1, newdata= prediccion_data)[1] 
+alfa2<- 0-predict(modelo_WRF_DN2, newdata= prediccion_data)[1] 
+alfa3<- 0-predict(modelo_WRF_DN3, newdata= prediccion_data)[1] 
+alfa4<- 0-predict(modelo_WRF_DN4, newdata= prediccion_data)[1] 
+alfa5<- 0-predict(modelo_WRF_DN5, newdata= prediccion_data)[1] 
+alfa6<- 0-predict(modelo_WRF_DN6, newdata= prediccion_data)[1] 
+alfa7<- 0-predict(modelo_WRF_DN7, newdata= prediccion_data)[1] 
+alfa8<- 0-predict(modelo_WRF_DN8, newdata= prediccion_data)[1] 
 
-
+alfa0<- 0-prediccion_data$difnivel_SMA[1]
 
 ggplot(data = prediccion_data)+
-  geom_line(aes(y=prediccion_data$difnivel_SMA+alfa2, 
+  geom_line(aes(y=prediccion_data$diff_nivel+alfa0, 
+                x=prediccion_data$Date), 
+            alpha=0.5)+
+  geom_line(aes(y=prediccion_data$difnivel_SMA+alfa0, 
                 x=prediccion_data$Date), 
             alpha=0.8)+
   ylab("Variacion nivel [msnm]")+
   xlab(paste(range(prediccion_data$Date), collapse = "\n"))+
-  geom_line(aes(y=predict(modelo, newdata= prediccion_data)+alfa,
+  geom_line(aes(y=predict(modelo_WRF_DN1, newdata= prediccion_data)+alfa1,
                 x=Date), 
             col="red", lty=2)+
-  geom_line(aes(y=predict(modelo_WRF_DN4, newdata= prediccion_data)+alfa1,
+  geom_line(aes(y=predict(modelo_WRF_DN2, newdata= prediccion_data)+alfa2,
+                x=Date), 
+            col="green", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN3, newdata= prediccion_data)+alfa3,
+                x=Date), 
+            col="forestgreen", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN4, newdata= prediccion_data)+alfa4,
                 x=Date), 
             col="blue", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN5, newdata= prediccion_data)+alfa5,
+                x=Date), 
+            col="cyan", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN6, newdata= prediccion_data)+alfa6,
+                x=Date), 
+            col="gold", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN7, newdata= prediccion_data)+alfa7,
+                x=Date), 
+            col="gold3", lty=2)+
+  geom_line(aes(y=predict(modelo_WRF_DN8, newdata= prediccion_data)+alfa8,
+                x=Date), 
+            col="gold4", lty=2)+
   theme_light()
+ggsave(paste0(WRF_DN_path,Nombre_archivo,"_corrected.png"), 
+       dpi = 200, 
+       device = "png")
 
 
-
-
-# Parte 3: De variacion de nivel a aportacion  -------------------------------------
+##############GRAFICAMOS MODELO LLUVIA WRF A APORTACIÓN REMONTANDONOS AL HISTÓRICO
 Tabla_4<- Tabla_1
 Tabla_4[,c("Vol","Temp", "porcentaje")]<- NULL
 Tabla_4<- Tabla_4[complete.cases(Tabla_4),]
@@ -277,12 +386,10 @@ Tabla_4$DN_SMA_lag<- lag(Tabla_4$difnivel_SMA, LAG_DIFF_NIVEL)
 
 prediccion_data<- Tabla_4[Tabla_4$Date> ymd("2019/01/25"), ]
 
-AP_prediction<- predict(modelo_DN_AP, 
-                        newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN, 
-                                                               newdata = prediccion_data)))
-AP_prediction1<- predict(modelo_DN_AP, 
-                         newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN4, 
-                                                                                newdata = prediccion_data)))
+AP_prediction<- predict(modelo_DN_AP, newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN, 
+                                                                              newdata = prediccion_data)))
+
+
 ggplot(data = prediccion_data)+
   geom_line(aes(y=prediccion_data$aport, 
                 x=prediccion_data$Date), 
@@ -292,101 +399,33 @@ ggplot(data = prediccion_data)+
             alpha=0.8)+
   ylab("Aportacion [m³/s]")+
   xlab(paste(range(prediccion_data$Date), collapse = "\n"))+
-  geom_line(aes(y=AP_prediction,
+  geom_line(aes(y=predict(modelo_DN_AP, newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN1, newdata= prediccion_data))),
                 x=Date), 
             col="red", lty=2)+
-  geom_line(aes(y=AP_prediction1,
+  geom_line(aes(y=predict(modelo_DN_AP, newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN2, newdata= prediccion_data))),
+                x=Date), 
+            col="green", lty=2)+
+  geom_line(aes(y=predict(modelo_DN_AP, newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN3, newdata= prediccion_data))),
+                x=Date), 
+            col="forestgreen", lty=2)+
+  geom_line(aes(y=predict(modelo_DN_AP, newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN4, newdata= prediccion_data))),
                 x=Date), 
             col="blue", lty=2)+
+  geom_line(aes(y=predict(modelo_DN_AP, newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN5, newdata= prediccion_data))),
+                x=Date), 
+            col="cyan", lty=2)+
+  geom_line(aes(y=predict(modelo_DN_AP, newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN6, newdata= prediccion_data))),
+                x=Date), 
+            col="gold", lty=2)+
+  geom_line(aes(y=predict(modelo_DN_AP, newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN7, newdata= prediccion_data))),
+                x=Date), 
+            col="gold3", lty=2)+
+  geom_line(aes(y=predict(modelo_DN_AP, newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN8, newdata= prediccion_data))),
+                x=Date), 
+            col="gold4", lty=2)+
   theme_light()   
-
-
-# Predecir futuros valores ------------------------------------------------
-
-Tabla_predecir<- Obs_Data %>% mutate(diff_nivel=c(NA,diff(nivel))) 
-Tabla_predecir<- left_join(WRF_data[[23]]$D1[,c("Date", "prep_hourly")],Tabla_1, by="Date")
-Tabla_predecir[,c("Vol","Temp", "porcentaje", "aport","nivel", "lluvia")]<- NULL
-
-#Prediccion empleando el mejor model que contempla dif -1
-
-T_p1<- Tabla_predecir[complete.cases(Tabla_predecir), ]
-T_p1$difnivel_SMA<- SMA(T_p1$diff_nivel, SMA_DIFF_NIVEL)
-T_p1$WRF_SMA<- SMA(T_p1$prep_hourly, SMA_LLUVIA_WRF)
-T_p1$WRF_SMA_lag<- lag(T_p1$WRF_SMA, LAG_LLUVIA_WRF)
-T_p1$DN_SMA_lag<- lag(T_p1$difnivel_SMA, LAG_DIFF_NIVEL)
-
-
-fecha_cut<- now()-as.difftime(2, units = "days")
-
-T_p1<-T_p1[T_p1$Date>fecha_cut, ] 
-T_p1$predicted<- predict(modelo_WRF_DN4, newdata = T_p1)
-
-ggplot(data = T_p1)+
-  geom_line(aes(y=difnivel_SMA + (0-difnivel_SMA[1]), 
-                x=Date), 
-            alpha=0.8)+
-  geom_line(aes(y=predicted + (0-predicted[1]), 
-                x=Date), 
-            alpha=0.8,
-            col="red")+
-ylab("Diferencia de nviel [m³/s]")+
-  xlab(paste(range(T_p1$Date), collapse = "\n"))+
-  theme_light() 
-
-
-
-T_p1$AP_suposed<- predict(modelo_DN_AP, 
-                         newdata= data.frame(difnivel_SMA=T_p1$difnivel_SMA))
-T_p1$AP_prediction<- predict(modelo_DN_AP, 
-                         newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN4, 
-                                                                  newdata = T_p1)))
-                                                                  
-
-ggplot(data = T_p1)+
-  geom_line(aes(y=AP_suposed, 
-                x=Date), 
-            alpha=0.8)+
-  geom_line(aes(y=AP_prediction1, 
-                x=Date), 
-            alpha=0.8,
-            col="red")+
-  ylab("Diferencia de nviel [m³/s]")+
-  xlab(paste(range(T_p1$Date), collapse = "\n"))+
-  theme_light() 
-
-
-T_p2<- Tabla_predecir[,c("Date", "prep_hourly")]
-T_p2<- T_p2[complete.cases(T_p2),]
-T_p2$WRF_SMA<- SMA(T_p2$prep_hourly, SMA_LLUVIA_WRF)
-T_p2$WRF_SMA_lag<- lag(T_p2$WRF_SMA, LAG_LLUVIA_WRF)
-T_p2<-T_p2[range(T_p1$Date)[2]<T_p2$Date, ] 
-T_p2$predicted<- predict(modelo_WRF_DN, newdata = T_p2)
-T_p2$AP_prediction<- predict(modelo_DN_AP, 
-                              newdata= data.frame(difnivel_SMA=T_p2$predicted))
-
-
-
-alfa_nivel<- T_p1$predicted[length(T_p1$predicted)]-T_p2$predicted[1]
-alfa_aport<- T_p1$AP_prediction1[length(T_p1$AP_prediction1)]-T_p2$AP_prediction2[1]
-
-
-Prediccion_diff_nivel<- rbind(T_p1[,c("Date","predicted")], T_p2[,c("Date","predicted")])
-Prediccion_aport<- rbind(T_p1[,c("Date","AP_prediction")], T_p2[,c("Date","AP_prediction")])
-
-
-
-
-
-##########CUANDO SEA NECESARIO CAMBIAR EL MODELO HABRÁ QUE GUARDARLO EN ACTUAL_MODEL
-value<- c(SMA_APORTACION,SMA_DIFF_NIVEL,
-      SMA_LLUVIA_WRF,LAG_DIFF_NIVEL,
-      LAG_LLUVIA_WRF)
-variable_name<- c("SMA_APORTACION","SMA_DIFF_NIVEL",
-  "SMA_LLUVIA_WRF","LAG_DIFF_NIVEL",
-  "LAG_LLUVIA_WRF")
-
-#write.table(cbind(variable_name, value), file =here::here('Data/Parques/Belesar/Modelos/Actual_model/Variables.csv') )
-#saveRDS(modelo_WRF_DN4,here::here('Data/Parques/Belesar/Modelos/Actual_model/modelo_WRF1.RDS'))
-#saveRDS(modelo_WRF_DN,here::here('Data/Parques/Belesar/Modelos/Actual_model/modelo_WRF2.RDS'))
-#saveRDS(modelo_DN_AP,here::here('Data/Parques/Belesar/Modelos/Actual_model/modelo_DNAP.RDS'))
+ggsave(paste0(WRF_AP_path,"_WRFDN_",Nombre_archivo,
+              "_DNAP_",Nombre_archivo,".png"),
+       dpi = 200,
+       device = "png")
 

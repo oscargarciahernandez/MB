@@ -156,4 +156,4 @@ print(graph)
 
 
 
-En función de los valores de SMA observados en las gráficas anteriores se eligirán los valores con los que se pretender seguir trabajando.Se puede apreciar que realizando una MA es más sencillo conseguir buenos resultados y más fácil predecir, pero hay que tener en cuenta que se aleja de la realidad (onda gris oscilante).  
+En función de los valores de SMA observados en las gráficas anteriores se eligirán los valores con los que se pretender seguir trabajando.Se puede apreciar que realizando una MA es más sencillo conseguir buenos resultados y más fácil predecir, pero hay que tener en cuenta que se aleja de la realidad (onda gris oscilante). A mi la que más me gusta es la de SMA aport 12 y SMA diff nivel de 36. 
