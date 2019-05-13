@@ -85,10 +85,10 @@ LAG_DIFF_NIVEL<- 24
 
 
 #IMPORTANTE: EL METODO SIEMPRE ENTRE COMILLAS
-METODO<- "svmLinear"
+METODO<- "ANFIS"
 
 #TUNELENGH: CUIDADO CON ESTO, AUMENTA MUCHO LA NECESIDAD DE COMPUTACIÓN. 
-TUNELENGTH<- 1
+TUNELENGTH<- 10
 
 
 
@@ -255,10 +255,6 @@ saveRDS(modelo_WRF_DN8, file = paste0(WRF_DN_path,Nombre_archivo,"_8.RDS"))
 
 
 
-
-
-
-saveRDS(modelo_WRF_DN, file = paste0(WRF_DN_path,Nombre_archivo,".RDS"))
 ##############GRAFICAMOS MODELO DIFERENCIA NIVEL A APORTACION 
 prediccion_data<- Tabla_2[Tabla_2$Date> ymd("2019/01/25"), ]
 ggplot(data = prediccion_data)+

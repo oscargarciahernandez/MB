@@ -1,3 +1,6 @@
+library(here)
+source(here::here('libraries.R'))
+
 
 All_files_Spain<- list.files(here::here('Data/Espana/'),
                              recursive = T, 
@@ -40,7 +43,15 @@ Actualizar_Data_Salteras<- function(RDS_Spain){
   }
 }
 
+
+#####Ejecutamos la función para crear el histórico de SALTERAS. 
 #Actualizar_Data_Salteras(RDS_files1)
+
+
+
+
+
+
 
 
 
@@ -199,6 +210,62 @@ write.table(Tabla_WD, path_Salteras_Velocidad,
             col.names = F,
             row.names = F)
 
+
+
+
+# DONWLOAD SALTERAS  ------------------------------------------------------
+
+library(XML)
+library(request)
+
+if(!dir.exists(here::here('Data/Parques/Salteras/WEB'))){dir.create(here::here('Data/Parques/Salteras/WEB'))}
+####VEMOS EN LA PÁGINA QUE EL PRIMER DATO ES DE EL 20 DE DICIEMBRE 
+
+#EL FORMATO ES EL SIGUIENTE YYYY-MM-D 2019-01-2
+FIRST_DAY<- ymd("2018/12/20")
+
+lista_web<- list()
+while (TRUE) {
+  FECHA<- FIRST_DAY %>% as.character()
+  URL_SALTERAS<- paste0("https://www.wunderground.com/dashboard/pws/ISALTERA2/table/",FECHA,"/",FECHA,"/daily")
+  
+  
+  tables_salteras<- tryCatch({readHTMLTable(htmlParse(GET(URL_SALTERAS))) %>% .[[4]]},
+                             error=function(e){"NO-DATA"})
+  if(tables_salteras=="NO-DATA"){k<-k+1}else{
+    colnames(tables_salteras)<- c("Time","Temperature",	"Dew Point",	"Humidity", 	"Wind", 	"Speed", 	"Gust",
+                                  "Pressure",	"Precip. Rate.",	"Precip. Accum.", 	"UV",	"Solar")
+    
+    
+    ########CAMBIOS DE UNIDADES SALTERAS
+    tables_salteras$Temperature<- as.character(tables_salteras$Temperature) %>% 
+      str_remove("F") %>% as.numeric() %>% -32 %>% "*"(5) %>% "/"(9) %>% round(digits = 2)
+    
+    tables_salteras$`Dew Point`<- as.character(tables_salteras$`Dew Point`) %>% 
+      str_remove("F") %>% as.numeric() %>% -32 %>% "*"(5) %>% "/"(9) %>% round(digits = 2)
+    tables_salteras$Humidity<- as.character(tables_salteras$Humidity) %>%
+      str_remove("%") %>% as.numeric()
+    tables_salteras$Speed<- as.character(tables_salteras$Speed) %>%
+      str_remove("mph") %>% as.numeric() %>% "/"(2.237) %>% round(digits = 3)
+    tables_salteras$Gust<- as.character(tables_salteras$Gust) %>%
+      str_remove("mph") %>% as.numeric() %>% "/"(2.237) %>% round(digits = 3)
+    
+    tables_salteras$Pressure<- as.character(tables_salteras$Pressure) %>%
+      str_remove("in") %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
+    tables_salteras$`Precip. Rate.`<- as.character(tables_salteras$`Precip. Rate.`) %>%
+      str_remove("in") %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
+    tables_salteras$`Precip. Accum.`<- as.character(tables_salteras$`Precip. Accum.`) %>%
+      str_remove("in") %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
+    
+    
+    tables_salteras$Solar<- as.character(tables_salteras$Solar) %>%
+      str_remove("w/m²") %>% as.numeric()
+    lista_web[[FIRST_DAY %>% as.character()]]<- tables_salteras
+    
+  }
+  if(k>=10){break}
+  FIRST_DAY<- FIRST_DAY+1
+}
 
 
 

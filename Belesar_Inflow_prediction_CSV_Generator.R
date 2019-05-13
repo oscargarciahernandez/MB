@@ -105,3 +105,110 @@ Prediccion_diff_nivel$`Predicted_Diff_nivel(msnm)`<- round(Prediccion_diff_nivel
                                                            digits = 4)
 Prediccion_diff_nivel$`Predicted_rainfall(mm/hour)`<- round(Prediccion_diff_nivel$`Predicted_rainfall(mm/hour)`,
                                                            digits = 4)
+
+fecha_hoy<- now() %>% as.character() %>% str_split(" ") %>% .[[1]] %>% .[1] %>% ymd()
+
+Prediccion_aport<- Prediccion_aport[Prediccion_aport$Date>=fecha_hoy, ]
+Prediccion_diff_nivel<- Prediccion_diff_nivel[Prediccion_diff_nivel$Date>=fecha_hoy, ]
+
+
+CSV_aportacion<-Prediccion_aport[, c("Date",  "Predicted_Inflow(m³/s)"  )] 
+CSV_lluvia<-Prediccion_aport[, c("Date","Predicted_rainfall(mm/hour)")] 
+CSV_comprobacion<- Prediccion_diff_nivel
+
+Path_Belesar<- here::here('Data/Parques/Belesar/CSV/')
+nombre_csv_stream<- paste0("Belesar_", 
+                           str_replace_all(as.character(fecha_hoy),"-",""),
+                           "_stream.CSV")
+nombre_csv_rain<- paste0("Belesar_", 
+                           str_replace_all(as.character(fecha_hoy),"-",""),
+                           "_rainfall.CSV")
+nombre_csv_comprobacion<- paste0("Belesar_", 
+                                 str_replace_all(as.character(fecha_hoy),"-",""),
+                                 "_comprobacion.CSV")
+write.table(CSV_aportacion, 
+            file = paste0(Path_Belesar, nombre_csv_stream), 
+            row.names = F,
+            sep = ";")
+write.table(CSV_lluvia, 
+            file = paste0(Path_Belesar, nombre_csv_rain), 
+            row.names = F,
+            sep = ";")
+write.table(CSV_comprobacion, 
+            file = paste0(Path_Belesar, nombre_csv_comprobacion), 
+            row.names = F,
+            sep=";")
+
+
+
+
+
+
+# Plot --------------------------------------------------------------------
+########LLUVIA APORTACION 
+
+k<- max(Prediccion_aport$`Predicted_Inflow(m³/s)`)/max(Prediccion_aport$`Predicted_rainfall(mm/hour)`)
+ggplot(data=Prediccion_aport, aes(x=Date))+
+  geom_bar(aes(y=`Predicted_rainfall(mm/hour)`), 
+           stat="identity", 
+           fill="blue", 
+           alpha=0.5, 
+           size=0.05,
+           col="cyan")+
+  xlab("Date")+
+  ylab("Lluvia diaria [mm/h]")+
+  geom_line(aes(y = `Predicted_Inflow(m³/s)`/k), 
+            group = 1,
+            col="forestgreen", 
+            alpha=0.8) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~ . / (1/k),
+                                         name = "Aportacion [m³/s]", 
+                                         breaks = seq(min(Prediccion_aport$`Predicted_Inflow(m³/s)`),
+                                                      max(Prediccion_aport$`Predicted_Inflow(m³/s)`),
+                                                      by=15)),
+                     breaks = seq(min(Prediccion_aport$`Predicted_rainfall(mm/hour)`),
+                                  max(Prediccion_aport$`Predicted_rainfall(mm/hour)`),
+                                  by=1))+
+  labs(title = "Predicción de lluvia y aportacion") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+path_graphs_Belesar<- here::here('graph/Belesar/Prediccion/')
+if(!dir.exists(path_graphs_Belesar)){dir.create(path_graphs_Belesar)}
+nombre_graph<- now() %>% as.character() %>% str_replace(" ","_")
+
+ggsave(paste0(path_graphs_Belesar,nombre_graph,"_Aportacion.png"), 
+       dpi = 200,
+       device = "png")
+
+######LLUVIA VARIACION DE NIVEL 
+k<- max(Prediccion_diff_nivel$`Predicted_Diff_nivel(msnm)`)/max(Prediccion_diff_nivel$`Predicted_rainfall(mm/hour)`)
+ggplot(data=Prediccion_diff_nivel, aes(x=Date))+
+  geom_bar(aes(y=`Predicted_rainfall(mm/hour)`), 
+           stat="identity", 
+           fill="blue", 
+           alpha=0.5, 
+           size=0.05,
+           col="cyan")+
+  xlab("Date")+
+  ylab("Lluvia diaria [mm/h]")+
+  geom_line(aes(y = `Predicted_Diff_nivel(msnm)`/k), 
+            group = 1, col="darkred", alpha=0.9) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~ . / (1/k),
+                                         name = "Variación de nivel [m]", 
+                                         breaks = seq(min(Prediccion_diff_nivel$`Predicted_Diff_nivel(msnm)`),
+                                                      max(Prediccion_diff_nivel$`Predicted_Diff_nivel(msnm)`),
+                                                      by=0.01)),
+                     breaks = seq(min(Prediccion_diff_nivel$`Predicted_rainfall(mm/hour)`),
+                                  max(Prediccion_diff_nivel$`Predicted_rainfall(mm/hour)`),
+                                  by=1))+
+  labs(title = "Predicción de lluvia y variación de nivel ") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+ggsave(paste0(path_graphs_Belesar,nombre_graph,"_diffnivel.png"), 
+       dpi = 200,
+       device = "png")
+
