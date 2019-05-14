@@ -279,72 +279,71 @@ saveRDS(data_frame_salteras, here::here('Data/Parques/Salteras/WEB/Salteras_web_
 
 
 
+# DATA CALMET -------------------------------------------------------------
 
+#print.nc()  para informacion aunque ya la he guardado como CALMET_VARIABLES EN MB/
+#list.files(here::here(), recursive = T) %>% .[str_detect(.,"nc")] %>% .[2] %>% open.nc() %>% print.nc()
 
-
-########### NO HACEMOS NUESTRO HISTÓRICO WRF PORQUE NOS VAN A PASAR SUS DATOS OBTENIDOS DESDE
-##### CALMET 
-###ESTO ES PORQUE LA PÁGINA HACE UNA COSA RARA
-#lista_web<- lista_web %>% .[which(names(.) %>% ymd(.)<= HOY)] 
-
-
-
-
-### PASAMOS A HACER HISTÓRICO WRF
-Rango_web<- readRDS(here::here('Data/Parques/Salteras/WEB/Salteras_web_data.RDS')) %>% .[,1] %>% range()
-FECHAS_RDS_WRF<- list.files(here::here('Data/Parques/Salteras/')) %>% str_split("_") %>% lapply(., function(e){
-  e[2] %>% ymd(paste(str_sub(string = ., start = 1,end=4),
-                     str_sub(string = ., start = 5,end=6),
-                     str_sub(string = ., start = 7,end=8), sep = "-"))}) %>% sapply(., function(e) as.character(e[2])) %>% ymd() 
-      
-      
-FILES_WRF<-list.files(here::here('Data/Parques/Salteras/'), full.names = T)[FECHAS_RDS_WRF>Rango_web[1] & FECHAS_RDS_WRF<Rango_web[2]]
-      
-
-Lista_total1<- list()
-for (i in 1:length(FILES_WRF)) {
-  RDS_parque<- FILES_WRF[i]
+Lista_Total<- list()
+for (netcdf in 2:3) {
+  CALMET_netcdf<- list.files(here::here(), recursive = T) %>% .[str_detect(.,"nc")] %>% .[netcdf] %>% open.nc() %>% 
+    read.nc(unpack = T)
   
-  parq_data<- readRDS(RDS_parque)
-  parq_lolat<- lon_lat_df_ls(parq_data)
-  parq_lolat1<- lapply(parq_lolat, uv_transformation)
-  parq_gust<- lapply(parq_lolat1, function(x){
-    table<- as.data.frame(cbind(x$fechas,x$lon,x$lat,x$G10_MAX, 
-                                x$WS,x$WD, x$S10_MEAN, x$GUST10M))
-    colnames(table)<- c('Date', "LON", "LAT", "GUST_MAX", "WS", "WD", "W_mean", "GUST")
-    return(table)
-  })
-  Lista_total1[[i]]<- parq_gust
+  
+  FECHAS_CALMET<- CALMET_netcdf$TFLAG[1,2,] %>% paste(str_sub(.,start = 1, end = 4),
+                                                      str_sub(.,start = 5, end = 8)) %>% 
+    str_split(' ') %>% lapply(., function(x){
+      y<- ymd('2019-05-01')
+      year(y)<- as.numeric(x[2])
+      yday(y)<- as.numeric(x[3])
+      return(y)
+    }) %>% lapply(., function(x) as.character(x)) %>% unlist() 
+  
+  Lista_lon_lat<- list()
+  for (lon in 1:80) {
+    for (lat in 1:80) {
+      
+      List_calmet<- list()
+      for (i in 2:length(CALMET_netcdf)){
+        List_calmet[[i-1]]<-CALMET_netcdf[[i]][lon,lat,]
+      }
+      
+      Tabla_calmet<- List_calmet %>% sapply(., function(x) x) %>% as.data.frame() %>% 
+        cbind(FECHAS_CALMET,.) %>% as.data.frame()
+      colnames(Tabla_calmet)<-c("Date",names(CALMET_netcdf)[2:length(CALMET_netcdf)])
+      
+      name_lista<- paste0(as.character(lon),
+                          "_",
+                          as.character(lat))
+      Lista_lon_lat[[name_lista]]<- Tabla_calmet
+    }
+    
+  }
+  
+  Lista_Total[[netcdf-1]]<- Lista_lon_lat
 }
 
 
-Lista_total_MF<- lapply(Lista_total1, function(x) bind_rows(x))
+if(!dir.exists(here::here('Data/Parques/Salteras/CALMET'))){dir.create(here::here('Data/Parques/Salteras/CALMET'))}
+saveRDS(Lista_Total, file = here::here('Data/Parques/Salteras/CALMET/Lista_13_14.RDS'))
 
-Lista_d1_d2_loc<- list()
-for (i in 1:length(Lista_total_MF)) {
-  p<- Lista_total_MF[[i]]
-  d1<- p[duplicated(p$Date),]
-  d1<-d1[!duplicated(d1$Date),]
-  d2<- p[!duplicated(p$Date),]
-  
-  d2_qneed1<-d2[!(d2$Date%in%d1$Date),]
-  
-  
-  d1_2<-bind_rows(d1,d2_qneed1)
-  d1_2<-d1_2[order(d1_2$Date),]
-  
-  d2<-d2[order(d2$Date),]
-  
-  d1_2$pre_acum<- NULL
-  d2$pre_acum<- NULL
-  
-  colnames(d1_2)<- c('Date', "LON", "LAT", "GUST_MAX", "WS", "WD", "W_mean", "GUST")
-  colnames(d2)<-  c('Date', "LON", "LAT", "GUST_MAX", "WS", "WD", "W_mean", "GUST")
-  
-  lista_loc_d12<- list(d1_2,d2)
-  names(lista_loc_d12)<- c("D1", "D2")
-  
-  Lista_d1_d2_loc[[i]]<- lista_loc_d12
-}
 
-D1_SALTERAS<- lapply(Lista_d1_d2_loc, function(x) x$D1)
+
+
+# TRABAJAMOS CON CALMET ---------------------------------------------------
+###A PARTIR DE AQUI HABRÁ QUE JUNTAR CALMET CON LOS DATOS OBTENIDOS DE LA PÁGINA WEB...
+## QUEDA PENDIENTE AÑADIR LAS HORAS A LAS FECHAS, 
+
+#ESTO ME PARECE UNA MUY BUENA IDEA PARA RELLENAR LAS HORAS EN LAS FECHAS
+as.character(seq(0,23)) %>% ifelse(nchar(.)==1, paste0(0,.), .) %>% rep(.,2)
+
+
+
+
+
+
+
+
+
+
+

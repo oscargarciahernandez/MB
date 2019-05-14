@@ -94,7 +94,7 @@ LAG_DIFF_NIVEL<- 24
 
 
 #IMPORTANTE: EL METODO SIEMPRE ENTRE COMILLAS
-METODO<- "FIR.DM"
+METODO<- "GFS.FR.MOGUL"
 
 #TUNELENGH: CUIDADO CON ESTO, AUMENTA MUCHO LA NECESIDAD DE COMPUTACIÓN. 
 TUNELENGTH<- 1
@@ -135,7 +135,7 @@ registerDoMC(cores = NCORES)
 
 #IMPORTANDO DATOS 
 
-if(!exists("Tabla_1")&exists("Tabla_2")&exists("Tabla_3")){
+if(!(exists("Tabla_1")&exists("Tabla_2")&exists("Tabla_3"))){
   
   Obs_Data<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/PM/'), full.names = T) %>% 
     .[str_detect(.,"Obs_")] %>% .[which.max( str_split(., "/") %>% lapply(., function(x) x[length(x)])%>%  str_remove("Obs_|.RDS") %>% 
