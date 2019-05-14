@@ -5,3 +5,5 @@
 *.CSV
 *.RDS
 *.png
+*.sql
+*.php
