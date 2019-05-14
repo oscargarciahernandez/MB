@@ -226,6 +226,7 @@ FIRST_DAY<- ymd("2018/12/20")
 
 lista_web<- list()
 while (TRUE) {
+  HOY<- now() %>% as.character() %>% str_split(" ") %>% .[[1]] %>% .[1] %>% ymd()
   FECHA<- FIRST_DAY %>% as.character()
   URL_SALTERAS<- paste0("https://www.wunderground.com/dashboard/pws/ISALTERA2/table/",FECHA,"/",FECHA,"/daily")
   
@@ -263,9 +264,87 @@ while (TRUE) {
     lista_web[[FIRST_DAY %>% as.character()]]<- tables_salteras
     
   }
-  if(k>=10){break}
+  if(k>=10 | HOY==FIRST_DAY){break}
   FIRST_DAY<- FIRST_DAY+1
 }
 
 
+for (i in 1:length(lista_web)) {
+  FECHA<- names(lista_web)[i] 
+  lista_web[[i]]$Time  <- paste0(FECHA, " ",lista_web[[i]]$Time) %>% ymd_hm()
+}
 
+data_frame_salteras<- bind_rows(lista_web)
+saveRDS(data_frame_salteras, here::here('Data/Parques/Salteras/WEB/Salteras_web_data.RDS'))
+
+
+
+
+
+
+########### NO HACEMOS NUESTRO HISTÓRICO WRF PORQUE NOS VAN A PASAR SUS DATOS OBTENIDOS DESDE
+##### CALMET 
+###ESTO ES PORQUE LA PÁGINA HACE UNA COSA RARA
+#lista_web<- lista_web %>% .[which(names(.) %>% ymd(.)<= HOY)] 
+
+
+
+
+### PASAMOS A HACER HISTÓRICO WRF
+Rango_web<- readRDS(here::here('Data/Parques/Salteras/WEB/Salteras_web_data.RDS')) %>% .[,1] %>% range()
+FECHAS_RDS_WRF<- list.files(here::here('Data/Parques/Salteras/')) %>% str_split("_") %>% lapply(., function(e){
+  e[2] %>% ymd(paste(str_sub(string = ., start = 1,end=4),
+                     str_sub(string = ., start = 5,end=6),
+                     str_sub(string = ., start = 7,end=8), sep = "-"))}) %>% sapply(., function(e) as.character(e[2])) %>% ymd() 
+      
+      
+FILES_WRF<-list.files(here::here('Data/Parques/Salteras/'), full.names = T)[FECHAS_RDS_WRF>Rango_web[1] & FECHAS_RDS_WRF<Rango_web[2]]
+      
+
+Lista_total1<- list()
+for (i in 1:length(FILES_WRF)) {
+  RDS_parque<- FILES_WRF[i]
+  
+  parq_data<- readRDS(RDS_parque)
+  parq_lolat<- lon_lat_df_ls(parq_data)
+  parq_lolat1<- lapply(parq_lolat, uv_transformation)
+  parq_gust<- lapply(parq_lolat1, function(x){
+    table<- as.data.frame(cbind(x$fechas,x$lon,x$lat,x$G10_MAX, 
+                                x$WS,x$WD, x$S10_MEAN, x$GUST10M))
+    colnames(table)<- c('Date', "LON", "LAT", "GUST_MAX", "WS", "WD", "W_mean", "GUST")
+    return(table)
+  })
+  Lista_total1[[i]]<- parq_gust
+}
+
+
+Lista_total_MF<- lapply(Lista_total1, function(x) bind_rows(x))
+
+Lista_d1_d2_loc<- list()
+for (i in 1:length(Lista_total_MF)) {
+  p<- Lista_total_MF[[i]]
+  d1<- p[duplicated(p$Date),]
+  d1<-d1[!duplicated(d1$Date),]
+  d2<- p[!duplicated(p$Date),]
+  
+  d2_qneed1<-d2[!(d2$Date%in%d1$Date),]
+  
+  
+  d1_2<-bind_rows(d1,d2_qneed1)
+  d1_2<-d1_2[order(d1_2$Date),]
+  
+  d2<-d2[order(d2$Date),]
+  
+  d1_2$pre_acum<- NULL
+  d2$pre_acum<- NULL
+  
+  colnames(d1_2)<- c('Date', "LON", "LAT", "GUST_MAX", "WS", "WD", "W_mean", "GUST")
+  colnames(d2)<-  c('Date', "LON", "LAT", "GUST_MAX", "WS", "WD", "W_mean", "GUST")
+  
+  lista_loc_d12<- list(d1_2,d2)
+  names(lista_loc_d12)<- c("D1", "D2")
+  
+  Lista_d1_d2_loc[[i]]<- lista_loc_d12
+}
+
+D1_SALTERAS<- lapply(Lista_d1_d2_loc, function(x) x$D1)

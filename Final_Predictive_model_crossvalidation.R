@@ -14,6 +14,8 @@
 
 ####################  PARÁMETROS PARA MODIFICAR LAS VARIABLES ##############
 
+#LIMPIEZA DE ENVIRONMENT ANTES DE EMPEZAR... CUIDANDO LA RAM
+rm(list = setdiff(ls(), lsf.str()))
 
 ####### MOVING AVERAGES
 #ESTOS PARÁMETROS SIRVEN PARA "ELIMINAR RUIDO"... UN MOVING AVERAGE MAYOR IMPLICA 
@@ -30,6 +32,9 @@ SMA_DIFF_NIVEL<- 12
 SMA_LLUVIA_WRF<- 48
 
 
+#### MOVING AVERAGE SOBRE LLUVIA OBS
+SMA_LLUVIA_OBS<- 48
+
 ####### LAG SOBRE LAS VARIABLES 
 #ESTO ES: CON CUANTO RETRASO VOY A METER LA VARIABLE AL MODELO PREDICTIVO
 # EN PRINCIPIO LAS VARIABLES CON LAS VAMOS A JUGAR SON LAS SIGUIENTES...
@@ -39,6 +44,10 @@ SMA_LLUVIA_WRF<- 48
 
 #### DESFASE LLUVIA WRF (LAG)
 LAG_LLUVIA_WRF<- 24
+
+#### DESFASE LLUVIA OBSERVADA (LAG)
+LAG_LLUVIA_OBS<- 24
+
 
 ### DESFASE   DIFERENCIA DE NIVEL 
 LAG_DIFF_NIVEL<- 24 
@@ -85,10 +94,10 @@ LAG_DIFF_NIVEL<- 24
 
 
 #IMPORTANTE: EL METODO SIEMPRE ENTRE COMILLAS
-METODO<- "ANFIS"
+METODO<- "FIR.DM"
 
 #TUNELENGH: CUIDADO CON ESTO, AUMENTA MUCHO LA NECESIDAD DE COMPUTACIÓN. 
-TUNELENGTH<- 10
+TUNELENGTH<- 1
 
 
 
@@ -124,37 +133,71 @@ registerDoMC(cores = NCORES)
 
 
 
-#Cargamos los ultimos datos proporcionados por Actualizar_info_Belesar.R
+#IMPORTANDO DATOS 
 
-Obs_Data<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/PM/'), full.names = T) %>% 
-  .[str_detect(.,"Obs_")] %>% .[which.max( str_split(., "/") %>% lapply(., function(x) x[length(x)])%>%  str_remove("Obs_|.RDS") %>% 
-                                             str_replace("--"," ") %>% ymd_hms())] %>% readRDS()
-
-WRF_data<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/PM/'), full.names = T) %>% 
+if(!exists("Tabla_1")&exists("Tabla_2")&exists("Tabla_3")){
+  
+  Obs_Data<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/PM/'), full.names = T) %>% 
+    .[str_detect(.,"Obs_")] %>% .[which.max( str_split(., "/") %>% lapply(., function(x) x[length(x)])%>%  str_remove("Obs_|.RDS") %>% 
+                                               str_replace("--"," ") %>% ymd_hms())] %>% readRDS()
+  
+  WRF_data<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/PM/'), full.names = T) %>% 
     .[str_detect(.,"WRF_")] %>% .[which.max( str_split(., "/") %>% lapply(., function(x) x[length(x)])%>%  str_remove("WRF_|.RDS") %>% 
                                                str_replace("--"," ") %>% ymd_hms())] %>% readRDS()
+  
+  
+  
+  
+  #CREAMOS TABLA 1... LA TABLA COMPLETA QUE INCLUYE LOS DATOS DE LA PÁGINA WEB E HISTORICO DHI
+  #range(Tabla_1$Date)
+  # "2018-01-02 00:00:00 UTC" "2019-05-13 07:00:00 UTC"[ACTUALIDAD]
+  
+  Tabla_1<- Obs_Data %>% mutate(diff_nivel=c(NA,diff(nivel))) 
+  Tabla_1<- left_join(Tabla_1, WRF_data[[23]]$D1[,c("Date", "prep_hourly")], by="Date")
+  
+  
+  
+  # CREEAMOS TABLA_2: ESTO SOLAMENTE COMPRENDE EL HISTÓRICO DE DHI. YA QUE ES LA FUENTE DE INFORMACION
+  # SOBRE APORTACION
+  #range(Tabla_2$Date)
+  #"2018-01-02 12:00:00 UTC" "2019-02-07 23:00:00 UTC"
+  
+  Tabla_2<- Tabla_1
+  Tabla_2[,c("Vol","Temp", "porcentaje","prep_hourly")]<- NULL
+  Tabla_2<- Tabla_2[complete.cases(Tabla_2),]
+  Tabla_2$aport_SMA<- SMA(Tabla_2$aport, SMA_APORTACION)
+  Tabla_2$difnivel_SMA<- SMA(Tabla_2$diff_nivel, SMA_DIFF_NIVEL)
+  Tabla_2<- Tabla_2[complete.cases(Tabla_2),]
+  
+  #CREAMOS TABLA_3: ESTO SOLAMENTE COMPRENDE DESDE FINALES DE OCTUBRE HASTA LA ACTUALIDAD
+  #range(Tabla_3$Date)
+  #"2018-10-25 01:00:00 UTC"----"2019-05-13 07:00:00 UTC"[ACTUALIDAD]
+  
+  Tabla_3<- Tabla_1
+  Tabla_3[,c("Vol","Temp", "porcentaje", "aport")]<- NULL
+  Tabla_3<- Tabla_3[complete.cases(Tabla_3),]
+  #Tabla_3$aport_SMA<- SMA(Tabla_3$aport, SMA_APORTACION)
+  Tabla_3$difnivel_SMA<- SMA(Tabla_3$diff_nivel, SMA_DIFF_NIVEL)
+  Tabla_3$lluvia_SMA<- SMA(Tabla_3$lluvia, SMA_LLUVIA_OBS)
+  Tabla_3$WRF_SMA<- SMA(Tabla_3$prep_hourly, SMA_LLUVIA_WRF)
+  Tabla_3$WRF_SMA_lag<- lag(Tabla_3$WRF_SMA, LAG_LLUVIA_WRF)
+  Tabla_3$lluvia_SMA_lag<- lag(Tabla_3$lluvia_SMA, LAG_LLUVIA_OBS)
+  Tabla_3$DN_SMA_lag<- lag(Tabla_3$difnivel_SMA, LAG_DIFF_NIVEL)
+  Tabla_3<- Tabla_3[complete.cases(Tabla_3),]
+  #Por encima de octubre
+  Tabla_3<- Tabla_3[Tabla_3$Date>ymd("2018/10/25"), ]
+  
+  
+}
 
 
-
-
-
-# Tratamos Datos ----------------------------------------------------------
-###SOlamente emplearemos los datos de diferencia de nivel ofrecidos por la página web...
-### Es decir, a partir de febrero
-
-Tabla_1<- Obs_Data %>% mutate(diff_nivel=c(NA,diff(nivel))) 
-Tabla_1<- left_join(Tabla_1, WRF_data[[23]]$D1[,c("Date", "prep_hourly")], by="Date")
-
-
-# -------------------------------------------------------------------------
-# Parte1: Predecir aportacion a partir de diferencia de nivel... 
-Tabla_2<- Tabla_1
-Tabla_2[,c("Vol","Temp", "porcentaje","prep_hourly")]<- NULL
-Tabla_2<- Tabla_2[complete.cases(Tabla_2),]
-Tabla_2$aport_SMA<- SMA(Tabla_2$aport, SMA_APORTACION)
-Tabla_2$difnivel_SMA<- SMA(Tabla_2$diff_nivel, SMA_DIFF_NIVEL)
-Tabla_2<- Tabla_2[complete.cases(Tabla_2),]
-
+# PRIMERA PARTE: PREDICCIÓN DE APORTACION ---------------------------------
+# PREDECIMOS APORTACION A TRAVÉS DE DIFERENCIA DE NIVEL
+#PARA EMPLEAREMOS TABLA 2: QUE TIENE EL SIGUIENTE RANGO
+#"2018-01-02 12:00:00 UTC" "2019-02-07 23:00:00 UTC"
+# CORTAMOS LOS DATOS ENTRE ENTRENAMIENTO Y PREDICIÓN EL 25 DE ENERO
+# FUE UNA FECHA CLAVE DEBIDO A QUE LLOVIO MUCHO Y ES INTERESANTE PROBAR 
+# LA EFECTIVIDAD DEL MODELO EN ESAS FECHAS
 
 
 train_data<- Tabla_2[Tabla_2$Date< ymd("2019/01/25"), ]
@@ -167,29 +210,20 @@ modelo_DN_AP<- train(aport_SMA ~ difnivel_SMA,
                method=METODO,
                tuneLength=TUNELENGTH)
 
-# -------------------------------------------------------------------------
-# Parte2: Predecir differencia de nivel a través de lluvia WRF 
 
-Tabla_3<- Tabla_1
-Tabla_3[,c("Vol","Temp", "porcentaje")]<- NULL
-Tabla_3<- Tabla_3[complete.cases(Tabla_3),]
-Tabla_3$aport_SMA<- SMA(Tabla_3$aport, SMA_APORTACION)
-Tabla_3$difnivel_SMA<- SMA(Tabla_3$diff_nivel, SMA_DIFF_NIVEL)
-Tabla_3$WRF_SMA<- SMA(Tabla_3$prep_hourly, SMA_LLUVIA_WRF)
-Tabla_3$WRF_SMA_lag<- lag(Tabla_3$WRF_SMA, LAG_LLUVIA_WRF)
-Tabla_3$DN_SMA_lag<- lag(Tabla_3$difnivel_SMA, LAG_DIFF_NIVEL)
+# SEGUNDA PARTE: PREDICCIÓN DE DIFERENCIA DE NIVEL ------------------------
+# AHORA USANDO WRF... PREDECIMOS LA DIFERENCIA DE NIVEL. 
+# PARA ELLO EL RANGO DE LOS DATOS VA, DESDE FINAELS DE OCTUBRE (25)
+# HASTA LA ACTUALIDAD... POR ELLO SERÍA INTERESANTE CORTAR LOS DATOS SUPONIENDO UN 
+#PORCENTAJE... QUE SEGÚN SE VALLAN ACTUALIZANDO SE VALLA AMPLIANTE EL DATASET DE 
+# ENTRENAMIENTO
+PORCENTAJE_ENTRENAMIENTO<- 0.8
+LOGIC_TRAIN<- ifelse(1:nrow(Tabla_3)%in%(1:round(nrow(Tabla_3)*PORCENTAJE_ENTRENAMIENTO)), TRUE,FALSE)
 
 
 
-Tabla_3<- Tabla_3[complete.cases(Tabla_3),]
-
-#Por encima de octubre
-Tabla_3<- Tabla_3[Tabla_3$Date>ymd("2018/10/25"), ]
-
-
-
-train_data<- Tabla_3[Tabla_3$Date< ymd("2019/01/25"), ]
-prediccion_data<- Tabla_3[Tabla_3$Date> ymd("2019/01/25"), ]
+train_data<- Tabla_3[LOGIC_TRAIN, ]
+prediccion_data<- Tabla_3[!LOGIC_TRAIN, ]
 
 
 
@@ -256,7 +290,7 @@ saveRDS(modelo_WRF_DN8, file = paste0(WRF_DN_path,Nombre_archivo,"_8.RDS"))
 
 
 ##############GRAFICAMOS MODELO DIFERENCIA NIVEL A APORTACION 
-prediccion_data<- Tabla_2[Tabla_2$Date> ymd("2019/01/25"), ]
+prediccion_data<- Tabla_3[!LOGIC_TRAIN, ]
 ggplot(data = prediccion_data)+
   geom_line(aes(y=prediccion_data$aport, 
                 x=prediccion_data$Date), 
@@ -382,8 +416,7 @@ Tabla_4$DN_SMA_lag<- lag(Tabla_4$difnivel_SMA, LAG_DIFF_NIVEL)
 
 prediccion_data<- Tabla_4[Tabla_4$Date> ymd("2019/01/25"), ]
 
-AP_prediction<- predict(modelo_DN_AP, newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN, 
-                                                                              newdata = prediccion_data)))
+#AP_prediction<- predict(modelo_DN_AP, newdata= data.frame(difnivel_SMA=predict(modelo_WRF_DN,newdata = prediccion_data)))
 
 
 ggplot(data = prediccion_data)+
