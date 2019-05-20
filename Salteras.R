@@ -218,9 +218,10 @@ if(!dir.exists(here::here('Data/Parques/Salteras/WEB'))){dir.create(here::here('
 ####VEMOS EN LA PÁGINA QUE EL PRIMER DATO ES DE EL 20 DE DICIEMBRE 
 
 #EL FORMATO ES EL SIGUIENTE YYYY-MM-D 2019-01-2
-FIRST_DAY<- ymd("2018/12/20")
+FIRST_DAY<- ymd("2019/05/11")
 
 lista_web<- list()
+k<- 1
 while (TRUE) {
   HOY<- now() %>% as.character() %>% str_split(" ") %>% .[[1]] %>% .[1] %>% ymd()
   FECHA<- FIRST_DAY %>% as.character()
@@ -271,7 +272,7 @@ for (i in 1:length(lista_web)) {
 }
 
 data_frame_salteras<- bind_rows(lista_web)
-fecha_guardado<- now() %>% as.character() %>% str_replace(' ','')
+fecha_guardado<- now() %>% as.character() %>% str_replace(' ','_')
 saveRDS(data_frame_salteras, paste0(here::here('Data/Parques/Salteras/WEB/Salteras_web_data_'),
                                     fecha_guardado,".RDS"))
 
@@ -385,7 +386,7 @@ Historico_NEW<- Punto_salteras[!duplicated(Punto_salteras$Date),]
 
 
 #CARGAMOS DATOS DE LA PÁGINA WEB
-WEB<- list.files(here::here('Data/Parques/Salteras/WEB/'), full.names = T) %>% .[2] %>% readRDS()
+WEB<- list.files(here::here('Data/Parques/Salteras/WEB/'), full.names = T) %>% .[4] %>% readRDS()
 colnames(WEB)<- c("Date", colnames(WEB)[2:length(WEB)])
 
 WEB2<- data.frame(matrix(ncol=12))
@@ -404,3 +405,14 @@ SALTERAS_JUNTOS<- left_join(Historico_NEW,WEB2, by="Date")
 
 
 saveRDS(SALTERAS_JUNTOS,here::here('Data/Parques/Salteras/Tabla_unida_CALMET_WEB.RDS'))
+
+
+
+
+
+
+# TRABAJAMOS CON LOS DATOS DE SALTERAS ------------------------------------
+#### YA TENEMOS LOS DATOS GUARDADOS Y 
+
+SALTERAS<- readRDS(here::here('Data/Parques/Salteras/Tabla_unida_CALMET_WEB.RDS'))
+

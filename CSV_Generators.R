@@ -9,7 +9,7 @@ tryCatch({source('/home/asus/MB/Belesar_Inflow_prediction_CSV_Generator.R', echo
 
 
 source('/home/asus/MB/FTP_UPLOAD.R', echo=TRUE)
-
+source('/home/asus/MB/COMPROBACION_BELESAR.R')
 
 
 
