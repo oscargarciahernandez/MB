@@ -38,3 +38,26 @@ if(is.na(fecha_exe_modelo_europa)){print("Modelo Europa, sin ejecutar")}else{
   }
 }
 
+
+library(RCurl)
+###CARGAR USUSARIOS Y CONTRASEÑAS DE FTP'S
+Variables<- read.table(here::here('FTPs.CSV'),
+                       stringsAsFactors = F, quote = "", sep = ";") 
+for (i in 1:length(Variables[,1])) {assign(Variables[i,1], Variables[i,2])}
+
+
+####DETECTAR CSV'S DE HOY
+fecha_hoy<- now() %>% as.character() %>% str_split(" ") %>% 
+  .[[1]] %>% .[1] %>% ymd() %>% as.character() %>% str_replace_all("-","")
+Lista_nuevos<- list.files(here::here('Data/'), recursive = T) %>% .[str_detect(.,".CSV")] %>% 
+  .[str_detect(.,fecha_hoy)] %>% paste0(here::here('Data/'),.)
+
+#####SUBIR CSV's Europa
+Europa_ftp<- Lista_nuevos[str_detect(Lista_nuevos,"Europe_")]
+if(!length(Europa_ftp)==0){
+  for (i in 1:length(Europa_ftp)) {
+    ftpUpload(Europa_ftp[i],paste0("ftp://",usr_mb,":",pass_mb,"@",url_mb,"/ElMundo/Europa/",
+                                   Europa_ftp[i] %>% str_split("/") %>% .[[1]] %>% .[length(.)]))
+  }
+  
+}
