@@ -1,6 +1,5 @@
-library(request)
-library(XML)
-
+library(here)
+source(here::here('libraries.R'))
 
 
 
@@ -30,12 +29,38 @@ Tablas_pleamar<- lapply(Tablas_pleamar, function(x){
   x<- x[,c(1,3,4,7,8)]
   colnames(x)<- c("Dia", "Hora1", "H1", "Hora2", "H2")
   x$Dia<- as.numeric(as.character(x$Dia))
-  x$Hora1<- x$Hora1 %>% str_replace(" ",":") %>% hm()+hm("2:00")
-  x$Hora2<- x$Hora2 %>% str_replace(" ",":") %>% hm()+hm("2:00")
+  x$Hora1<- x$Hora1 %>% str_replace(" ",":") %>% hm()
+  x$Hora2<- x$Hora2 %>% str_replace(" ",":") %>% hm()
   x$H1<- x$H1 %>% str_replace(",",".") %>% as.numeric()
   x$H2<- x$H2 %>% str_replace(",",".") %>% as.numeric()
   return(as.data.frame(x))
 })
+Lista_actualizada_pleamar<- list()
+for (i in 1:length(Tablas_pleamar)) {
+  x<- Tablas_pleamar[[i]]
+  fecha_hora1<- paste("2019",i,x$Dia,"-",x$Hora1, sep = "/") %>% ymd_hms()
+  fecha_hora2<- paste("2019",i,x$Dia,"-",x$Hora2, sep = "/") %>% ymd_hms()
+  
+  tabla1<- cbind(as.character(fecha_hora1), x$H1) %>% as.data.frame()
+  colnames(tabla1)<- c("Date", "Altura")
+  tabla2<- cbind(as.character(fecha_hora2), x$H2) %>% as.data.frame()
+  colnames(tabla2)<- c("Date", "Altura")
+  
+  tabla_merged<- rbind(tabla1,tabla2) %>% as.data.frame() %>% .[order(ymd_hms(.$Date)), ]
+  tabla_merged$Date<- ymd_hms(tabla_merged$Date) %>%  + hm("2:00")
+  Lista_actualizada_pleamar[[i]]<- tabla_merged
+}
+
+
+Tabla_pleamar<- lapply(Lista_actualizada_pleamar, function(x) x[complete.cases(x), ]) %>% 
+  bind_rows()
+
+
+
+
+
+
+
 
 
 Tablas_bajamar<- Tablas_mareas2[seq(2,24,2)]
@@ -45,72 +70,85 @@ Tablas_bajamar<- lapply(Tablas_bajamar, function(x){
   x<- x[,c(1,3,4,7,8)]
   colnames(x)<- c("Dia", "Hora1", "H1", "Hora2", "H2")
   x$Dia<- as.numeric(as.character(x$Dia))
-  x$Hora1<- x$Hora1 %>% str_replace(" ",":") %>% hm()+hm("2:00")
-  x$Hora2<- x$Hora2 %>% str_replace(" ",":") %>% hm()+hm("2:00")
+  x$Hora1<- x$Hora1 %>% str_replace(" ",":") 
+  x$Hora2<- x$Hora2 %>% str_replace(" ",":")
   x$H1<- x$H1 %>% str_replace(",",".") %>% as.numeric()
   x$H2<- x$H2 %>% str_replace(",",".") %>% as.numeric()
   return(as.data.frame(x))
 })
-##############GENERAMOS MAREAS_TXT PARA BIZKAIA 
-
-PLEAMAR_MAYO<- Tablas_pleamar$MAy
-BAJAMAR_MAYO<- Tablas_bajamar$MAy
-
-minutos<- as.character(minute(as.Date(BAJAMAR_MAYO$Hora1, origin="1960-10-01")))
-BAJAMAR1<- paste0(hour(as.Date(BAJAMAR_MAYO$Hora1, origin="1960-10-01")),
-                  ":",
-                  ifelse(nchar(minutos)==1, paste0("0",minutos), minutos),
-                  " con ",
-                  as.character(BAJAMAR_MAYO$H1), " m")
-
-
-minutos<- as.character(minute(as.Date(BAJAMAR_MAYO$Hora2, origin="1960-10-01")))
-BAJAMAR2<- paste0(hour(as.Date(BAJAMAR_MAYO$Hora2, origin="1960-10-01")),
-                  ":",
-                  ifelse(nchar(minutos)==1, paste0("0",minutos), minutos),
-                  " con ",
-                  as.character(BAJAMAR_MAYO$H2), " m")
 
 
 
-texto_bajamar<-  paste(BAJAMAR1,"/",BAJAMAR2)
-
-minutos<- as.character(minute(as.Date(PLEAMAR_MAYO$Hora1, origin="1960-10-01")))
-PLEAMAR1<- paste0(hour(as.Date(PLEAMAR_MAYO$Hora1, origin="1960-10-01")),
-                  ":",
-                  ifelse(nchar(minutos)==1, paste0("0",minutos), minutos),
-                  " con ",
-                  as.character(PLEAMAR_MAYO$H1), " m")
-
-
-minutos<- as.character(minute(as.Date(PLEAMAR_MAYO$Hora2, origin="1960-10-01")))
-PLEAMAR2<- paste0(hour(as.Date(PLEAMAR_MAYO$Hora2, origin="1960-10-01")),
-                  ":",
-                  ifelse(nchar(minutos)==1, paste0("0",minutos), minutos),
-                  " con ",
-                  as.character(PLEAMAR_MAYO$H2), " m")
-
-
-texto_pleamar<-  paste(PLEAMAR1,"/",PLEAMAR2)
+Lista_actualizada_bajamar<- list()
+for (i in 1:length(Tablas_bajamar)) {
+  x<- Tablas_bajamar[[i]]
+  fecha_hora1<- paste("2019",i,x$Dia,"-",x$Hora1, sep = "/") %>% ymd_hm()
+  fecha_hora2<- paste("2019",i,x$Dia,"-",x$Hora2, sep = "/") %>% ymd_hm()
+  
+  tabla1<- cbind(as.character(fecha_hora1), x$H1) %>% as.data.frame()
+  colnames(tabla1)<- c("Date", "Altura")
+  tabla2<- cbind(as.character(fecha_hora2), x$H2) %>% as.data.frame()
+  colnames(tabla2)<- c("Date", "Altura")
+  
+  tabla_merged<- rbind(tabla1,tabla2) %>% as.data.frame() %>% .[order(ymd_hms(.$Date)), ]
+  tabla_merged$Date<- ymd_hms(tabla_merged$Date) %>%  + hm("2:00")
+  Lista_actualizada_bajamar[[i]]<- tabla_merged
+}
 
 
-Tabla_final<- as.data.frame(cbind(1:length(texto_bajamar), texto_bajamar, texto_pleamar))
-colnames(Tabla_final)<- c("Dia_del_mes", "texto_BAJAMAR", "texto_PLEAMAR")
+Tabla_bajamar<- lapply(Lista_actualizada_bajamar, function(x) x[complete.cases(x), ]) %>% 
+  bind_rows()
 
 
-nombre_mareas<- paste0(as.character(lubridate::month(now(), label=TRUE)),"_",
-                       range(as.numeric(as.character(Tabla_final$Dia_del_mes)))[1],"-",
-                       range(as.numeric(as.character(Tabla_final$Dia_del_mes)))[2], ".txt")
+#PONER EN ORDEN LAS VARIABLES DE LAS TABLAS
+Tabla_bajamar$Date<- ymd_hms(Tabla_bajamar$Date)
+Tabla_pleamar$Date<- ymd_hms(Tabla_pleamar$Date)
+Tabla_bajamar$Altura<-Tabla_bajamar$Altura %>% as.numeric()
+Tabla_pleamar$Altura<-Tabla_pleamar$Altura %>% as.numeric()
+
+#SEPARAR POR MESES OS DATOS DE LA TABLA
+#QUIERO HACER LAS TABLAS DE MAYO EN ADELANTE
+
+Lista_bajamar<- Tabla_bajamar %>% group_split(month(Date)) %>% lapply(., function(x) x[,1:2]) %>% .[5:12]
+Lista_pleamar<- Tabla_pleamar %>% group_split(month(Date)) %>% lapply(., function(x) x[,1:2]) %>% .[5:12]
+
+names(Lista_bajamar)<- c("MAY","JUN", "JUL", "AGOS", "SEPT", "OCT", "NOV", "DEC")
+names(Lista_pleamar)<- c("MAY","JUN", "JUL", "AGOS", "SEPT", "OCT", "NOV", "DEC")
 
 
-if(!dir.exists(here::here("Mareas"))){dir.create(here::here("Mareas"))}
-write.table(Tabla_final, 
-            here::here(paste0("Mareas/bizkaia_",nombre_mareas)),
-            sep = "\t",
-            row.names = FALSE,
-            dec = ",")
+for (i in 1:length(Lista_bajamar)) {
+  Bajamar_textos<- Lista_bajamar[[1]] %>% group_split(day(Date)) %>% 
+    sapply(., function(x){
+    if(nrow(x)==2){
+      paste(paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ", x$Altura), collapse = " / ")
+    }else{paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ", x$Altura)}
+    
+  }) 
+  Pleamar_textos<- Lista_pleamar[[1]] %>% group_split(day(Date)) %>% 
+    sapply(., function(x){
+    if(nrow(x)==2){
+      paste(paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ", x$Altura), collapse = " / ")
+    }else{paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ", x$Altura)}
+    
+  }) 
+  
+  Tabla_junto<- cbind(seq(1, length(Bajamar_textos)), 
+                      Bajamar_textos,
+                      Pleamar_textos) %>% as.data.frame()
+  
+  colnames(Tabla_junto)<- c("Dia_del_mes",	"texto_BAJAMAR",	"texto_PLEAMAR")
+  
+  nombre_mareas<- paste0("Mareas_",names(Lista_bajamar)[i],".txt"  )
+  
+  if(!dir.exists(here::here("Mareas"))){dir.create(here::here("Mareas"))}
+  write.table(Tabla_junto, 
+              here::here(paste0("Mareas/bizkaia_",nombre_mareas)),
+              sep = "\t",
+              row.names = FALSE,
+              dec = ",")
+  
+  
+  
+  
+}
 
-
-
-
-##############QUEDA PENDIENTE HACER LA TABLA PARA GUIPUZKOA
