@@ -415,8 +415,8 @@ for (i in 1:length(lista_merged_clean)) {
   Historico_NEW<- lista_merged_clean[[i]] %>% .[complete.cases(.), ]
   
   WEB2<- data.frame(matrix(ncol=12))
-  for (i in 1:nrow(Historico_NEW)) {
-    WEB2[i,]<- WEB[which.min(abs(WEB$Date-Historico_NEW$Date[i])),]
+  for (j in 1:nrow(Historico_NEW)) {
+    WEB2[j,]<- WEB[which.min(abs(WEB$Date-Historico_NEW$Date[j])),]
   }
   colnames(WEB2)<- c("Date", colnames(WEB)[2:length(WEB)])
   WEB2$Date<- as.POSIXct(WEB2$Date,origin = "1970-01-01",tz = "GMT")
@@ -428,7 +428,7 @@ for (i in 1:length(lista_merged_clean)) {
   
   
 }
-
+names(LISTA_CONDATOSWEB)<- names(lista_merged_clean)
 
 saveRDS(LISTA_CONDATOSWEB,here::here('Data/Parques/Salteras/Tabla_unida_CALMET_WEB_13-22.RDS'))
 
@@ -440,7 +440,106 @@ saveRDS(LISTA_CONDATOSWEB,here::here('Data/Parques/Salteras/Tabla_unida_CALMET_W
 # TRABAJAMOS CON LOS DATOS DE SALTERAS ------------------------------------
 #### YA TENEMOS LOS DATOS GUARDADOS Y 
 
-SALTERAS<- readRDS(here::here('Data/Parques/Salteras/Tabla_unida_CALMET_WEB.RDS'))
+SALTERAS<- readRDS(here::here('Data/Parques/Salteras/Tabla_unida_CALMET_WEB_13-22.RDS'))
+
+SALTERAS_VIENTO<-  SALTERAS %>% lapply(., function(x){
+  y<- x[,c("Date", "U", "V","Wind","Speed","Gust")]
+  u10<- y$U
+  v10<- y$V
+  wind_abs <- sqrt(u10^2 + v10^2)
+  wind_dir_rad <-  atan2(u10/wind_abs, v10/wind_abs) 
+  wind_dir_deg1 <-  wind_dir_rad * 180/pi 
+  wind_dir_deg2 <-  wind_dir_deg1+ 180 
+  
+  y$Dir<-  ifelse(y$Wind=="North",0,
+         ifelse(y$Wind=="NNE", 22.5,
+                ifelse(y$Wind=="NE", 45,
+                       ifelse(y$Wind=="ENE", 67.5,
+                              ifelse(y$Wind=="East", 90,
+                                     ifelse(y$Wind=="ESE", 112.5,
+                                            ifelse(y$Wind=="SE", 135,
+                                                   ifelse(y$Wind=="SSE", 157,
+                                                          ifelse(y$Wind=="South",180,
+                                                                 ifelse(y$Wind=="SSW", 202.5,
+                                                                        ifelse(y$Wind=="SW", 225.0,
+                                                                               ifelse(y$Wind=="WSW", 247.5,
+                                                                                      ifelse(y$Wind=="West", 270,
+                                                                                             ifelse(y$Wind=="WNW", 292.5,
+                                                                                                    ifelse(y$Wind=="NW", 315,
+                                                                                                           ifelse(y$Wind=="NNW", 337.5,NA))))))))))))))))
+  
+  
+
+
+  y$wind_calmet<- wind_abs
+  y$dir_calmet<- cut(wind_dir_deg2, 
+                     breaks = c(0,seq(11.5,360,22.5), 361),
+                     labels = seq(0,360,22.5))%>% 
+    as.character() %>% ifelse(.==360,0,. ) %>% as.numeric()
+  return(y)
+})
+names(SALTERAS_VIENTO)<- names(SALTERAS)
+
+
+lat<-  37.488919 
+lon<- -6.093440
+Kauras<- c(lon,lat)
+
+Dist_CALMET<-names(SALTERAS_VIENTO) %>% str_split("_") %>% sapply(., function(x){
+  x<- as.numeric(x)
+  y<- c(-x[1], x[2])
+  distm(y, Kauras)
+})
+
+
+#RESTRICCION DE FECHA
+#%>%.[which(.$Date>ymd("2019/05/20")),]
+
+SALTERAS_VIENTO[[which.min(Dist_CALMET)]] %>%.[complete.cases(.), ]  %>% 
+  ggplot()+
+  geom_line(aes(x=Date, y=SMA(Speed, 2)),
+                     colour="red")+
+  geom_point(aes(x=Date, y=Speed),
+            colour="red",
+            alpha= 0.4,
+            size=1.1)+
+  geom_line(aes(x=Date, y=SMA(wind_calmet, 2)))+
+  geom_point(aes(x=Date, y=wind_calmet),
+            alpha= 0.4,
+            size=1.1)+
+  ylab("Wind Speed [m/s]")+
+  labs(subtitle =  "CALMET OUTPUT(BLACK)\nVs\nOBSERVED(RED)")+
+  theme_light()+
+  theme(plot.subtitle =element_text(hjust = 0.5))
+
+#LOCALIZACION KAURAS KOPRODUCTS
 
 
 
+#Rosa de los vientos
+#install.packages("openair")
+library(openair)
+
+PUNTOMC<- SALTERAS_VIENTO[[which.min(Dist_CALMET)]] %>%.[complete.cases(.), ] 
+
+
+windRose(PUNTOMC,
+         ws="wind_calmet",
+         wd="dir_calmet",
+         paddle = F,
+         ws.int = 0.25,
+         breaks = round(max(PUNTOMC$Speed)/0.25),
+         cols = "jet",
+         key.position = "right",
+         offset = 0.01,
+         dig.lab = 1)
+windRose(PUNTOMC,
+         ws="Speed",
+         wd="Dir",
+         paddle = F,
+         ws.int = 0.25,
+         breaks = round(max(PUNTOMC$Speed)/0.25),
+         cols = "jet",
+         key.position = "right",
+         offset = 0.01,
+         dig.lab = 1)

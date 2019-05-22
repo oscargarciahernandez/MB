@@ -1,0 +1,119 @@
+---
+title: "Predictive model using caret"
+author: "Eduardo Roman y Óscar García"
+date: "17/4/2019"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections:  true
+    df_print: paged
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, 
+                      cache = TRUE,
+                      warning = FALSE, 
+                      fig.align = "center")
+library(ggplot2)
+library(RNetCDF)
+library(stringr)
+library(lubridate)
+library(request)
+library(XML)
+library(dplyr)
+library(TTR)
+library(data.table)
+library(GGally)
+library(e1071)
+library(geosphere)
+library(imputeTS)
+```
+
+
+# Indroduction
+
+
+En este documento sacaremos a relucir los conocimientos de evaluacion y seleccion de modelos. Para ello... habrá que hacer muchas cosas. Lo suyo es poder sacar conclusiones de que modelos son los mejores y a partir de ahí afinar esos modelos probando multitud de parmetros. 
+
+# RMSE y MAE
+
+A continuacion representamos los modelos que hemos ejecutado hasta ahora... enseñando los valores mínimos del RMSE y el MAE que por lo que parece son los parámetros que hay que tener en cuenta a la hora de evaluar un modelo predictivo regresivo· 
+
+```{r}
+modelos_WRF_DN<- here::here('Data/Parques/Belesar/Modelos/WRF_DN/') %>% list.files(full.names = T) %>% 
+  .[str_detect(., ".RDS")]
+
+Lista_results<- list()
+for (i in 1:length(modelos_WRF_DN)) {
+  Lista_results[[i]]<- tryCatch({readRDS(modelos_WRF_DN[i])}, error=function(e){0}) 
+  
+}
+
+Lista_modelos_buenos<- Lista_results[sapply(Lista_results, function(x) length(class(x))==2)]
+
+names(Lista_modelos_buenos)<- Lista_modelos_buenos %>% sapply(., function(x) x$method)
+
+Tabla_results<- lapply(Lista_modelos_buenos, function(x) x$results[,((length(x$results)-5):length(x$results))]) %>% 
+  bind_rows(.id ="Tipo_modelo")
+
+
+Tabla_results %>% group_by(Tipo_modelo) %>% summarise(MRMSE=min(RMSE),MMAE=min(MAE)) %>% 
+  as.data.frame() %>% 
+  ggplot()+
+  geom_bar(aes(y=MRMSE, x=Tipo_modelo),
+           stat = "identity",
+           fill="red",
+           alpha=0.5)+
+  geom_bar(aes(y=MMAE, x=Tipo_modelo),
+           stat = "identity",
+           fill="blue",
+           alpha=0.5)+
+  ylab("RMSE---MAE")+
+  labs(subtitle = "Modelo WRF a diferencia nivel")+
+  theme_light()+
+  theme(axis.text.x = element_text(angle = 75, hjust = 1))
+
+Tabla_results %>% group_by(Tipo_modelo) %>% summarise(MRMSE=min(RMSE),MMAE=min(MAE)) %>% as.data.frame() %>% .[which.min(.[,2]),] 
+
+#### MODELOS DN-AP
+modelos_WRF_DN<- here::here('Data/Parques/Belesar/Modelos/DN_AP/') %>% list.files(full.names = T) %>% 
+  .[str_detect(., ".RDS")]
+
+Lista_results<- list()
+for (i in 1:length(modelos_WRF_DN)) {
+  Lista_results[[i]]<- tryCatch({readRDS(modelos_WRF_DN[i])}, error=function(e){0}) 
+  
+}
+
+Lista_modelos_buenos<- Lista_results[sapply(Lista_results, function(x) length(class(x))==2)]
+
+names(Lista_modelos_buenos)<- Lista_modelos_buenos %>% sapply(., function(x) x$method)
+
+Tabla_results<- lapply(Lista_modelos_buenos, function(x) x$results[,((length(x$results)-5):length(x$results))]) %>% 
+  bind_rows(.id ="Tipo_modelo")
+
+
+Tabla_results %>% group_by(Tipo_modelo) %>% summarise(MRMSE=min(RMSE),MMAE=min(MAE)) %>% 
+  as.data.frame() %>% 
+  ggplot()+
+  geom_bar(aes(y=MRMSE, x=Tipo_modelo),
+           stat = "identity",
+           fill="red",
+           alpha=0.5)+
+  geom_bar(aes(y=MMAE, x=Tipo_modelo),
+           stat = "identity",
+           fill="blue",
+           alpha=0.5)+
+  ylab("RMSE---MAE")+
+  labs(subtitle = "Modelo WRF a aportacion")+
+  theme_light()+
+  theme(axis.text.x = element_text(angle = 75, hjust = 1))
+
+Tabla_results %>% group_by(Tipo_modelo) %>% summarise(MRMSE=min(RMSE),MMAE=min(MAE)) %>% as.data.frame() %>% .[which.min(.[,2]),] 
+
+
+```
+
+
