@@ -120,15 +120,15 @@ for (i in 1:length(Lista_bajamar)) {
   Bajamar_textos<- Lista_bajamar[[1]] %>% group_split(day(Date)) %>% 
     sapply(., function(x){
     if(nrow(x)==2){
-      paste(paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ", x$Altura), collapse = " / ")
-    }else{paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ", x$Altura)}
+      paste(paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ", x$Altura %>% as.character() %>% str_replace("[.]", ",")), collapse = " / ")
+    }else{paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ",  x$Altura %>% as.character() %>% str_replace("[.]", ","))}
     
   }) 
   Pleamar_textos<- Lista_pleamar[[1]] %>% group_split(day(Date)) %>% 
     sapply(., function(x){
     if(nrow(x)==2){
-      paste(paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ", x$Altura), collapse = " / ")
-    }else{paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ", x$Altura)}
+      paste(paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ",  x$Altura %>% as.character() %>% str_replace("[.]", ",")), collapse = " / ")
+    }else{paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ",  x$Altura %>% as.character() %>% str_replace("[.]", ","))}
     
   }) 
   
@@ -146,9 +146,5 @@ for (i in 1:length(Lista_bajamar)) {
               sep = "\t",
               row.names = FALSE,
               dec = ",")
-  
-  
-  
-  
 }
 

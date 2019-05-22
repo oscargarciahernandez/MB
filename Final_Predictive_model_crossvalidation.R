@@ -94,7 +94,7 @@ LAG_DIFF_NIVEL<- 24
 
 
 #IMPORTANTE: EL METODO SIEMPRE ENTRE COMILLAS
-METODO<- "krlsPoly"
+METODO<- "rvmLinear"
 
 #TUNELENGH: CUIDADO CON ESTO, AUMENTA MUCHO LA NECESIDAD DE COMPUTACIÓN. 
 TUNELENGTH<- 1
@@ -110,7 +110,7 @@ TUNELENGTH<- 1
 # 2 MENOS DE LOS QUE DISPONE EL ORDENADOR. 
 
 
-NCORES<- 3
+NCORES<- 2
 
 #######################################################################################
 #######################################################################################
@@ -332,7 +332,15 @@ ggsave(paste0(DN_AP_path,Nombre_archivo,".png"),
 
 
 ##############GRAFICAMOS MODELO LLUVIA WRF A DIFERENCIA NIVEL 
-prediccion_data<- Tabla_3[Tabla_3$Date> ymd("2019/01/25"), ]
+PORCENTAJE_ENTRENAMIENTO<- 0.8
+LOGIC_TRAIN<- ifelse(1:nrow(Tabla_3)%in%(1:round(nrow(Tabla_3)*PORCENTAJE_ENTRENAMIENTO)), TRUE,FALSE)
+
+
+
+train_data<- Tabla_3[LOGIC_TRAIN, ]
+prediccion_data<- Tabla_3[!LOGIC_TRAIN, ]
+
+
 ggplot(data = prediccion_data)+
   geom_line(aes(y=prediccion_data$diff_nivel, 
                 x=prediccion_data$Date), 
@@ -342,35 +350,35 @@ ggplot(data = prediccion_data)+
             alpha=0.8)+
   ylab("Variacion nivel [msnm]")+
   xlab(paste(range(prediccion_data$Date), collapse = "\n"))+
-  geom_line(aes(y=ifelse(modelo_WRF_DN1=="empty", 0,
+  geom_line(aes(y=ifelse(length(modelo_WRF_DN1)==1, rep(0,nrow(prediccion_data)),
                          predict(modelo_WRF_DN1, newdata= prediccion_data)),
                 x=Date), 
             col="red", lty=2)+
-  geom_line(aes(y=ifelse(modelo_WRF_DN2=="empty", 0,
+  geom_line(aes(y=ifelse(length(modelo_WRF_DN2)==1, rep(0,nrow(prediccion_data)),
                          predict(modelo_WRF_DN2, newdata= prediccion_data)),
                 x=Date), 
             col="green", lty=2)+
-  geom_line(aes(y=ifelse(modelo_WRF_DN3=="empty", 0,
+  geom_line(aes(y=ifelse(length(modelo_WRF_DN3)==1, rep(0,nrow(prediccion_data)),
                          predict(modelo_WRF_DN3, newdata= prediccion_data)),
                 x=Date), 
             col="forestgreen", lty=2)+
-  geom_line(aes(y=ifelse(modelo_WRF_DN4=="empty", 0,
+  geom_line(aes(y=ifelse(length(modelo_WRF_DN4)==1, rep(0,nrow(prediccion_data)),
                          predict(modelo_WRF_DN4, newdata= prediccion_data)),
                 x=Date), 
             col="blue", lty=2)+
-  geom_line(aes(y=ifelse(modelo_WRF_DN5=="empty", 0,
+  geom_line(aes(y=ifelse(length(modelo_WRF_DN5)==1, rep(0,nrow(prediccion_data)),
                          predict(modelo_WRF_DN5, newdata= prediccion_data)),
                 x=Date), 
             col="cyan", lty=2)+
-  geom_line(aes(y=ifelse(modelo_WRF_DN6=="empty", 0,
+  geom_line(aes(y=ifelse(length(modelo_WRF_DN6)==1, rep(0,nrow(prediccion_data)),
                          predict(modelo_WRF_DN6, newdata= prediccion_data)),
                 x=Date), 
             col="gold", lty=2)+
-  geom_line(aes(y=ifelse(modelo_WRF_DN7=="empty", 0,
+  geom_line(aes(y=ifelse(length(modelo_WRF_DN7)==1, rep(0,nrow(prediccion_data)),
                          predict(modelo_WRF_DN7, newdata= prediccion_data)),
                 x=Date), 
             col="gold3", lty=2)+
-  geom_line(aes(y=ifelse(modelo_WRF_DN8=="empty", 0,
+  geom_line(aes(y=ifelse(length(modelo_WRF_DN8)==1, rep(0,nrow(prediccion_data)),
                          predict(modelo_WRF_DN8, newdata= prediccion_data)),
                 x=Date), 
             col="gold4", lty=2)+

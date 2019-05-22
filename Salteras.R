@@ -279,16 +279,19 @@ saveRDS(data_frame_salteras, paste0(here::here('Data/Parques/Salteras/WEB/Salter
 
 
 # DATA CALMET -------------------------------------------------------------
+#DOWNLOAD CALMET
+#http://troposfera.es/datos/sevilla/calmet_20190522.nc
+
 
 #print.nc()  para informacion aunque ya la he guardado como CALMET_VARIABLES EN MB/
-
 list.files(here::here(), recursive = T) %>% .[str_detect(.,"nc")] %>% .[2] %>% open.nc() %>% print.nc()
 
+
+
 Lista_Total<- list()
-for (netcdf in 2:3) {
+for (netcdf in 1:6) {
   CALMET_netcdf<- list.files(here::here(), recursive = T) %>% .[str_detect(.,"nc")] %>% .[netcdf] %>% open.nc() %>% 
     read.nc(unpack = T)
-  
   
   FECHAS_CALMET<- CALMET_netcdf$TFLAG[1,2,] %>% paste(str_sub(.,start = 1, end = 4),
                                                       str_sub(.,start = 5, end = 8)) %>% 
@@ -320,12 +323,12 @@ for (netcdf in 2:3) {
     
   }
   
-  Lista_Total[[netcdf-1]]<- Lista_lon_lat
+  Lista_Total[[netcdf]]<- Lista_lon_lat
 }
 
 
 if(!dir.exists(here::here('Data/Parques/Salteras/CALMET'))){dir.create(here::here('Data/Parques/Salteras/CALMET'))}
-saveRDS(Lista_Total, file = here::here('Data/Parques/Salteras/CALMET/Lista_13_14.RDS'))
+saveRDS(Lista_Total, file = here::here('Data/Parques/Salteras/CALMET/Lista_13_21.RDS'))
 
 
 
@@ -337,26 +340,39 @@ saveRDS(Lista_Total, file = here::here('Data/Parques/Salteras/CALMET/Lista_13_14
 
 ######SOLUCIONAMOS MIERDA FECHAS
 #ESTO ME PARECE UNA MUY BUENA IDEA PARA RELLENAR LAS HORAS EN LAS FECHAS
-salteras_infor<- readRDS( here::here('Data/Parques/Salteras/CALMET/Lista_13_14.RDS'))
+#CARGAMOS LOS DATOS
+salteras_infor<- readRDS( here::here('Data/Parques/Salteras/CALMET/Lista_13_21.RDS'))
+
+#ARREGLAMOS FORMATO FECHAS... AÑADIENDO LAS HORAS
 hours_ch<- as.character(seq(0,23)) %>% ifelse(nchar(.)==1, paste0(0,.), .) %>% rep(.,2)
 
-salteras_infor<- salteras_infor %>% .[1:2] %>% lapply(., function(x){
+salteras_infor<- salteras_infor %>% .[1:6] %>% lapply(., function(x){
   lapply(x, function(y){
-    y$Date<- ymd_h(paste(as.character(y$Date), hours_ch ))
+    y$Date<- ymd_h(paste(as.character(y$Date), hours_ch[1:length(y$Date)] ))
     return(y)
   })
 })
 
 lista_merged<- list()
 for (i in 1:length(salteras_infor[[1]])){
-  lista_merged[[i]]<- as.data.frame(rbind(salteras_infor[[1]][[i]],
-                      salteras_infor[[2]][[i]]))
+  salteras_table<- data.frame(matrix(ncol = ncol(salteras_infor[[1]][[1]])))
+  colnames(salteras_table)<- colnames(salteras_infor[[1]][[1]])
+  for (j in 1:length(salteras_infor)) {
+    salteras_table<- bind_rows(salteras_table, salteras_infor[[j]][[i]])
+    
+  }
+  lista_merged[[i]]<- salteras_table
   
 }
 names(lista_merged)<- names(salteras_infor[[1]])
 
+lista_merged_clean<- lapply(lista_merged, function(x){
+  x[complete.cases(x), ]
+  x[!duplicated(x$Date),]
+})
 
-View(lista_merged)
+
+View(lista_merged_clean)
 
 ####SOLUCIONAMOS MIERDA LON-LAT
 ###EL CALMET OFRECE SOLAMENTE LAS COORDENADAS DE ORIGEN EN UTM
@@ -371,40 +387,50 @@ distance_grid<- seq(0,by=250,length.out = 80)
 LONS<- destPoint(c(LON_orig,LAT_orig), 90, distance_grid, a=6378137)[,1]
 LATS<- destPoint(c(LON_orig,LAT_orig), 0, distance_grid, a=6378137)[,2]
 
-names(lista_merged)<- names(lista_merged) %>% str_split("_") %>% lapply(., function(x){
+names(lista_merged_clean)<- names(lista_merged_clean) %>% str_split("_") %>% lapply(., function(x){
   paste0(LONS[as.numeric(as.character(x[1]))],"_",
     LATS[as.numeric(as.character(x[2]))])
 })
 
-#####TRATAMOS SALTERAS
-#### DE MOMENTO TRABAJAMOS CON 1¡¡ DE MOMENTO
-
-Punto_salteras<- lista_merged[[1]]
-#View(Punto_salteras)
-
-Historico_NEW<- Punto_salteras[!duplicated(Punto_salteras$Date),]
+path_Salteras<- here::here('Data/Parques/Salteras/CALMET/')
+saveRDS(lista_merged_clean,paste0(path_Salteras, "Lista_13_21_clean.RDS"))
 
 
+
+
+
+# JUNTAMOS CALMET Y WEB DATA ----------------------------------------------
+####Historico unido
 #CARGAMOS DATOS DE LA PÁGINA WEB
-WEB<- list.files(here::here('Data/Parques/Salteras/WEB/'), full.names = T) %>% .[4] %>% readRDS()
+WEB<- list.files(here::here('Data/Parques/Salteras/WEB/'), full.names = T) %>% .[length(.)] %>% readRDS()
 colnames(WEB)<- c("Date", colnames(WEB)[2:length(WEB)])
 
-WEB2<- data.frame(matrix(ncol=12))
-for (i in 1:nrow(Historico_NEW)) {
-  WEB2[i,]<- WEB[which.min(abs(WEB$Date-Historico_NEW$Date[i])),]
+#CARGAMOS DATOS CALMET
+path_Salteras<- here::here('Data/Parques/Salteras/CALMET/')
+lista_merged_clean<-paste0(path_Salteras, "Lista_13_21_clean.RDS") %>%  readRDS()
+
+LISTA_CONDATOSWEB<- list()
+for (i in 1:length(lista_merged_clean)) {
+  
+  Historico_NEW<- lista_merged_clean[[i]] %>% .[complete.cases(.), ]
+  
+  WEB2<- data.frame(matrix(ncol=12))
+  for (i in 1:nrow(Historico_NEW)) {
+    WEB2[i,]<- WEB[which.min(abs(WEB$Date-Historico_NEW$Date[i])),]
+  }
+  colnames(WEB2)<- c("Date", colnames(WEB)[2:length(WEB)])
+  WEB2$Date<- as.POSIXct(WEB2$Date,origin = "1970-01-01",tz = "GMT")
+  WEB2<- WEB2[!duplicated(WEB2$Date),] 
+  WEB2$Date<- round_date(WEB2$Date, unit = "hour")
+  
+  #JUNTAMOS DATOS 
+  LISTA_CONDATOSWEB[[i]]<- left_join(Historico_NEW,WEB2, by="Date")
+  
+  
 }
-colnames(WEB2)<- c("Date", colnames(WEB)[2:length(WEB)])
-WEB2$Date<- as.POSIXct(WEB2$Date,origin = "1970-01-01",tz = "GMT")
-WEB2<- WEB2[!duplicated(WEB2$Date),] 
-WEB2$Date<- round_date(WEB2$Date, unit = "hour")
 
 
-
-#JUNTAMOS DATOS 
-SALTERAS_JUNTOS<- left_join(Historico_NEW,WEB2, by="Date")
-
-
-saveRDS(SALTERAS_JUNTOS,here::here('Data/Parques/Salteras/Tabla_unida_CALMET_WEB.RDS'))
+saveRDS(LISTA_CONDATOSWEB,here::here('Data/Parques/Salteras/Tabla_unida_CALMET_WEB_13-22.RDS'))
 
 
 
@@ -415,4 +441,6 @@ saveRDS(SALTERAS_JUNTOS,here::here('Data/Parques/Salteras/Tabla_unida_CALMET_WEB
 #### YA TENEMOS LOS DATOS GUARDADOS Y 
 
 SALTERAS<- readRDS(here::here('Data/Parques/Salteras/Tabla_unida_CALMET_WEB.RDS'))
+
+
 
