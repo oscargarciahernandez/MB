@@ -13,7 +13,10 @@ d01_files<- All_files_Spain[!str_detect(All_files_Spain, "/d02/")]
 RDS_files<- d01_files[str_detect(d01_files, ".RDS")]
 RDS_files1<- RDS_files[!str_detect(RDS_files, "/NA/")]
 
-
+'
+Historico<- 148:154
+RDS_historico<- RDS_files1[Historico]
+'
 ### PARA REALIZAR SOLAMENTE LOS DE HOY
 RDS_hoy<- now() %>% as.Date() %>% as.character() %>% str_replace_all("-","")%>% str_detect(RDS_files1, . )%>% RDS_files[.]
 

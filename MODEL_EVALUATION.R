@@ -174,11 +174,9 @@ for (i in 1:length(Lista_modelos_buenos)) {
   Lista_parameters[[i]] <- c(rmse(error), mae(error))
   }
 Tabla_results<- Lista_parameters %>% unlist() %>% matrix(ncol=2, byrow = T) %>% as.data.frame() %>% 
-  cbind(names(Lista_modelos_buenos))
+  cbind(names(Lista_modelos_buenos), . )
 
-
-Tabla_results<- lapply(Lista_modelos_buenos, function(x) x$results[,((length(x$results)-5):length(x$results))]) %>% 
-  bind_rows(.id ="Tipo_modelo")
+colnames(Tabla_results)<- c("Tipo_modelo", "RMSE", "MAE")
 
 
 Tabla_results %>% group_by(Tipo_modelo) %>% summarise(MRMSE=min(RMSE),MMAE=min(MAE)) %>% 
@@ -219,16 +217,29 @@ MODEL_DN_AP_PREDICTION<- predict(modelo_DN_AP, newdata= prediccion_data_DN_A)
 OBSERVED_AP<- prediccion_data_DN_A$aport_SMA
 
 
+modelos_WRF_DN<- here::here('Data/Parques/Belesar/Modelos/DN_AP/') %>% list.files(full.names = T) %>% 
+  .[str_detect(., ".RDS")]
 
+Lista_results<- list()
+for (i in 1:length(modelos_WRF_DN)) {
+  Lista_results[[i]]<- tryCatch({readRDS(modelos_WRF_DN[i])}, error=function(e){0}) 
+  
+}
 
+Lista_modelos_buenos<- Lista_results[sapply(Lista_results, function(x) length(class(x))==2)]
 
+names(Lista_modelos_buenos)<- Lista_modelos_buenos %>% sapply(., function(x) x$method)
 
+Lista_parameters<-list()
+for (i in 1:length(Lista_modelos_buenos)) {
+  MODEL_WRF_DN_PREDICTION<-  predict(Lista_modelos_buenos[[i]], newdata= prediccion_data_DN_A)
+  error<- OBSERVED_AP- MODEL_WRF_DN_PREDICTION
+  Lista_parameters[[i]] <- c(rmse(error), mae(error))
+}
+Tabla_results<- Lista_parameters %>% unlist() %>% matrix(ncol=2, byrow = T) %>% as.data.frame() %>% 
+  cbind(names(Lista_modelos_buenos), . )
 
-
-
-
-Tabla_results<- lapply(Lista_modelos_buenos, function(x) x$results[,((length(x$results)-5):length(x$results))]) %>% 
-  bind_rows(.id ="Tipo_modelo")
+colnames(Tabla_results)<- c("Tipo_modelo", "RMSE", "MAE")
 
 
 Tabla_results %>% group_by(Tipo_modelo) %>% summarise(MRMSE=min(RMSE),MMAE=min(MAE)) %>% 
@@ -245,9 +256,3 @@ Tabla_results %>% group_by(Tipo_modelo) %>% summarise(MRMSE=min(RMSE),MMAE=min(M
   ylab("RMSE---MAE")+
   labs(subtitle = "Modelo WRF a diferencia nivel")+
   theme_light()
-
-
-
-Tabla_results %>% group_by(Tipo_modelo) %>% summarise(MRMSE=min(RMSE),MMAE=min(MAE)) %>% as.data.frame() %>% .[which.min(.[,3]),] 
-
-

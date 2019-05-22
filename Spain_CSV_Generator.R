@@ -44,7 +44,17 @@ if(is.na(fecha_exe_modelo_spain)){print("Modelo España, sin ejecutar")}else{
 
 
 
+#CONSTRUIR HISTORICO
+'
+DIA<- "20190504"
 
+netcdf_files_spain<- list.dirs("/media/asus/Elements") %>% .[str_detect(.,DIA)] %>% .[1] %>% 
+  list.files(full.names = T)
 
+path_espana<- paste0(here::here("Data/Espana/"),DIA,"/")
+if(!dir.exists(path_espana)){dir.create(path_espana)}
+list_espana<- get_netcdf_list(netcdf_files = netcdf_files_spain)
+saveRDS(list_espana, file = paste0(path_espana,"Espana_",DIA,".RDS"))
+'
 
 
