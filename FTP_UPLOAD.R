@@ -53,8 +53,15 @@ if(!length(PARQUES_ftp)==0){
 #####SUBIR CSV's PARQUES
 BELESAR_ftp<- Lista_nuevos[str_detect(Lista_nuevos,"Belesar_")] %>% .[!str_detect(.,"comprobacion")]
 if(!length(BELESAR_ftp)==0){
+  '
   for (i in 1:length(BELESAR_ftp)) {
     ftpUpload(BELESAR_ftp[i],paste0("ftp://",usr_dhi,":",pass_dhi,"@",url_dhi,"/",
+                                    BELESAR_ftp[i] %>% str_split("/") %>% .[[1]] %>% .[length(.)]))
+  }
+  '
+  
+  for (i in 1:length(BELESAR_ftp)) {
+    ftpUpload(BELESAR_ftp[i],paste0("ftp://",usr_mb,":",pass_mb,"@",url_mb,"/Embalses/",
                                     BELESAR_ftp[i] %>% str_split("/") %>% .[[1]] %>% .[length(.)]))
   }
   
