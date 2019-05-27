@@ -252,7 +252,18 @@ nombre_lista<- paste0(path_lista_total, 'Historico_WRF_Belesar_Variables.RDS')
 Lista_total1<- readRDS(nombre_lista)
 
 #Juntamos todos los Dataframes
-Lista_total_MF<- lapply(Lista_total1, function(x) bind_rows(x))
+vector_localizacion<- str_split(names(Lista_total_MF), "__") %>%
+  sapply(., function(x){x[1]}) %>% as.numeric()
+
+Lista_total_MF<- lapply(Lista_total1, function(x) bind_rows(x)) 
+for (i in 1:length(Lista_total_MF)){
+  x<- Lista_total_MF[[i]]
+  Lista_total_MF[[i]]<- x[which(!(x$lon > (vector_localizacion[i]+0.05))),]
+  
+}
+
+
+
 
 #creamos dos data.frames... uno para D1 y otro para D2
 Lista_d1_d2_loc<- list()
@@ -288,6 +299,9 @@ names(Lista_d1_d2_loc)<- names(Lista_total_MF)
 
 Tabla_periodo1<- Return_periodo_Belesar()
 colnames(Tabla_periodo1)<- c("Date", "LON", "LAT", "RAINC", "RAINNC","RAINSH", "T02_MEAN","PSFC","WS_MAX", "prep_hourly")
+Tabla_periodo1<- Tabla_periodo1 %>% as.data.frame()
+
+
 
 Lista_d1_d2_loc2<- list()
 for (j in 1:length(Lista_d1_d2_loc)) {
@@ -295,8 +309,9 @@ for (j in 1:length(Lista_d1_d2_loc)) {
   lista_retorno<- list()
   for(i in 1:2){
     prueba<- prueba_list[[i]]
-    Tabla_periodo<- Tabla_periodo1
-    Tabla_periodo$LON[match(prueba$Date,Tabla_periodo$Date)] <- prueba$LON
+    Tabla_periodo<- Tabla_periodo1[match(prueba$Date,Tabla_periodo1$Date),]
+    Tabla_periodo<- Tabla_periodo[complete.cases(Tabla_periodo$Date), ]
+    Tabla_periodo$LON[match(prueba$Date,Tabla_periodo$Date)]<- prueba$LON
     Tabla_periodo$LAT[match(prueba$Date,Tabla_periodo$Date)] <- prueba$LAT
     Tabla_periodo$RAINC[match(prueba$Date,Tabla_periodo$Date)] <- prueba$RAINC
     Tabla_periodo$RAINNC[match(prueba$Date,Tabla_periodo$Date)] <- prueba$RAINNC
