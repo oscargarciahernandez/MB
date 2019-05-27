@@ -1007,7 +1007,7 @@ Return_periodo_Belesar<- function(){
   
   periodo_WRF<- seq(fecha_ini, fecha_last, by="hour")
   
-  Tabla_WRF<- as.data.frame(matrix(ncol = 10, nrow = length(periodo_WRF)))
+  Tabla_WRF<- as.data.frame(matrix(-31,ncol = 10, nrow = length(periodo_WRF)))
   colnames(Tabla_WRF)<- colnames(Belesar_rain[[1]])
   Tabla_WRF$fechas<- periodo_WRF
   return(Tabla_WRF)
