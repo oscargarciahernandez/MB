@@ -309,6 +309,8 @@ for (j in 1:length(Lista_d1_d2_loc)) {
   lista_retorno<- list()
   for(i in 1:2){
     prueba<- prueba_list[[i]]
+    lon_guay<- prueba$LON %>% table() %>% which.max() %>% names() %>% as.numeric() 
+    prueba<- prueba[round(lon_guay,1)==round(prueba$LON, 1), ]
     Tabla_periodo<- Tabla_periodo1[match(prueba$Date,Tabla_periodo1$Date),]
     Tabla_periodo<- Tabla_periodo[complete.cases(Tabla_periodo$Date), ]
     Tabla_periodo$LON[match(prueba$Date,Tabla_periodo$Date)]<- prueba$LON
