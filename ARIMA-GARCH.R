@@ -7,22 +7,22 @@ source('libraries.R')
 
 
 Observed_Data<- here::here('Data/Parques/Belesar/Historico/WEB/PM/') %>% list.files(full.names = T) %>% 
-  .[str_detect(., "Obs")] %>% .[length(.)]%>% readRDS()
+  .[str_detect(., "Obs")] %>% .[length(.)]%>% readRDS() %>% .[which(year(.$Date)==2018), ]
 
 Observed_Data %>% ggplot(aes(x=Date))+geom_line(aes(y=nivel))+theme_light()
 Observed_Data<- Observed_Data %>% mutate(diffnivel=tsclean(c(0,diff(nivel))),
                          diffnivel1=SMA(diffnivel,24),
                          diffnivel7=SMA(diffnivel,24*7))
 
-Observed_Data%>% 
+Observed_Data %>% 
   ggplot(aes(x=Date))+
-  geom_line(aes(y=diffnivel), col="black", alpha = 0.6)+
+  geom_line(aes(y=diffnivel), col="black", alpha = 0.4)+
   geom_line(aes(y=diffnivel1), col="red")+
   geom_line(aes(y=diffnivel7), col="green")+
   theme_light()
 
 
-count_ma = ts(na.omit(Observed_Data$nivel), frequency=400)
+count_ma = ts(na.omit(Observed_Data$nivel), frequency=30)
 decomp = stl(count_ma, s.window="periodic")
 deseasonal_cnt <- seasadj(decomp)
 plot(decomp)
@@ -31,8 +31,8 @@ plot(decomp)
 
 adf.test(count_ma, alternative = "stationary")
 
-Acf(count_ma)
-Pacf(count_ma)
+Acf(count_ma, lag.max = 500)
+Pacf(count_ma, lag.max = 500)
 
 
 

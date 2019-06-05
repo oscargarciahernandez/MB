@@ -3,7 +3,7 @@ source(here::here('libraries.R'))
 
 
 ####ACTUALIZAMOS INFOR BELESAR..... ESTE SCRIPT HAY QUE ACTUALIZAR
-source('~/MB/Actualizar_info_BelesarV2.R')
+source('/home/asus/MB/Actualizar_info_BelesarV2.R')
 
 
 #CARGAMOS DATOS DE LA PÁGINA WEB Y DE WRF
@@ -12,7 +12,7 @@ Obs_Data<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/PM/'), full
                                              str_replace("--"," ") %>% ymd_hms())] %>% readRDS()
 
 WRF_data<- list.files(here::here('Data/Parques/Belesar/Historico/WEB/PM/'), full.names = T) %>% 
-  .[str_detect(.,"WRF_")] %>% .[which.max( str_split(., "/") %>% lapply(., function(x) x[length(x)])%>%  str_remove("WRF_|.RDS") %>% 
+  .[str_detect(.,"WRF_")] %>% .[which.max( str_split(.,"/") %>% lapply(., function(x) x[length(x)])%>%  str_remove("WRF_|.RDS") %>% 
                                              str_replace("--"," ") %>% ymd_hms())] %>% readRDS()
 
 ###########CARGAMOS MODELOS
