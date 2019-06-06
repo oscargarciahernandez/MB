@@ -1,0 +1,26 @@
+---
+title: "MODELO ARIMA"
+author: "Óscar García Hernández"
+date: "28/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#AUTORREGRESIVOS
+
+TUTORIALES MODELOS AUTORREGRESIVOS: 
+
+[ARIMA1](https://www.datascience.com/blog/introduction-to-forecasting-with-arima-in-r-learn-data-science-tutorials): En este tuto hablan de como ajustar un arima. Yn nos dan una serie de pasos: 
+
++ EXAMINAR DATOS: incluso limpiarlos usando **tsclean()**
++ DESCOMPONER: principalmente para ver patrones temporales.  **decompose()** o **stl()**
++ COMPROBAR ESTACIONALIDAD: **adf.test()**. Nos permite visualizar las gráficas de autocorrelación. Y en base a estos criterios selccionar los parámetros de nuestro ARIMA. 
++ AJUSTAR ARIMA: se suelen referir a **Box-Jenkins method**
++ EVALUAR. 
+
+
+Los ARIMA se suelen representar como ARIMA(p,d,q), donde: 
+

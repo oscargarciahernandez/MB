@@ -52,7 +52,7 @@ Tras un estudio preliminar se puede concluir que el modelo CALMET  consigue una 
 
 ```{r}
 
-SALTERAS<- readRDS(here::here('Data/Parques/Salteras/Tabla_unida_CALMET_WEB_13-22.RDS'))
+SALTERAS<- readRDS(here::here('Data/Parques/Salteras/Historico/LISTA_LOCALIZACIONES.RDS'))
 
 SALTERAS_VIENTO<-  SALTERAS %>% lapply(., function(x){
   y<- x[,c("Date", "U", "V","Wind","Speed","Gust")]
@@ -170,5 +170,164 @@ windRose(PUNTOMC,
          offset = 0.01,
          dig.lab = 1)
 
+```
+
+
+<br />
+<br />
+
+
+# CORRELACIONES FILTRANDO POR VELOCIDAD DEL VIENTO CALMET
+
+
+<br />
+<br />
+```{r}
+PUNTOMC[, c("U", "V", "Wind")]<- NULL
+
+PUNTOMC$Interval_CALMET<- PUNTOMC$wind_calmet %>%  
+  cut(breaks = seq(0,max(.), by= 1))
+
+TABLA_COR<- PUNTOMC %>% group_split(Interval_CALMET) %>% 
+  lapply(function(x){
+    y<- cbind(cor(x$Speed, x$wind_calmet), nrow(x)) %>% as.data.frame()
+    colnames(y)<- c("CORR", "N_Data")
+    return(y)
+  }) %>% bind_rows() %>% cbind(., unique(PUNTOMC$Interval_CALMET) %>% .[order(.)])
+colnames(TABLA_COR)<- c("CORR", "N_Data", "Wind-Interval")
+
+TABLA_COR
+
+
+```
+```{r echo=FALSE, include=FALSE}
+WIND_PLOT<- function(x){
+  p<- ggplot(x)+
+  geom_line(aes(x=Date, y=Speed),
+                     colour="red")+
+  geom_point(aes(x=Date, y=Speed),
+            colour="red",
+            alpha= 0.4,
+            size=1.1)+
+  geom_line(aes(x=Date, y=wind_calmet))+
+  geom_point(aes(x=Date, y=wind_calmet),
+            alpha= 0.4,
+            size=1.1)+
+  ylab("Wind Speed [m/s]")+
+  labs(subtitle =  "CALMET OUTPUT(BLACK)\nVs\nOBSERVED(RED)")+
+  theme_light()+
+  theme(plot.subtitle =element_text(hjust = 0.5))
+  return(p)
+}
+
+PUNTOMC %>% group_split(Interval_CALMET) %>% 
+  lapply(WIND_PLOT)
+```
+
+
+<br />
+<br />
+
+
+
+# CORRELACIONES FILTRANDO POR VELOCIDAD DEL VIENTO OBSERVADA
+
+
+<br />
+<br />
+```{r}
+PUNTOMC[, c("U", "V", "Wind")]<- NULL
+
+PUNTOMC$Interval_CALMET<- PUNTOMC$Speed %>%  
+  cut(breaks = seq(-0.001,max(.), by= 1))
+
+TABLA_COR<- PUNTOMC %>% group_split(Interval_CALMET) %>% 
+  lapply(function(x){
+    y<- cbind(cor(x$Speed, x$wind_calmet), nrow(x)) %>% as.data.frame()
+    colnames(y)<- c("CORR", "N_Data")
+    return(y)
+  }) %>% bind_rows() %>% cbind(., unique(PUNTOMC$Interval_CALMET) %>% .[order(.)])
+colnames(TABLA_COR)<- c("CORR", "N_Data", "Wind-Interval")
+
+TABLA_COR
+
+
+```
+```{r echo=FALSE, include=FALSE}
+WIND_PLOT<- function(x){
+  p<- ggplot(x)+
+  geom_line(aes(x=Date, y=Speed),
+                     colour="red")+
+  geom_point(aes(x=Date, y=Speed),
+            colour="red",
+            alpha= 0.4,
+            size=1.1)+
+  geom_line(aes(x=Date, y=wind_calmet))+
+  geom_point(aes(x=Date, y=wind_calmet),
+            alpha= 0.4,
+            size=1.1)+
+  ylab("Wind Speed [m/s]")+
+  labs(subtitle =  "CALMET OUTPUT(BLACK)\nVs\nOBSERVED(RED)")+
+  theme_light()+
+  theme(plot.subtitle =element_text(hjust = 0.5))
+  return(p)
+}
+
+PUNTOMC %>% group_split(Interval_CALMET) %>% 
+  lapply(WIND_PLOT)
+```
+
+
+<br />
+<br />
+
+# CORRELACIONES FILTRANDO POR DIRECCION DEL VIENTO CALMET
+
+
+<br />
+<br />
+
+```{r}
+PUNTOMC[, c("U", "V", "Wind")]<- NULL
+
+TABLA_COR2<- PUNTOMC %>% group_split(dir_calmet) %>% 
+  lapply(function(x){
+    y<- cbind(cor(x$Speed, x$wind_calmet), nrow(x)) %>% as.data.frame()
+    colnames(y)<- c("CORR", "N_Data")
+    return(y)
+  }) %>% bind_rows() %>% cbind(., unique(PUNTOMC$dir_calmet) %>% .[order(.)])
+colnames(TABLA_COR2)<- c("CORR", "N_Data", "Wind-Interval")
+
+TABLA_COR2
+```
+
+
+<br />
+<br />
+
+# CORRELACIONES FILTRANDO POR DIRECCION DEL VIENTO OBSERVADA
+
+
+<br />
+<br />
+
+
+```{r}
+PUNTOMC[, c("U", "V", "Wind")]<- NULL
+
+TABLA_COR2<- PUNTOMC %>% group_split(Dir) %>% 
+  lapply(function(x){
+    y<- cbind(cor(x$Speed, x$wind_calmet), nrow(x)) %>% as.data.frame()
+    colnames(y)<- c("CORR", "N_Data")
+    return(y)
+  }) %>% bind_rows() %>% cbind(., unique(PUNTOMC$Dir) %>% .[order(.)])
+colnames(TABLA_COR2)<- c("CORR", "N_Data", "Wind-Interval")
+
+TABLA_COR2
+```
+
+```{r include=FALSE}
+  PUNTOMC %>% group_split(dir_calmet) %>% 
+  lapply(WIND_PLOT)
 ```
 
