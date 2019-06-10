@@ -1,0 +1,4 @@
+#! /bin/bash
+
+R CMD BATCH /home/asus/MB/CSV_Generators.R
+
