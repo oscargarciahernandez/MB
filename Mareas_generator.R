@@ -117,14 +117,14 @@ names(Lista_pleamar)<- c("MAY","JUN", "JUL", "AGOS", "SEPT", "OCT", "NOV", "DEC"
 
 
 for (i in 1:length(Lista_bajamar)) {
-  Bajamar_textos<- Lista_bajamar[[1]] %>% group_split(day(Date)) %>% 
+  Bajamar_textos<- Lista_bajamar[[i]] %>% group_split(day(Date)) %>% 
     sapply(., function(x){
     if(nrow(x)==2){
       paste(paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ", x$Altura %>% as.character() %>% str_replace("[.]", ",")), collapse = " / ")
     }else{paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ",  x$Altura %>% as.character() %>% str_replace("[.]", ","))}
     
   }) 
-  Pleamar_textos<- Lista_pleamar[[1]] %>% group_split(day(Date)) %>% 
+  Pleamar_textos<- Lista_pleamar[[i]] %>% group_split(day(Date)) %>% 
     sapply(., function(x){
     if(nrow(x)==2){
       paste(paste0(hour(x$Date),":", sprintf("%02d", minute(x$Date)), " con ",  x$Altura %>% as.character() %>% str_replace("[.]", ",")), collapse = " / ")
