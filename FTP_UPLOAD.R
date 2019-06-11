@@ -65,4 +65,8 @@ if(!length(BELESAR_ftp)==0){
                                     BELESAR_ftp[i] %>% str_split("/") %>% .[[1]] %>% .[length(.)]))
   }
   
+  RAINFALL<- BELESAR_ftp %>% .[str_detect(., 'rainfall')]
+  ftpUpload(RAINFALL,paste0("ftp://",usr_dhi,":",pass_dhi,"@",url_dhi,"/",
+                                  RAINFALL %>% str_split("/") %>% .[[1]] %>% .[length(.)]))
+  
 }

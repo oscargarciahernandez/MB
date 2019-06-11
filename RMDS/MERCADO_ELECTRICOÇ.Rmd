@@ -1,0 +1,333 @@
+---
+title: "SISTEMA ELÉCTRICO"
+author: "Óscar García Hernández"
+date: "11/6/2019"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      eval=FALSE,
+                      warning = FALSE)
+library(request) 
+library(XML)
+library(here)
+library(lubridate)
+library(stringr)
+library(dplyr)
+library(TTR)
+library(shiny)
+library(ggplot2)
+library(magrittr)
+library(geosphere)
+library(reshape2)
+library(GGally)
+```
+
+
+```{r echo=FALSE, eval=FALSE}
+DATA_HORARIO<- readRDS(here::here('SISTEMA_ELECTRICO/TODAS_VARIABLES.RDS'))
+
+#################A PARTIR DE AQUI, SHINY
+inputPanel(
+  dateRangeInput("Date_range",
+                      label = "Periodo",
+                 start =DATA_HORARIO %>%
+                        .$Date %>% min() %>% as.Date(),
+                 end = DATA_HORARIO %>%
+                        .$Date %>% max() %>% as.Date()),
+  
+    sliderInput("SMA_value", label = "Valores de MA en horas",
+              min =1,
+              max = 144,
+              step = 2,
+              value =1 ),
+
+
+
+            checkboxGroupInput("var", 
+                               label="VARIABLES A REPRESENTAR", 
+                               choiceValues = c("Dem_prev","Dem_pro",
+                                                  "Dem_re","Gen_TReal_carb",
+                                                  "Gen_TReal_Cog","Gen_TReal_eol",
+                                                  "Gen_TReal_hid","Gen_TReal_Solar",
+                                                  "SPOT_Diario","SPOT_Intradiario_Sesion_1",
+                                                  "Gen_prev_Solar","prev_de_la_produccion_eolica"),
+                               
+                               choiceNames = c("Demanda prevista","Demanda programada",
+                                         "Demanda real","Geneneracion carbon",
+                                         "Generacion cogeneracion",
+                                         "Generacion eolica",
+                                         "Generacion hidraulica",
+                                         "Generacion fotovoltaica",
+                                         "Spot diario",
+                                         "Spot intradiario 1",
+                                         "Prevision fotovoltaica",
+                                         "Prevision eólica"),
+                               inline = T,
+                               selected =  c("Dem_prev","Dem_pro",
+                                         "Dem_re")))
+
+
+
+   plotData <- reactive({
+     DATA_HORARIO %>% .[complete.cases(.),] %>%  
+       mutate(Dem_prev= SMA(Demanda_prevista, input$SMA_value),
+              Dem_pro =SMA(Demanda_programada, input$SMA_value),
+              Dem_re= SMA(Demanda_real, input$SMA_value),
+              Gen_TReal_carb= SMA(Gen_TReal_carbon, input$SMA_value),
+              Gen_TReal_Cog=SMA(Gen_TReal_Cogeneracion_y_resto, input$SMA_value),
+              Gen_TReal_eol=SMA(Gen_TReal_eolica, input$SMA_value),
+              Gen_TReal_hid=SMA(Gen_TReal_hidraulica, input$SMA_value),
+              Gen_TReal_Solar=SMA(Gen_TReal_Solar_fotovoltaica, input$SMA_value),
+              SPOT_Diario=SMA(Precio_mercado_SPOT_Diario, input$SMA_value),
+              SPOT_Intradiario_Sesion_1=SMA(Precio_mercado_SPOT_Intradiario_Sesion_1, input$SMA_value),
+              Gen_prev_Solar=SMA(Gen_prevista_Solar_fotovoltaica, input$SMA_value),
+              prev_de_la_produccion_eolica=SMA(prev_de_la_produccion_eolica_nacional_peninsular, input$SMA_value))%>%
+  filter(. , Date > ymd(input$Date_range[1])) %>% 
+  filter(. , Date < ymd(input$Date_range[2])) %>% as.data.frame() %>% 
+       melt(id.vars = 'Date', variable.name = 'series') %>% 
+       .[which(.$series %in% input$var), ]
+     })
+     
+   #renderTable({head(plotData())})
+ 
+  renderPlot({
+    plotData() %>% 
+  ggplot(aes(Date, value)) + 
+      geom_line(aes(colour = series))+
+  theme_light()+
+      theme(legend.title = element_text("Variables"))+
+      xlab("Date")+
+      ylab("MW")
+    
+})
+ 
+ 
+
+```
+
+# COMPARADOR DE VARIABLES
+```{r eval=TRUE}
+DATA_HORARIO<- readRDS(here::here('SISTEMA_ELECTRICO/TODAS_VARIABLES.RDS'))
+
+#################A PARTIR DE AQUI, SHINY
+inputPanel(
+  
+  dateRangeInput("Date_range1",
+                      label = "Periodo",
+                 start =DATA_HORARIO %>%
+                        .$Date %>% min() %>% as.Date(),
+                 end = DATA_HORARIO %>%
+                        .$Date %>% max() %>% as.Date()),
+  
+    sliderInput("SMA_value1", 
+                label = "Valores de MA en horas",
+              min =1,
+              max = 144,
+              step = 2,
+              value =1 ),
+  
+  
+              selectInput("var1", 
+                               label="VARIABLES A REPRESENTAR", 
+                                   choices= c("Dem_prev","Dem_pro",
+                                                  "Dem_re","Gen_TReal_carb",
+                                                  "Gen_TReal_Cog","Gen_TReal_eol",
+                                                  "Gen_TReal_hid","Gen_TReal_Solar",
+                                                  "SPOT_Diario","SPOT_Intradiario_Sesion_1",
+                                                  "Gen_prev_Solar","prev_de_la_produccion_eolica")),
+                selectInput("var2", 
+                               label="VARIABLES A REPRESENTAR", 
+                                   choices= c("Dem_prev","Dem_pro",
+                                                  "Dem_re","Gen_TReal_carb",
+                                                  "Gen_TReal_Cog","Gen_TReal_eol",
+                                                  "Gen_TReal_hid","Gen_TReal_Solar",
+                                                  "SPOT_Diario","SPOT_Intradiario_Sesion_1",
+                                                  "Gen_prev_Solar","prev_de_la_produccion_eolica")),
+          
+          selectInput("SELECTOR", 
+                      label = "Tipo de Gráfica",
+                      choices = c("Comparativa", "Cross-correlation"),
+                      selected = "Cross_correlation"),
+          
+          selectInput("type_corr", 
+                      label = "Metodo comparativo",
+                      choices = c("correlation", "covariance"),
+                      selected = "correlation")
+                                       
+  
+
+
+  
+  )
+
+
+
+   plotData1 <- reactive({
+     DATA1<- DATA_HORARIO %>% .[complete.cases(.),] %>%  
+       mutate(Dem_prev= SMA(Demanda_prevista, input$SMA_value1),
+              Dem_pro =SMA(Demanda_programada, input$SMA_value1),
+              Dem_re= SMA(Demanda_real, input$SMA_value1),
+              Gen_TReal_carb= SMA(Gen_TReal_carbon, input$SMA_value1),
+              Gen_TReal_Cog=SMA(Gen_TReal_Cogeneracion_y_resto, input$SMA_value1),
+              Gen_TReal_eol=SMA(Gen_TReal_eolica, input$SMA_value1),
+              Gen_TReal_hid=SMA(Gen_TReal_hidraulica, input$SMA_value1),
+              Gen_TReal_Solar=SMA(Gen_TReal_Solar_fotovoltaica, input$SMA_value1),
+              SPOT_Diario=SMA(Precio_mercado_SPOT_Diario, input$SMA_value1),
+              SPOT_Intradiario_Sesion_1=SMA(Precio_mercado_SPOT_Intradiario_Sesion_1, input$SMA_value1),
+              Gen_prev_Solar=SMA(Gen_prevista_Solar_fotovoltaica, input$SMA_value1),
+              prev_de_la_produccion_eolica=SMA(prev_de_la_produccion_eolica_nacional_peninsular, input$SMA_value1))%>%
+  filter(. , Date > ymd(input$Date_range1[1])) %>% 
+  filter(. , Date < ymd(input$Date_range1[2])) %>% as.data.frame() %>% 
+       melt(id.vars = 'Date', variable.name = 'series') %>% 
+       .[which(.$series %in% input$var1), ] %>% .[complete.cases(.),]
+     })
+   
+   
+   
+   
+   plotData2 <- reactive({
+     DATA_HORARIO %>% .[complete.cases(.),] %>%  
+       mutate(Dem_prev= SMA(Demanda_prevista, input$SMA_value1),
+              Dem_pro =SMA(Demanda_programada, input$SMA_value1),
+              Dem_re= SMA(Demanda_real, input$SMA_value1),
+              Gen_TReal_carb= SMA(Gen_TReal_carbon, input$SMA_value1),
+              Gen_TReal_Cog=SMA(Gen_TReal_Cogeneracion_y_resto, input$SMA_value1),
+              Gen_TReal_eol=SMA(Gen_TReal_eolica, input$SMA_value1),
+              Gen_TReal_hid=SMA(Gen_TReal_hidraulica, input$SMA_value1),
+              Gen_TReal_Solar=SMA(Gen_TReal_Solar_fotovoltaica, input$SMA_value1),
+              SPOT_Diario=SMA(Precio_mercado_SPOT_Diario, input$SMA_value1),
+              SPOT_Intradiario_Sesion_1=SMA(Precio_mercado_SPOT_Intradiario_Sesion_1, input$SMA_value1),
+              Gen_prev_Solar=SMA(Gen_prevista_Solar_fotovoltaica, input$SMA_value1),
+              prev_de_la_produccion_eolica=SMA(prev_de_la_produccion_eolica_nacional_peninsular, input$SMA_value1))%>%
+  filter(. , Date > ymd(input$Date_range1[1])) %>% 
+  filter(. , Date < ymd(input$Date_range1[2])) %>% as.data.frame() %>% 
+       melt(id.vars = 'Date', variable.name = 'series') %>% 
+       .[which(.$series %in% input$var2), ] %>% .[complete.cases(.),]
+     })
+
+
+ 
+conditionalPanel('input.SELECTOR=="Comparativa"',
+    renderPlot({
+
+      
+            #######PLOT COMPARATIVO ESCALADO 
+      k<- max(plotData2()$value)/max(plotData1()$value)
+      
+      ggplot(data=plotData1(), aes(x=Date))+
+      geom_line(aes(y=value),
+               alpha=0.5,
+               col="blue",
+               size=1.05)+
+      xlab("Date")+
+      ylab(paste("AZUL",plotData1()$series %>% unique))+
+      geom_line(data = plotData2(),aes(x=Date,
+                                 y = value/k), 
+                group = 1,
+                col="red", 
+                alpha=0.7,
+                size=1.05) +
+      scale_y_continuous(sec.axis = sec_axis(trans = ~ . / (1/k),
+                                             name = paste("ROJO",plotData2()$series %>% unique), 
+                                             breaks = seq(min(plotData2()$value),
+                                                          max(plotData2()$value),
+                                                          by=(max(plotData2()$value)-min(plotData2()$value))/8)),
+                         breaks = seq(min(plotData1()$value),
+                                      max(plotData1()$value),
+                                      by=(max(plotData1()$value)-min(plotData1()$value))/8))+
+      labs(title = "GRÁFICA COMPARATIVA",
+           subtitle = paste("Rojo",
+                            plotData2()$Cripto_name %>% unique,
+           "---- Azul",
+           plotData1()$series %>% unique)) +
+      theme_minimal()+
+      theme(plot.title = element_text(hjust = 0.5))
+          
+      }))
+       
+
+  conditionalPanel('input.SELECTOR=="Cross-correlation"',
+    renderPlot({
+        cross_corr<- ccf(plotData1()$value,
+            plotData2()$value, 
+      na.action = na.pass,
+      type=input$type_corr,
+      plot = FALSE,
+      lag.max = 72)
+        
+        ccf(plotData1()$value,
+            plotData2()$value, 
+      na.action = na.pass,
+      type=input$type_corr,
+      main=paste("MAX VALUE=",round(max(abs(cross_corr$acf), na.rm = T), 3),"\nDESFASE=",
+              cross_corr$lag[which.max(abs(cross_corr$acf))]),
+      xlab="LAG (DIAS)",
+      ylab=input$type_corr,
+      lag.max = 72)
+      }))
+```
+
+# COMPROBACION DE CORRELACION ENTRE VARIABLES
+
+Para comprobar la correlacion entre variables primeramente eliminamos una serie de variables que podemos considerara "espejo", como pueden ser la demanda real, predicha y programada.  
+
+```{r eval=TRUE}
+DATA_HORARIO<- readRDS(here::here('SISTEMA_ELECTRICO/TODAS_VARIABLES.RDS'))
+
+
+ggpairs(DATA_HORARIO[,c("Demanda_prevista",
+                        "Gen_TReal_eolica", 
+                        "Gen_TReal_hidraulica",
+                        "Gen_TReal_Solar_fotovoltaica")])
+
+ggpairs(DATA_HORARIO[,c("Demanda_prevista",
+                        "Gen_TReal_carbon",
+                        "Gen_TReal_Cogeneracion_y_resto")])
+
+ggpairs(DATA_HORARIO[,c("Demanda_prevista",
+                        "Precio_mercado_SPOT_Intradiario_Sesion_1",
+                        "Precio_mercado_SPOT_Diario")])
+
+
+
+
+ggpairs(DATA_HORARIO[,c("Precio_mercado_SPOT_Intradiario_Sesion_1",
+                        "Precio_mercado_SPOT_Diario",
+                        "prev_de_la_produccion_eolica_nacional_peninsular")])
+
+
+ggpairs(DATA_HORARIO[,c("Precio_mercado_SPOT_Intradiario_Sesion_1",
+                        "Precio_mercado_SPOT_Diario",
+                        "Gen_prevista_Solar_fotovoltaica")])
+
+
+ggpairs(DATA_HORARIO[,c("Precio_mercado_SPOT_Diario",
+                        "Gen_TReal_hidraulica")])
+
+
+DATOS_renovable<- DATA_HORARIO %>% as.data.frame() %>% 
+  mutate(produccion_renovable= 
+           Gen_prevista_Solar_fotovoltaica +  
+           prev_de_la_produccion_eolica_nacional_peninsular,
+         produccion_eo_hidro= Gen_TReal_hidraulica - Gen_TReal_eolica)
+
+
+ggpairs(DATOS_renovable[,c("Precio_mercado_SPOT_Diario",
+                           "produccion_eo_hidro")])
+
+
+
+
+ccf(DATOS_renovable$Precio_mercado_SPOT_Diario, 
+    DATOS_renovable$prev_de_la_produccion_eolica_nacional_peninsular, lag.max = 500)
+
+acf(DATOS_renovable$Precio_mercado_SPOT_Diario, lag.max = 72)
+
+pacf(DATOS_renovable$Precio_mercado_SPOT_Diario, lag.max = 72)
+
+
+```
+
