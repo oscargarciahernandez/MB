@@ -1,8 +1,9 @@
 ---
 title: "METEOBIT"
 author: "EDUARDO ROMÁN"
-date: "11/6/2019"
-output: html_document
+output: 
+  prettydoc::html_pretty:
+    theme: architect
 runtime: shiny
 ---
 
@@ -23,6 +24,7 @@ library(magrittr)
 library(geosphere)
 library(reshape2)
 library(GGally)
+library(prettydoc)
 ```
 
 
@@ -108,7 +110,7 @@ inputPanel(
 
 ```
 
-# COMPARADOR DE VARIABLES
+##### COMPARADOR DE VARIABLES
 ```{r eval=TRUE}
 DATA_HORARIO<- readRDS(here::here('SISTEMA_ELECTRICO/TODAS_VARIABLES.RDS'))
 
@@ -223,7 +225,6 @@ conditionalPanel('input.SELECTOR=="Comparativa"',
                col="blue",
                size=1.05)+
       xlab("Date")+
-      ylab(paste("AZUL",plotData1()$series %>% unique))+
       geom_line(data = plotData2(),aes(x=Date,
                                  y = value/k), 
                 group = 1,
@@ -231,18 +232,13 @@ conditionalPanel('input.SELECTOR=="Comparativa"',
                 alpha=0.7,
                 size=1.05) +
       scale_y_continuous(sec.axis = sec_axis(trans = ~ . / (1/k),
-                                             name = paste("ROJO",plotData2()$series %>% unique), 
                                              breaks = seq(min(plotData2()$value),
                                                           max(plotData2()$value),
                                                           by=(max(plotData2()$value)-min(plotData2()$value))/8)),
                          breaks = seq(min(plotData1()$value),
                                       max(plotData1()$value),
                                       by=(max(plotData1()$value)-min(plotData1()$value))/8))+
-      labs(title = "GRÁFICA COMPARATIVA",
-           subtitle = paste("Rojo",
-                            plotData2()$Cripto_name %>% unique,
-           "---- Azul",
-           plotData1()$series %>% unique)) +
+      labs(title = "GRÁFICA COMPARATIVA") +
       theme_minimal()+
       theme(plot.title = element_text(hjust = 0.5))
           

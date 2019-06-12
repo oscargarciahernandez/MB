@@ -1,0 +1,338 @@
+---
+title: "INFORME KAURA COPRODUCTS"
+author: "Eduardo Roman y Óscar García Hernández"
+date: "22/5/2019"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections:  true
+    df_print: paged
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, 
+                      cache = TRUE,
+                      warning = FALSE, 
+                      fig.align = "center")
+library(ggplot2)
+library(RNetCDF)
+library(stringr)
+library(lubridate)
+library(request)
+library(XML)
+library(dplyr)
+library(TTR)
+library(data.table)
+library(GGally)
+library(e1071)
+library(geosphere)
+library(imputeTS)
+```
+
+
+# INTRO 
+<br />
+<br />
+
+En esta segunda fase lo que hemos hecho es descartar los datos de CALMET y hacer un pequeño estudio con los datos de WRF obtenidos diariamente en METEOBIT. Cabe mencionar que WRF se está corriendo con una resolción de entorno a 12 km. El punto más cercano a la localización de Kaura coproducts y que procederemos a analizar se encuentra a poco más de 4 km. 
+
+<br />
+<br />
+
+# WRF Vs OBSERVADA 
+
+Tal cual pasaba con los datos aportados por CALMET los datos del viento obtienen una buena correlación en lo que al modulo respecta, pero con un bias bastante grande. Esto quiere decir que **el modelo sigue bien la tendencia del comportamiento del viento, pero existe un error en el fondo de escala**. Para el siguiente analisis se cuenta con un histórico de casi 6 meses. 
+<br />
+<br />
+
+## WRF Vs Observada 6 meses
+
+
+
+```{r}
+
+SALTERAS<- readRDS(here::here('Data/Parques/Salteras/Historico/WRF_WEB_DIC_MAYO.RDS'))
+MA_val<- 2
+
+#RESTRICCION DE FECHA
+#%>%.[which(.$Date>ymd("2019/05/20")),]
+
+SALTERAS%>% .[complete.cases(.),] %>% 
+  ggplot(aes(x=Date))+
+  geom_line(aes(y=SMA(WS_obs, MA_val)),
+                     colour="red")+
+  geom_point(aes(y=WS_obs),
+            colour="red",
+            alpha= 0.4,
+            size=1.1)+
+  geom_line(aes(y=SMA(WS_wrf, MA_val, na)))+
+  geom_point(aes(y=WS_wrf),
+            alpha= 0.4,
+            size=1.1)+
+  ylab("Wind Speed [m/s]")+
+  labs(subtitle =  "WRF OUTPUT(BLACK)\nVs\nOBSERVED(RED)")+
+  theme_light()+
+  theme(plot.subtitle =element_text(hjust = 0.5))
+
+#LOCALIZACION KAURAS KOPRODUCTS
+```
+
+<br />
+<br />
+
+## WRF Vs Observada febrero
+
+
+Para observar mejor la buena correlación que presentan ambas variables a continuación presentamos únicamente los datos correspondientes a febrero. **Con línea discontinua se presentan los datos del anemómetro correspondientes a racha de viento**. 
+
+
+<br />
+<br />
+
+
+```{r}
+MA_val<- 6
+
+SALTERAS%>% .[complete.cases(.),] %>% filter(month(Date)==2) %>% 
+  ggplot(aes(x=Date))+
+  geom_line(aes(y=SMA(WS_obs, MA_val)),
+                     colour="red")+
+  geom_line(aes(y=SMA(WSmax_obs, MA_val)),
+            colour="red",
+            linetype="longdash",
+            alpha= 0.4,
+            size=0.4)+
+  geom_line(aes(y=SMA(WS_wrf, MA_val, na)))+
+  ylab("Wind Speed [m/s]")+
+  labs(subtitle =  "WRF OUTPUT(BLACK)\nVs\nOBSERVED(RED)")+
+  theme_light()+
+  theme(plot.subtitle =element_text(hjust = 0.5))
+```
+
+<br />
+<br />
+
+
+
+## WRF Vs Observada cross-correlation
+
+
+
+La siguiente gráfica pone de manifiesto la alta correlacion en los datos. 
+<br />
+<br />
+
+
+```{r}
+SALTERAS2<- SALTERAS %>% .[complete.cases(.), ] %>% filter(month(Date)==2) %>% 
+  mutate(WS_obs_MA= SMA(WS_obs, MA_val),
+         WS_wrf_MA= SMA(WS_wrf, MA_val)) %>% .[complete.cases(.), ]
+
+cros_cor<- ccf(SALTERAS2$WS_obs_MA, 
+    SALTERAS2$WS_wrf_MA,
+    main= "Cross-correlation")
+
+print(paste0("Correlación máxima de ",max(cros_cor$acf) %>% round(3)))
+```
+
+# DIRECCIÓN DEL VIENTO
+
+
+
+Al igual que pasaba con CALMET, los datos de dirección WRF no concuerdan con  los datos registrados por la estación. 
+<br />
+<br />
+
+
+## ROSA DE LOS VIENTOS OBSERVADA
+
+
+
+```{r}
+
+
+#Rosa de los vientos
+#install.packages("openair")
+library(openair)
+
+
+windRose(SALTERAS,
+         ws="WS_obs",
+         wd="Dir_obs",
+         paddle = F,
+         ws.int = 0.25,
+         breaks = round(max(SALTERAS$WS_obs)/0.25),
+         cols = "jet",
+         key.position = "right",
+         offset = 0.01,
+         dig.lab = 1)
+
+```
+
+<br />
+<br />
+
+## ROSA DE LOS VIENTOS WRF
+
+
+```{r}
+windRose(SALTERAS,
+         ws="WS_wrf",
+         wd="Dir_wrf",
+         paddle = F,
+         ws.int = 0.25,
+         breaks = round(max(SALTERAS$WS_obs)/0.25),
+         cols = "jet",
+         key.position = "right",
+         offset = 0.01,
+         dig.lab = 1)
+
+```
+
+
+<br />
+<br />
+
+## ROSA DE LOS VIENTOS CALMET
+
+
+```{r}
+SALTERAS_calmet<- readRDS(here::here('Data/Parques/Salteras/Historico/LISTA_LOCALIZACIONES.RDS'))
+
+SALTERAS_VIENTO<-  SALTERAS_calmet %>% lapply(., function(x){
+  y<- x[,c("Date", "U", "V","Wind","Speed","Gust")]
+  u10<- y$U
+  v10<- y$V
+  wind_abs <- sqrt(u10^2 + v10^2)
+  wind_dir_rad <-  atan2(u10/wind_abs, v10/wind_abs) 
+  wind_dir_deg1 <-  wind_dir_rad * 180/pi 
+  wind_dir_deg2 <-  wind_dir_deg1+ 180 
+  
+  y$Dir<-  ifelse(y$Wind=="North",0,
+         ifelse(y$Wind=="NNE", 22.5,
+                ifelse(y$Wind=="NE", 45,
+                       ifelse(y$Wind=="ENE", 67.5,
+                              ifelse(y$Wind=="East", 90,
+                                     ifelse(y$Wind=="ESE", 112.5,
+                                            ifelse(y$Wind=="SE", 135,
+                                                   ifelse(y$Wind=="SSE", 157,
+                                                          ifelse(y$Wind=="South",180,
+                                                                 ifelse(y$Wind=="SSW", 202.5,
+                                                                        ifelse(y$Wind=="SW", 225.0,
+                                                                               ifelse(y$Wind=="WSW", 247.5,
+                                                                                      ifelse(y$Wind=="West", 270,
+                                                                                             ifelse(y$Wind=="WNW", 292.5,
+                                                                                                    ifelse(y$Wind=="NW", 315,
+                                                                                                           ifelse(y$Wind=="NNW", 337.5,NA))))))))))))))))
+  
+  
+
+
+  y$wind_calmet<- wind_abs
+  y$dir_calmet<- cut(wind_dir_deg2, 
+                     breaks = c(0,seq(11.5,360,22.5), 361),
+                     labels = seq(0,360,22.5))%>% 
+    as.character() %>% ifelse(.==360,0,. ) %>% as.numeric()
+  return(y)
+})
+names(SALTERAS_VIENTO)<- names(SALTERAS_calmet)
+
+
+lat<-  37.488919 
+lon<- -6.093440
+Kauras<- c(lon,lat)
+
+Dist_CALMET<-names(SALTERAS_VIENTO) %>% str_split("_") %>% sapply(., function(x){
+  x<- as.numeric(x)
+  y<- c(-x[1], x[2])
+  distm(y, Kauras)
+})
+
+PUNTOMC<- SALTERAS_VIENTO[[which.min(Dist_CALMET)]] %>%.[complete.cases(.), ] 
+
+
+windRose(PUNTOMC,
+         ws="wind_calmet",
+         wd="dir_calmet",
+         paddle = F,
+         ws.int = 0.25,
+         breaks = round(max(PUNTOMC$Speed)/0.25),
+         cols = "jet",
+         key.position = "right",
+         offset = 0.01,
+         dig.lab = 1,
+         main="CALMET")
+
+
+windRose(SALTERAS[SALTERAS$Date%in%PUNTOMC$Date,],
+         ws="WS_wrf",
+         wd="Dir_wrf",
+         paddle = F,
+         ws.int = 0.25,
+         breaks = round(max(SALTERAS$WS_obs)/0.25),
+         cols = "jet",
+         key.position = "right",
+         offset = 0.01,
+         dig.lab = 1,
+         main="WRF")
+```
+<br />
+<br />
+
+Se aprecia que ambos modelos cometen un error similar a la hora de estimar la direccion del viento.  Suponen una componente predominante del viento proviniente del Norte-Noroeste. 
+
+<br />
+<br />
+
+# POSBIBLES MÉTODOS CORRECTIVOS
+
+A continuación pasamos a proponer algunos métodos correctivos. Para ello presentaremos los datos filtrados por direcciones del viento ofrecidos por el modelo y veremos el comportamiento del viento en Kaura coproducts. 
+
+```{r}
+SALTERAS<- readRDS(here::here('Data/Parques/Salteras/Historico/WRF_WEB_DIC_MAYO.RDS'))
+
+Vec_dirs<- SALTERAS$Dir_wrf %>% unique() %>% .[order(.)]
+for (i in 1:(length(Vec_dirs)-1)) {
+  
+SALTERAS_N_NO<- SALTERAS %>% filter(Dir_wrf== Vec_dirs[i])
+
+windRose(SALTERAS_N_NO,
+         ws="WS_wrf",
+         wd="Dir_wrf",
+         paddle = F,
+         ws.int = 0.25,
+         breaks = round(max(SALTERAS$WS_obs)/0.25),
+         cols = "jet",
+         key.position = "right",
+         offset = 0.01,
+         dig.lab = 1,
+         main= paste0("MODELO WRF ", Vec_dirs[i]))
+
+
+windRose(SALTERAS_N_NO,
+         ws="WS_obs",
+         wd="Dir_obs",
+         paddle = F,
+         ws.int = 0.25,
+         breaks = round(max(SALTERAS$WS_obs)/0.25),
+         cols = "jet",
+         key.position = "right",
+         offset = 0.01,
+         dig.lab = 1,
+         main= paste0("OBSERVADA ", Vec_dirs[i]))
+
+pollutionRose(SALTERAS_N_NO %>% mutate(WS_un=1, WS_dos=2),
+         ws="WS_un",
+         wd="Dir_wrf",
+         ws2 ="WS_dos",
+         wd2="Dir_obs")
+
+  
+}
+
+```
+
+
+
