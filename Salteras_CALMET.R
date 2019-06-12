@@ -10,7 +10,7 @@ if(!dir.exists(here::here('Data/Parques/Salteras/WEB'))){dir.create(here::here('
 ####VEMOS EN LA PÁGINA QUE EL PRIMER DATO ES DE EL 20 DE DICIEMBRE 
 
 #EL FORMATO ES EL SIGUIENTE YYYY-MM-D 2019-01-2
-FIRST_DAY<- ymd("2019/05/11")
+FIRST_DAY<- ymd("2018/12/20")
 
 lista_web<- list()
 k<- 1
@@ -315,3 +315,176 @@ windRose(PUNTOMC,
          key.position = "right",
          offset = 0.01,
          dig.lab = 1)
+#CREAMOS HISTORICO WRF
+#MIRAMOS ULTIMO DATO DE LA WEB
+DATA_web<- here::here('Data/Parques/Salteras/WEB/') %>% list.files(full.names = T) %>% 
+  .[length(.)] %>% readRDS()
+
+#DATA NECESARIO
+rango_fecha<- DATA_web$Time %>% range() %>% as.Date() 
+RDS_need<- seq(rango_fecha[1], rango_fecha[2], by="day") %>% str_replace_all("-","")
+
+
+#DATA SPAÑA DISPONIBLE
+All_files_Spain<- list.files(here::here('Data/Espana/'),
+                             recursive = T, 
+                             full.names = T)
+
+d01_files<- All_files_Spain[!str_detect(All_files_Spain, "/d02/")]
+RDS_files<- d01_files[str_detect(d01_files, ".RDS")]
+RDS_files1<- RDS_files[!str_detect(RDS_files, "/NA/")]
+
+nombres<- sapply(str_split(RDS_files1, "/"), function(x) x[length(x)]) 
+nombres1<- str_remove(nombres, "Espana_")
+nombres2<- str_remove(nombres1,".RDS")
+
+
+
+#RDS_necesarios para el historico
+RDS_Spain<- RDS_files1[nombres2%in%RDS_need]
+nombres2<- nombres2[nombres2%in%RDS_need]
+
+
+
+
+path1<-here::here('Data/Parques/')
+
+
+for (i in 1:length(RDS_Spain)) {
+  
+  list_RDS<- readRDS(RDS_Spain[i])
+  
+  
+  #Lubian
+  Longitud_Parque=-6.0946934
+  Latitud_Parque=37.4891212
+  
+  path_salteras<- paste0(path1,"Salteras/",nombres2[i],".RDS" )
+  
+  if(!file.exists(path_salteras)){
+    salteras_list<- Cortar_datos(list_hoy = list_RDS,
+                               Longitud_Parque = Longitud_Parque,
+                               Latitud_Parque=Latitud_Parque)
+    
+    saveRDS(salteras_list, file = path_salteras)
+  }else{
+    print(paste0("Hoy ya se ha guardado este archivo: ",path_salteras))}
+}
+
+RDS_salteras<- paste0(path1,"Salteras") %>% list.files(full.names = T) %>% 
+  .[paste0(path1,"Salteras") %>% list.files()%in%(nombres2 %>% paste0(., ".RDS"))]
+
+lista_WRF_Salteras<- list()
+for (i in 1:length(RDS_salteras)) {
+  lista_WRF_Salteras[[i]]<- RDS_salteras[[i]] %>% readRDS
+  
+}
+
+
+r<- lista_WRF_Salteras %>% lapply(function(x){
+  x2<- x %>% lapply(function(y){y[,1:13]}) %>% bind_rows(.id = "Date")
+  
+  x2$Date<- ifelse(nchar(x2$Date)<12, paste(x2$Date,"00:00:00"), x2$Date) %>% ymd_hms
+  x2[,c("RAINSH","RAINNC","RAINC")]<- NULL
+  return(x2)
+}) %>% bind_rows()
+
+Lista_sindupli<- r %>% group_split(lon,lat) %>% 
+  lapply(function(r2){
+    
+    r3<- r2[r2$Date %>% duplicated(), ]
+    r3p<- r2[!r2$Date%in%r3$Date,]
+    
+    r4<- bind_rows(r3, r3p) %>% .[order(.$Date),]
+    r5<- r4[!r4$Date %>% duplicated(),] 
+    return(r5)
+    
+  })
+
+saveRDS(Lista_sindupli, here::here('Data/Parques/Salteras/Historico/HISTORICO_WRF.RDS'))
+
+
+
+#Cojemos datos mas cercanos
+Longitud_Parque<- -6.0946934
+Latitud_Parque<- 37.4891212
+
+Punto_mascercano<- Lista_sindupli %>% sapply(function(x){
+  vector_lon_lat<- c(x$lon %>% unique(),
+                     x$lat %>% unique())
+  distm(vector_lon_lat,
+        c(Longitud_Parque,
+          Latitud_Parque))
+}) %>% which.min()
+
+
+WRF_vercano<- Lista_sindupli[[Punto_mascercano]]
+
+
+
+u10<- WRF_vercano$U10_MEAN
+v10<- WRF_vercano$V10_MEAN
+wind_abs <- sqrt(u10^2 + v10^2)
+wind_dir_rad <-  atan2(u10/wind_abs, v10/wind_abs) 
+wind_dir_deg1 <-  wind_dir_rad * 180/pi 
+wind_dir_deg2 <-  wind_dir_deg1+ 180 
+
+WRF_vercano$Dir<- cut(wind_dir_deg2, 
+                   breaks = c(0,seq(11.5,360,22.5), 361),
+                   labels = seq(0,360,22.5))%>% 
+  as.character() %>% ifelse(.==360,0,. ) %>% as.numeric()
+
+WRF_vercano$WS<- wind_abs
+WRF_vercano$WSmax<- sqrt(WRF_vercano$U10_MAX^2 + WRF_vercano$V10_MAX^2)
+
+WRF_sum<- WRF_vercano[,c("Date", "WS","WSmax", "Dir")]
+WRF_sum<- WRF_sum[complete.cases(WRF_sum), ]
+
+#TRATAMOS DATOS WEB
+y<- DATA_web
+DATA_web$Dir<-  ifelse(y$Wind=="North",0,
+                       ifelse(y$Wind=="NNE", 22.5,
+                              ifelse(y$Wind=="NE", 45,
+                                     ifelse(y$Wind=="ENE", 67.5,
+                                            ifelse(y$Wind=="East", 90,
+                                                   ifelse(y$Wind=="ESE", 112.5,
+                                                          ifelse(y$Wind=="SE", 135,
+                                                                 ifelse(y$Wind=="SSE", 157,
+                                                                        ifelse(y$Wind=="South",180,
+                                                                               ifelse(y$Wind=="SSW", 202.5,
+                                                                                      ifelse(y$Wind=="SW", 225.0,
+                                                                                             ifelse(y$Wind=="WSW", 247.5,
+                                                                                                    ifelse(y$Wind=="West", 270,
+                                                                                                           ifelse(y$Wind=="WNW", 292.5,
+                                                                                                                  ifelse(y$Wind=="NW", 315,
+                                                                                                                         ifelse(y$Wind=="NNW", 337.5,NA))))))))))))))))
+DATA_web2<- DATA_web[,c("Time", "Speed","Gust", "Dir")]
+colnames(DATA_web2)<- c("Date", "WS","WSmax", "Dir")
+
+
+
+
+date_vec<- DATA_web2$Date %>% range() %>% round_date("hour")
+date_vec<- seq(date_Vec[1], date_Vec[2], by="hour")
+
+x<- vector()
+for (i in 1:length(date_vec)){
+  x[i]<- ifelse((date_vec[i]-DATA_web2$Date)%>% abs() %>% .[which.min(.)] < ms("6:00"), 
+         ((date_vec[i]-DATA_web2$Date)%>% abs()) %>% which.min(.), NA)
+  
+}
+
+DATA_web3<- DATA_web2[x, ]
+DATA_web3$Date<- DATA_web3$Date %>% round_date("hour")
+DATA_web3<- DATA_web3[complete.cases(DATA_web3),]
+
+
+
+
+# JUNTAMOS DATOS WRF Y WEB ------------------------------------------------
+
+DATOS_JUNTOS<- left_join(DATA_web3,WRF_sum, by="Date")
+colnames(DATOS_JUNTOS)<- c("Date", "WS_obs", "WSmax_obs","Dir_obs",
+                           "WS_wrf", "WSmax_wrf","Dir_wrf")
+
+saveRDS(DATOS_JUNTOS,  here::here('Data/Parques/Salteras/Historico/WRF_WEB_DIC_MAYO.RDS'))
