@@ -156,7 +156,7 @@ get_netcdf_list<- function(netcdf_files){
                        "PSFC")
     
     
-    
+    '
     lonsU<- var.get.nc(NC_prueba, "XLONG_U", unpack = TRUE)
     latsU<- var.get.nc(NC_prueba, "XLAT_U", unpack = TRUE)
     i_u<-1:nrow(lonsU)
@@ -176,7 +176,7 @@ get_netcdf_list<- function(netcdf_files){
     LATS_COL_v<- 1:(ncol(lonsV)*nrow(lonsV))
     LONS_COL_v[k_v]<-lonsV[i_v,j_v]
     LATS_COL_v[k_v]<-latsV[i_v,j_v]
-    
+    '
     
     Bottom_Top_ZNU<- var.get.nc(NC_prueba, "ZNU", unpack = TRUE)
     Bottom_Top_STAG_ZNW<- var.get.nc(NC_prueba, "ZNW", unpack = TRUE)
@@ -184,7 +184,7 @@ get_netcdf_list<- function(netcdf_files){
     U_comp<-  var.get.nc(NC_prueba, "U", unpack = TRUE)
     V_comp<-  var.get.nc(NC_prueba, "V", unpack = TRUE)
     
-    
+    '
     Tabla_U_level<-data.frame(LONS_COL_u,
                               LATS_COL_u, 
                               U_comp[i_u,j_u,40][k_u])
@@ -192,7 +192,7 @@ get_netcdf_list<- function(netcdf_files){
                               LATS_COL_v, 
                               V_comp[i_v,j_v,40][k_v])
     
-    
+    '
     time<-  var.get.nc(NC_prueba, "XTIME", unpack = TRUE)
     time1<- as.data.frame(utcal.nc(paste0("minutes since ",fecha_ini), time))
     time2<- paste(time1$year,"-",time1$month,"-",
@@ -201,8 +201,8 @@ get_netcdf_list<- function(netcdf_files){
     time3<- ymd_hms(time2)
     
     list_ch<- list(Tabla,
-                   Tabla_V_level,
-                   Tabla_U_level,
+                   "Tabla_V_level",
+                   "Tabla_U_level",
                    Bottom_Top_ZNU,
                    Bottom_Top_STAG_ZNW)
     names(list_ch)<- c("Variable", "V","U", "ZNU", "ZNW")

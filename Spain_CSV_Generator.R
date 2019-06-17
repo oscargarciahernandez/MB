@@ -1,7 +1,7 @@
 library(here)
 source(here::here('libraries.R'))
 
-dir_path_spain<- "/usr1/uems/runs/spain1"
+dir_path_spain<- "/usr1/uems/runs/peninsula_iberica/"
 folders_spain<- list.dirs(path = dir_path_spain)
 netcdf_folder_spain<- folders_spain[str_detect(folders_spain, "wrfprd")]
 netcdf_files_spain<- list.files(netcdf_folder_spain, full.names = T)

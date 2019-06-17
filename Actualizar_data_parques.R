@@ -23,7 +23,7 @@ RDS_hoy<- now() %>% as.Date() %>% as.character() %>% str_replace_all("-","")%>% 
 
 
 ### PARA REALIZAR LOS DE LA ULTIMA SEMANA 
-RDS_last7days<- RDS_files1 %>% .[(length(.)-7):length(.)]
+#RDS_last7days<- RDS_files1 %>% .[(length(.)-7):length(.)]
 
 tryCatch({Actualizar_Data_Parques_2(RDS_hoy)}, error=function(e){
   cat("NO HAY ARCHIVOS DE HOY, PASAMOS A REVISAR LOS FICHEROS DE LA ULTIMA SEMANA")

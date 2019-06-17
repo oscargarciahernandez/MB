@@ -3,7 +3,7 @@ source(here::here('libraries.R'))
 
 
 ####ACTUALIZAMOS INFOR BELESAR..... ESTE SCRIPT HAY QUE ACTUALIZAR
-source('/home/asus/MB/Actualizar_info_BelesarV2.R')
+source(here::here('/Actualizar_info_BelesarV2.R'))
 
 
 #CARGAMOS DATOS DE LA PÁGINA WEB Y DE WRF
