@@ -18,8 +18,12 @@ CSV_Generator_VientoMAX<- function(RDS_parque){
   table_gust<- data.frame(matrix(ncol=length(parq_gust)+1, nrow = length(parq_gust[[1]]$Date)+2))
   
   for (i in 1:length(parq_gust)) {
-    table_gust[1,i+1]<- unique(parq_gust[[i]]$LON)
-    table_gust[2,i+1]<- unique(parq_gust[[i]]$LAT)
+    table_gust[1,i+1]<- ifelse(length(unique(parq_gust[[i]]$LON))==1,
+                               unique(parq_gust[[i]]$LON), 
+                               unique(parq_gust[[i]]$LON)[1] )
+    table_gust[2,i+1]<-  ifelse(length(unique(parq_gust[[i]]$LAT))==1,
+                                unique(parq_gust[[i]]$LAT), 
+                                unique(parq_gust[[i]]$LAT)[1] )
     table_gust[3:(length(parq_gust[[i]]$Date)+2),i+1]<- parq_gust[[i]]$GUST
   }
   

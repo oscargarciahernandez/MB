@@ -195,7 +195,7 @@ windRose(SALTERAS,
 <br />
 <br />
 
-## ROSA DE LOS VIENTOS CALMET
+## ROSA DE LOS VIENTOS CALMET Vs WRF EN EL PERIODO CONINCIDENTE
 
 
 ```{r}
@@ -271,7 +271,7 @@ windRose(SALTERAS[SALTERAS$Date%in%PUNTOMC$Date,],
          wd="Dir_wrf",
          paddle = F,
          ws.int = 0.25,
-         breaks = round(max(SALTERAS$WS_obs)/0.25),
+         breaks = round(max(PUNTOMC$Speed)/0.25),
          cols = "jet",
          key.position = "right",
          offset = 0.01,
