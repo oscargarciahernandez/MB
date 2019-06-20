@@ -996,14 +996,14 @@ Return_periodo_Belesar<- function(){
   Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
   Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data)
   
-  fecha_ini<- Belesar_rain$`-8.02328491210938__42.1343421936035`$fechas[1]
+  fecha_ini<- Belesar_rain[[1]]$fechas[1]
   
   Belesar_data<- readRDS(RDS_Belesar1[length(RDS_Belesar)])
   Belesar_lolat<- lon_lat_df_ls(Belesar_data)
   Belesar_lolat1<- lapply(Belesar_lolat, uv_transformation)
   Belesar_rain<- lapply(Belesar_lolat1, extract_rain_data)
   
-  fecha_last<- Belesar_rain$`-8.02328491210938__42.1343421936035`$fechas[length(Belesar_rain$`-8.02328491210938__42.1343421936035`$fechas)]
+  fecha_last<- Belesar_rain[[1]]$fechas[length(Belesar_rain[[1]]$fechas)]
   
   periodo_WRF<- seq(fecha_ini, fecha_last, by="hour")
   
