@@ -37,7 +37,7 @@ ui <- fluidPage(
 server <- function(input, output) {
 
     output$mymap <- renderLeaflet({
-        x<- here::here('Data/Espana/20190617/Espana_20190617.RDS') %>% readRDS() %>% .[[length(.)]] %>% .$Variable
+        x<- here::here('Data/Espana/20190620/Espana_20190620.RDS') %>% readRDS() %>% .[[length(.)]] %>% .$Variable
         rayos<- x[runif((runif(1, 0, 100) %>% round()),1, nrow(x)) %>% round(),]
         
         
