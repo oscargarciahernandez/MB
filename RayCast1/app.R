@@ -35,9 +35,10 @@ ui <- fluidPage(
                            information obtained from radar and weather stations, and also, 
                            using Machine Learning algorithms. 
                            In case of detection of a high LPI (in case of thunderstorm), 
-                           a new round of simulation from Weather Forecast Models is done
-                           with a higher spatiotemporal resolution for the genration of 
-                           a hyper-local LPI forecast for the next few hours with high accuracy 
+                           
+                           a new round of simulation with is done 
+                           with a higher spatiotemporal resolution for the generation of 
+                           a hyper-local LPI nowcast, for the next few hours with high accuracy 
                            performance")),
                tabPanel("RayCast",
                         fluidPage(

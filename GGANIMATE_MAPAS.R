@@ -94,12 +94,30 @@ animate(pmap2,renderer =  gifski_renderer(), fps = 2, nframes = nrow(x1 %>%
 
 
 
-x2<- x1 %>% group_split(Date) %>% .[[19]]
+ul <- round(c(43,-8),digits = 3)  #Upper Left
+lr <- round(c(40,-2), digits = 3)  #Lower Right
+
+# Descargar y guardar mapas -----------------------------------------------
+
+#Se puede seleccionar el tipo de mapa a descargar
+#download_maps(ul,lr, res=40)
+
+
+x2<- x1 %>% group_split(Date) %>% .[[19]] %>% filter(lon > ul[2],
+                                                     lon < lr[2],
+                                                     lat > lr[1],
+                                                     lat < ul[1],)
+
+map.latlon<- list.dirs(here::here('Mapas/'), recursive = F) %>% list.files(full.names = T) %>%
+  .[str_detect(.,".RDS")] %>% .[1] %>% 
+  readRDS()
+
+
 
 autoplot(map.latlon)+
   geom_point(data= x2, 
              aes(x=lon, y=lat, color= RAINC), 
-             alpha= 0.2,size= 3, shape=15) +
+             alpha= 0.4,size= 9, shape=16) +
   scale_color_gradientn(colours = c("blue", "darkgreen","red"),
                         na.value = NA,
                         breaks= seq(min(x1$RAINC, 
