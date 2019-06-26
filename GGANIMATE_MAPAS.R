@@ -4,10 +4,12 @@ source('libraries.R')
 
 
 
+#CONFIG
+
+DOWNLOAD_OS_MAPS<- FALSE
 
 
-
-
+#READ DATA
 
 x<- here::here('Data/Espana/20190620/Espana_20190620.RDS') %>% 
   readRDS() %>% lapply(function(y) y$Variable) %>% bind_rows(.id = "Date")
@@ -31,7 +33,12 @@ lr <- round(c(s,e), digits = 3)  #Lower Right
 # si no pones nada descarga todos los mapas disponibles
 #Se puede cambiar la resolución, pero esta por defecto en 
 # 40 numtiles
-download_maps(ul,lr, res=40)
+if(DOWNLOAD_OS_MAPS){
+  download_maps(ul,lr, res=40)
+  
+}
+
+
 
 
 
