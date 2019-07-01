@@ -279,7 +279,7 @@ CSV_generator_Spain<- function(list_espana,path_espana){
   
   
   vec_days_str<- names(list_espana)
-  vec_days<- which(str_detect(vec_days_str, "14:00:00"))
+  vec_days<- which(str_detect(vec_days_str, "15:00:00")) #Posible fallo!!!!!!
   
   for (days in vec_days){
     CSV_Espana<- list_espana[[days]]$Variable[ ,c('lon', 'lat','T02_MAX')]

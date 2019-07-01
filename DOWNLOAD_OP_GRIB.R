@@ -41,7 +41,7 @@ if(DOWNLOAD_UCAR){
   library(parallel)
   mclapply(INPUT_FUN,
            bdown,
-           mc.cores =  getOption("mc.cores",10L ))
+           mc.cores =  getOption("mc.cores",1L ))
   
   
 }

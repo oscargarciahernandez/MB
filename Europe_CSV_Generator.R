@@ -52,6 +52,19 @@ fecha_hoy<- now() %>% as.character() %>% str_split(" ") %>%
 Lista_nuevos<- list.files(here::here('Data/'), recursive = T) %>% .[str_detect(.,".CSV")] %>% 
   .[str_detect(.,fecha_hoy)] %>% paste0(here::here('Data/'),.)
 
+#FORZAR
+FORZAR<- FALSE
+
+if (FORZAR) {
+  FECHA_FORZADA<- "2019-07-01" %>% str_split(" ") %>% 
+    .[[1]] %>% .[1] %>% ymd() %>% as.character() %>% str_replace_all("-","")
+  Lista_nuevos<- list.files(here::here('Data/'), recursive = T) %>% .[str_detect(.,".CSV")] %>% 
+    .[str_detect(.,FECHA_FORZADA)] %>% paste0(here::here('Data/'),.)
+  
+  
+}
+
+
 #####SUBIR CSV's Europa
 Europa_ftp<- Lista_nuevos[str_detect(Lista_nuevos,"Europe_")]
 if(!length(Europa_ftp)==0){
