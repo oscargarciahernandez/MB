@@ -20,7 +20,7 @@ bdown=function(INPUT_FRAME){
 
 # DESCARGA DE GRIBS -------------------------------------------------------
 # DESCARGAR DESDE UCAR 122 MB
-DOWNLOAD_UCAR<- TRUE
+DOWNLOAD_UCAR<- FALSE
 if(DOWNLOAD_UCAR){
   DATE_to_download<-  now() %>% as.Date() %>% as.character() %>% str_replace_all('-',"")
   PATH_GRIBS<- here::here("Gribs/") %>% paste0(., DATE_to_download)
@@ -50,7 +50,7 @@ if(DOWNLOAD_UCAR){
 
 # NOMADS... GFS MÁS PESADOS, HASTA 350 MB
 
-DOWNLOAD_NOMADS<- FALSE
+DOWNLOAD_NOMADS<- TRUE
 if(DOWNLOAD_NOMADS){
   
   DATE_to_download<-  now() %>% as.Date() %>% as.character() %>% str_replace_all('-',"")

@@ -20,12 +20,12 @@ if (CONVERT_TO_NTCDF) {
 # TMIN, TMAX, TPROMEDIO, 
 #LLUVIA TOTAL, LLUVIA COVECTIVA
 # NIEVE 
-ANALIZAR_VARIABLES<- FALSE
+ANALIZAR_VARIABLES<- TRUE
 if(ANALIZAR_VARIABLES){
-  GFS_table<- "https://www.nco.ncep.noaa.gov/pmb/products/gfs/gfs.t00z.pgrb2.0p25.f006.shtml" %>% GET() %>% 
+  GFS_table<- "https://www.nco.ncep.noaa.gov/pmb/products/gfs/gfs.t00z.pgrb2.0p25.f003.shtml" %>% GET() %>% 
     htmlParse() %>% readHTMLTable() %>% .[[2]]
   
-  info_grib<- GribInfo(here::here('Gribs/20190627/gfs.t00z.pgrb2.0p25.f050'))
+  info_grib<- GribInfo(here::here('Gribs/20190620/gfs.t00z.pgrb2.0p25.f012'))
   
   Grib_table<- info_grib$inventory %>% str_split(':') %>% lapply(function(x){
     r<- matrix(ncol = 2) %>% as_data_frame()
@@ -45,7 +45,13 @@ if(ANALIZAR_VARIABLES){
 }
 
 
-
+#bands: 
+# Tmax= 440
+# Tmin= 441
+# Total precipitation= 450
+# Total convective precipitation= 451
+# Categorical snow= 454
+# Total cloud cover= 482
 
 
 #LEEMOS LA TABLA DE CIUDADES DEL MUNDO  PARA PONER EL RANGO DE GRIBS QUE QUEREMOS LEER
