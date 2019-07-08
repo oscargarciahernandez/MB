@@ -17,6 +17,7 @@
 import sys, os
 import requests
 import numpy as np
+import re
 
 def check_file_status(filepath, filesize):
     sys.stdout.write('\r')
@@ -59,7 +60,8 @@ year= 2019
 
 month= np.arange(1,6)
 day= np.arange(1,32)
-horas= [0,3,6,9,12,15,18,21,24]
+horas= np.arange(0,51, 3)
+
 
 filelist=[]
 for mes in np.arange(0,len(month)):
@@ -75,7 +77,22 @@ for mes in np.arange(0,len(month)):
 
 # EXAMPLE -----   '2019/20190101/gfs.0p25.2019010100.f000.grib2'
 
-for file in filelist:
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
+folder_files= os.listdir()
+
+regex= re.compile(r'[grib2]')
+new_list = [s for s in folder_files if regex.match(s)]
+
+
+regex= re.compile('|'.join(new_list))
+filelist_new=([s for s in filelist if not regex.search(s)])
+
+
+
+for file in filelist_new:
     filename=dspath+file
     file_base = os.path.basename(file)
     print('Downloading',file_base)
@@ -89,6 +106,5 @@ for file in filelist:
                 check_file_status(file_base, filesize)
     check_file_status(file_base, filesize)
     print()
-
 
 
