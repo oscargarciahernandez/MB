@@ -2,52 +2,98 @@
 title: "PRUEBA PARQUES EÓLICOS"
 author: "Oscar Garcia Hernandez"
 date: "8/7/2019"
-output: html_document
+output:
+  html_document:
+      code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE,
+knitr::opts_chunk$set(echo = TRUE,
                       message = FALSE,
                       warning = FALSE,
                       fig.align = 'center')
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(ggplot2)
+library(ggplot2)
+library(RNetCDF)
+library(stringr)
+library(lubridate)
+library(request)
+library(XML)
+library(dplyr)
+library(TTR)
+library(data.table)
+library(GGally)
+library(e1071)
+library(geosphere)
+library(maptools)
+library(gdata)
+library(knitr)
+library(OpenStreetMap)
+library(ggplot2)
+library(here)
+library(magrittr)
+library(dplyr)
+library(RColorBrewer)
+
 ```
 
-# INTRODUCCIÓN
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+source(here::here('libraries.R'))
+
+```
+
+### INTRODUCCIÓN
+
+<br />
+<br />
 
 Esto es un informe del desarrollo y detalles preliminares de las pruebas que vamos a realizar para el forecast de la produccion de 4 parques eólicos distribuidos. 
+<br />
+<br />
 
 
-# INFORMACION DE LOS PARQUES
+### INFORMACION DE LOS PARQUES
 
 A continuación se presentan la informacion referente a los parques eólicos. 
 
+<br />
+<br />
 
 ```{r}
 DATA_PARQUES<- read.csv(here::here('Data/Parques/PRUEBA_EOLICOS/windfarm/INFO_PARQUES.csv'))
-DATA_PARQUES
+kable(DATA_PARQUES)
 ```
+
+<br />
+<br />
 
 ```{r}
 world <- ne_countries(scale = "medium", returnclass = "sf")
 
-class(world)
-
 ggplot(data = world) +
   geom_sf()+
-  geom_point(data= DATA_PARQUES, aes(x= Longitude, y= Latitude), color= "red")
+  geom_point(data= DATA_PARQUES, aes(x= Longitude, y= Latitude), color= "red")+
+  theme_light()
 
 ```
+<br />
+<br />
 
 ```{r}
 TABLA_PARQUES<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS')) %>% bind_rows()
-colnames(TABLA_PARQUES)<- c('PARQUE', 'DATE', 'PRUDUCCION_MWH', 'DISPONIBILIDAD')
-head(TABLA_PARQUES)
+colnames(TABLA_PARQUES)<- c('PARQUE', 'DATE', 'PRUDUCCION_MWH', 'DISPONIBILIDAD', 'POTENCIA_INSTALADA', 'UNIDADES DE TURBINAS','LON', 'LAT' )
+kable(head(TABLA_PARQUES))
+
+rango_tiempo<- TABLA_PARQUES %>% group_split(PARQUE) %>% lapply(function(x) return((paste(x$PARQUE %>% unique(),":",paste(x$DATE %>% range, collapse = " ----> ")))))
+rango<- rango_tiempo %>% unlist() %>% matrix(ncol = 1) %>% as.data.frame()
+colnames(rango)<- 'RANGO DE TIEMPO DE LOS DATOS'
+kable(rango)
 
 
-TABLA_PARQUES %>% group_split(PARQUE) %>% lapply(function(x) return((paste(x$PARQUE %>% unique(),":",paste(x$DATE %>% range, collapse = " ----> ")))))
+
+
 
 
 ```
@@ -56,8 +102,296 @@ TABLA_PARQUES %>% group_split(PARQUE) %>% lapply(function(x) return((paste(x$PAR
 Vemos que tenemos 1 año y medio de histórico para los Parques de Cerroblanco, Waubra y Tatanka. Y un año de histórico para el parque de Tamaulipas. 
 Tenemos datos de Producción horaria y Disponibilidad, para cada hora. 
 
+<br />
 
 Esto nos vale para saber el periodo en el que debemos construir el historico, localizaciones y demás. Ahora nos pasamos a trabajar en la construccion de estos históricos, para ello, nos disponemos a descargar los GFS's (archivos de inicializacion del modelo WRF) que nos falter para realizar el histórico para cada parque. De este modo podremos comprobar como se comporta el nuestro modelo. Y que nivel de precisión. 
 
 
-# AUTOMATIZAR WRF PARA CREAR HISTÓRICO DE LOS PARQUES
+### AUTOMATIZAR WRF PARA CREAR HISTÓRICO DE LOS PARQUES
+
+El script de python para automatizar el proceso ya está creado. 
+
+<br />
+<br />
+
+
+### CERRO BLANCO
+
+<br />
+Pasamos a hacer un análisis preliminar de los datos de CERROBLANCO, debido a que contamos con esos datos. 
+
+<br />
+Dentro de los datos con los que contamos tenemos datos de Disponibilidad (%), Producción en MWH y tambien datos de los tipos de aerogeneradores y de la potencia máxima de cada parque 
+
+<br />
+<br />
+
+```{r}
+INFO_PE<-  here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS') %>% readRDS()
+INFO_CB<- INFO_PE %>% filter(PARQUE=='P.E. Cerroblanco')
+
+kable(head(INFO_CB))
+
+
+```
+
+<br />
+
+
+**El parque de cerroblanco cuenta con una potencia máxima instalada de 48 MW.**
+
+<br />
+ 
+
+```{r}
+kable(summary(INFO_CB[, c("PRUDUCCION_MWH","DISPONIBILIDAD")]))
+```
+
+<br />
+<br />
+
+
+### CREAMOS VARIABLE DE FACTOR DE CAPACIDAD
+
+<br />
+<br />
+
+Voy a crear una variable que sea *(DISPONIBILIDAD X POTENCIA_TOTAL)*, suponiendo que la disponibilidad es el porcentaje del parque eólico que está preparado para producir. Esta variable la podremos llamar CAPACIDAD_REAL.  
+De esta manera podremos sacar un Factor de Capacidad del parque Real para cada hora. Lo que haremos será multiplicar ese valor de (CAPACIDAD REAL * 1 h ) y dividiremos la ENERGIA Real (PRODUCCIÓN), entre esta variable, que podemos llamar, ENERGÍA MÁXIMA EXTRAIBLE.
+
+<br />
+<br />
+
+POR LO TANTO, **EL FACTOR DE CAPACIDAD REPRESENTA ALGO ASÍ COMO: EL PORCENTAJE DE ENERGÍA QUE HA EXTRAÍDO DURANTE ESA HORA...** 
+
+
+Sabiendo este valor de factor de capacidad horario podemos intuir, o directamente calcular el valor del la velocidad media del viento durante esta hora. Si tuvieramos la curva de potencia del aerogenerador, (cosa que me temo que tendremos que sacar nosotros por nuestra cuenta) sería un cálculo, a mi parecer, muy lógico. 
+
+<br />
+<br />
+
+```{r}
+INFO_CB<- INFO_CB %>% mutate(CAPACIDAD_REAL= (DISPONIBILIDAD*CAPACIDAD/100),
+                             FC= (PRUDUCCION_MWH/CAPACIDAD_REAL))
+
+ggplot(INFO_CB)+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD))+
+  geom_line(aes(x=DATE, y=FC * 100), col= "red" , alpha= 0.3)+
+  geom_line(aes(x=DATE, y=PRUDUCCION_MWH), col= "blue" , alpha= 0.4)+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)')
+  
+
+```
+
+En la gráfica en la que no eliminamos el ruido nos encontramos con varios valores de factor de capacidad infinito... Hay que tener en cuenta para eliminarlos posteriormente. 
+
+
+<br />
+<br />
+
+```{r}
+
+#ELIMINAMOS LOS INFINITOS
+ INFO_CB$FC<- ifelse(is.infinite(INFO_CB$FC), 0, INFO_CB$FC)
+ ggplot(INFO_CB)+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD))+
+  geom_line(aes(x=DATE, y=FC * 100), col= "red" , alpha= 0.3)+
+  geom_line(aes(x=DATE, y=PRUDUCCION_MWH), col= "blue" , alpha= 0.4)+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)')
+  
+ 
+
+
+MA<- INFO_CB %>% .[complete.cases(.), ]
+MA<- MA[!is.infinite(MA$FC),]
+MA$DISP<- SMA(MA$DISPONIBILIDAD, 48)
+MA$FC<- SMA((MA$FC * 100), 48)
+MA$PROD<- SMA(MA$PRUDUCCION_MWH, 48)
+
+ggplot(MA)+
+  geom_line(aes(x=DATE, y=DISP))+
+  geom_line(aes(x=DATE, y=FC), col= "red" , alpha= 0.3)+
+  geom_line(aes(x=DATE, y= PROD), col= "blue" , alpha= 0.4)+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)',
+       subtitle = 'Aplicando MA para suavizar la gráfica')
+
+```
+
+<br />
+<br />
+
+
+
+### IMPORTAMOS DATOS HISTÓRICOS DE WRF Y JUNTAMOS
+
+Lo dicho reciclamos nuestro histórico y pillamos los datos de velocidad del viento, para el punto del WRF más cercano. SI QUEREMOS CAMBIAR EL PUNTO O PILLAR MÁS VARIABLES, HABRÁ QUE MODIFICAR CERROBLANCO.R Y CREAR UN NUEVO HISTÓRICO. 
+
+
+<br />
+<br />
+
+```{r}
+
+###CARGAMOS NUESTRO HISTÓRICO WRF
+HIST_WRF<-  here::here('Data/Parques/CERROBLANCO/Historico/TABLA_WIND_CERROBLANCO_AFINADA.RDS') %>% readRDS()
+colnames(HIST_WRF)<- c("DATE", "WS","WSMAX", "DIR")
+
+
+
+
+
+### JUNTAMOS LOS DATOS 
+TABLA_MERGE<- left_join(INFO_CB, HIST_WRF, by= "DATE")
+
+
+###NOS QUEDAMOS SOLO CON LOS DATOS COMPLETOS
+TABLA_MERGE <- TABLA_MERGE %>% .[complete.cases(.), ] 
+
+
+###VEMOS COMO AUNQUE HEMOS ELIMINADO MUCHAS FILAS FALTANTES 
+###EXISTEN GRANDES PERIODOS DE TIEMPO CON HUECOS
+ggplot(data = TABLA_MERGE)+
+  geom_point(aes(y= PRUDUCCION_MWH, x=DATE))+
+  geom_point(aes(y= WS, x=DATE), col="red")+ 
+  ggtitle('VELOCIDAD DEL VIENTO (ROJO) VS PRODUCCION MWH')+
+  theme_light()
+```
+
+<br />
+<br />
+
+
+Vemos que faltan un mogollón de datos en el periodo de 2018, por ello, vamos a recortarlos para quedarnos únicamente con el periodo de continuidad. 
+
+
+
+
+<br />
+<br />
+
+A continuación se presentan una serie de gráficas solmente del mes de Diciembre de 2018, simplemente para hacer un análisis preliminar... 
+
+<br />
+
+
+```{r}
+
+TABLA_MERGE<- TABLA_MERGE %>% filter(month(DATE)== 12)
+ggplot(data = TABLA_MERGE)+
+  geom_point(aes(y= PRUDUCCION_MWH, x=DATE), alpha= 0.2)+
+  geom_point(aes(y= WS, x=DATE), col="red", alpha= 0.2)+
+    geom_line(aes(y= PRUDUCCION_MWH, x=DATE), alpha= 0.5)+
+  geom_line(aes(y= WS, x=DATE), col="red", alpha= 0.5)+
+   ggtitle('VELOCIDAD DEL VIENTO (ROJO) VS PRODUCCION MWH')+
+  labs(subtitle = 'VARIABLES SIN NORMALIZAR')+
+  theme_light()
+```
+
+
+<br />
+<br />
+
+
+Tiene mucha mejor pinta, verdad??¡ incluso me atrevería a decir que tienen buena correlación. Pero antes de eso, que no se nos olvide que estamos tratando dos variables con unidades diferentes, vamos a normalizar las curvas. 
+
+
+<br />
+<br />
+
+```{r}
+max_p<- max(TABLA_MERGE$PRUDUCCION_MWH)
+min_p<- min(TABLA_MERGE$PRUDUCCION_MWH)
+
+max_v<- max(TABLA_MERGE$WS)
+min_v<- min(TABLA_MERGE$WS)
+
+TABLA_MERGE<- TABLA_MERGE %>% mutate(PRODUCC_NORM= (PRUDUCCION_MWH-min_p)/(max_p-min_p),
+                                     WS_NORM= (WS-min_v)/(max_v-min_v) )
+ggplot(data = TABLA_MERGE)+
+    geom_line(aes(y= PRODUCC_NORM, x=DATE), alpha= 0.5)+
+  geom_line(aes(y= WS_NORM, x=DATE), col="red", alpha= 0.5)+
+   ggtitle('VELOCIDAD DEL VIENTO (ROJO) VS PRODUCCION MWH')+
+  labs(subtitle = 'VARIABLES NORMALIZADAS')+
+  theme_light()
+```
+
+
+<br />
+<br />
+
+
+```{r}
+x<- cor(TABLA_MERGE$PRODUCC_NORM, TABLA_MERGE$WS_NORM)
+print(paste('Correlacion de: ', x))
+```
+
+<br />
+<br />
+
+
+```{r}
+ggplot(data = TABLA_MERGE)+
+    geom_line(aes(y= FC, x=DATE), alpha= 0.5, col= 'blue')+
+  geom_line(aes(y= WS_NORM, x=DATE), col="red", alpha= 0.5)+
+   ggtitle('VELOCIDAD DEL VIENTO (ROJO) VS FACTOR DE PLANTA')+
+  theme_light()
+```
+
+
+<br />
+<br />
+
+
+```{r}
+TABLA_MERGE<- TABLA_MERGE[complete.cases(TABLA_MERGE), ] 
+x<- cor(TABLA_MERGE$FC, TABLA_MERGE$WS_NORM, use = "all.obs")
+
+print(paste('Correlacion de: ', x))
+
+```
+
+<br />
+<br />
+
+
+
+```{r}
+ggplot(data = TABLA_MERGE)+
+    geom_line(aes(y= FC, x=DATE), alpha= 0.5, col= 'blue')+
+  geom_line(aes(y= PRODUCC_NORM, x=DATE), col="green", alpha= 0.5)+
+   ggtitle('FACTOR DE PLANTA (AZUL) VS PRODUCCION_NORMALIZADA (VERDE)')+
+  theme_light()
+```
+
+<br />
+<br />
+
+
+
+ME PARECE MUY CURIOSO Y DESCONCERTANTE QUE EL FACTOR DE CAPACIDAD Y LA PRODUCCIÓN NORMALIZADA SE PAREEZCAN TANTO.... LO SUYO ES QUE DIFIERAN... NO?? 
+
+
+<br />
+<br />
+
+
+
+### LOCALIZACION CERROBLANCO 
+
+<br />
+<br />
+
+```{r}
+include_graphics(here::here('RMDS/imagenes/cerroblanco0.png'))
+```
+
+```{r}
+include_graphics(here::here('RMDS/imagenes/cerroblanco1.png'))
+```
+
+```{r}
+include_graphics(here::here('RMDS/imagenes/cerroblanco2.png'))
+```
