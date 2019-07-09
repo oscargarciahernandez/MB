@@ -76,10 +76,12 @@ for mes in np.arange(0,len(month)):
 
 
 # EXAMPLE -----   '2019/20190101/gfs.0p25.2019010100.f000.grib2'
-
+'''
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
+'''
+
 
 folder_files= os.listdir()
 

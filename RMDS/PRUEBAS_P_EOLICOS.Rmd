@@ -1,0 +1,63 @@
+---
+title: "PRUEBA PARQUES EÓLICOS"
+author: "Oscar Garcia Hernandez"
+date: "8/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE,
+                      fig.align = 'center')
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggplot2)
+```
+
+# INTRODUCCIÓN
+
+Esto es un informe del desarrollo y detalles preliminares de las pruebas que vamos a realizar para el forecast de la produccion de 4 parques eólicos distribuidos. 
+
+
+# INFORMACION DE LOS PARQUES
+
+A continuación se presentan la informacion referente a los parques eólicos. 
+
+
+```{r}
+DATA_PARQUES<- read.csv(here::here('Data/Parques/PRUEBA_EOLICOS/windfarm/INFO_PARQUES.csv'))
+DATA_PARQUES
+```
+
+```{r}
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+class(world)
+
+ggplot(data = world) +
+  geom_sf()+
+  geom_point(data= DATA_PARQUES, aes(x= Longitude, y= Latitude), color= "red")
+
+```
+
+```{r}
+TABLA_PARQUES<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS')) %>% bind_rows()
+colnames(TABLA_PARQUES)<- c('PARQUE', 'DATE', 'PRUDUCCION_MWH', 'DISPONIBILIDAD')
+head(TABLA_PARQUES)
+
+
+TABLA_PARQUES %>% group_split(PARQUE) %>% lapply(function(x) return((paste(x$PARQUE %>% unique(),":",paste(x$DATE %>% range, collapse = " ----> ")))))
+
+
+```
+
+
+Vemos que tenemos 1 año y medio de histórico para los Parques de Cerroblanco, Waubra y Tatanka. Y un año de histórico para el parque de Tamaulipas. 
+Tenemos datos de Producción horaria y Disponibilidad, para cada hora. 
+
+
+Esto nos vale para saber el periodo en el que debemos construir el historico, localizaciones y demás. Ahora nos pasamos a trabajar en la construccion de estos históricos, para ello, nos disponemos a descargar los GFS's (archivos de inicializacion del modelo WRF) que nos falter para realizar el histórico para cada parque. De este modo podremos comprobar como se comporta el nuestro modelo. Y que nivel de precisión. 
+
+
+# AUTOMATIZAR WRF PARA CREAR HISTÓRICO DE LOS PARQUES

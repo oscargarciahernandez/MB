@@ -28,6 +28,9 @@ library(data.table)
 library(GGally)
 library(e1071)
 library(geosphere)
+library(maptools)
+library(gdata)
+
 
 
 
@@ -1117,4 +1120,29 @@ download_maps<- function(ul,lr,
   
 }
 
+#FUNCION PARA LEERO ARCHIVOS KMZ
+Extract_Lon_Lat_from_Kmz<- function(path_kmz){
+  # list the kmz files in a given folder path
+  KMZs <- list.files(path=path_kmz, pattern="*.kmz", full.names=FALSE)
+  
+  # unzip each KMZ file and read coordinates with getKMLcoordinates()
+  # select only the matrix element of the list returned by getKMLcoordinates(), 
+  # therefore mention the index [[1]]
+  LonLat <- sapply(KMZs, 
+                   function(x) 
+                     getKMLcoordinates(kmlfile        = unzip(zipfile = paste0(path_kmz, x),
+                                                              exdir   = paste0(path_kmz, "/KML")), 
+                                       ignoreAltitude = TRUE)[[1]])
+  # To get altitude from KML, then mention ignoreAltitude=FALSE                
+  
+  # delete the .kmz part from the column names in LonLat matrix
+  colnames(LonLat) <- gsub(pattern=".kmz", replacement="", x=colnames(LonLat))
+  
+  # give names to rows
+  rownames(LonLat) <- c("Longitude", "Latitude")
+  
+  # transpose the matrix for readability reasons
+  LonLat <- t(LonLat)
+  return(LonLat)
+}
 
