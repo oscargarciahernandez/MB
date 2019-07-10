@@ -11,7 +11,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE,
                       message = FALSE,
                       warning = FALSE,
-                      fig.align = 'center')
+                      fig.align = 'center',
+                      cache = TRUE)
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(ggplot2)
@@ -207,13 +208,13 @@ En la gráfica en la que no eliminamos el ruido nos encontramos con varios valor
 MA<- INFO_CB %>% .[complete.cases(.), ]
 MA<- MA[!is.infinite(MA$FC),]
 MA$DISP<- SMA(MA$DISPONIBILIDAD, 48)
-MA$FC<- SMA((MA$FC * 100), 48)
-MA$PROD<- SMA(MA$PRUDUCCION_MWH, 48)
+MA$FC<- SMA((MA$FC * 100), 96)
+MA$PROD<- SMA(MA$PRUDUCCION_MWH, 96)
 
 ggplot(MA)+
-  geom_line(aes(x=DATE, y=DISP))+
-  geom_line(aes(x=DATE, y=FC), col= "red" , alpha= 0.3)+
-  geom_line(aes(x=DATE, y= PROD), col= "blue" , alpha= 0.4)+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD), alpha= 0.4)+
+  geom_line(aes(x=DATE, y=FC), col= "red")+
+  geom_line(aes(x=DATE, y= PROD), col= "blue")+
   theme_light()+
   labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)',
        subtitle = 'Aplicando MA para suavizar la gráfica')
@@ -235,16 +236,14 @@ Lo dicho reciclamos nuestro histórico y pillamos los datos de velocidad del vie
 
 ```{r}
 
-###CARGAMOS NUESTRO HISTÓRICO WRF
 HIST_WRF<-  here::here('Data/Parques/CERROBLANCO/Historico/TABLA_WIND_CERROBLANCO_AFINADA.RDS') %>% readRDS()
-colnames(HIST_WRF)<- c("DATE", "WS","WSMAX", "DIR")
+colnames(HIST_WRF)<- HIST_WRF %>% colnames() %>% toupper()
+HIST_WRF[,c("LON_WRF", "LAT_WRF")]<-HIST_WRF[,c("LON", "LAT")] 
+HIST_WRF[,c("LON","LAT")]<- NULL
 
-
-
-
-
-### JUNTAMOS LOS DATOS 
+# JUNTAMOS LOS DATOS 
 TABLA_MERGE<- left_join(INFO_CB, HIST_WRF, by= "DATE")
+
 
 
 ###NOS QUEDAMOS SOLO CON LOS DATOS COMPLETOS
@@ -279,8 +278,8 @@ A continuación se presentan una serie de gráficas solmente del mes de Diciembr
 
 ```{r}
 
-TABLA_MERGE<- TABLA_MERGE %>% filter(month(DATE)== 12)
-ggplot(data = TABLA_MERGE)+
+TABLA_MERGE_DEC<- TABLA_MERGE %>% filter(month(DATE)== 12)
+ggplot(data = TABLA_MERGE_DEC)+
   geom_point(aes(y= PRUDUCCION_MWH, x=DATE), alpha= 0.2)+
   geom_point(aes(y= WS, x=DATE), col="red", alpha= 0.2)+
     geom_line(aes(y= PRUDUCCION_MWH, x=DATE), alpha= 0.5)+
@@ -302,15 +301,15 @@ Tiene mucha mejor pinta, verdad??¡ incluso me atrevería a decir que tienen bue
 <br />
 
 ```{r}
-max_p<- max(TABLA_MERGE$PRUDUCCION_MWH)
-min_p<- min(TABLA_MERGE$PRUDUCCION_MWH)
+max_p<- max(TABLA_MERGE_DEC$PRUDUCCION_MWH)
+min_p<- min(TABLA_MERGE_DEC$PRUDUCCION_MWH)
 
-max_v<- max(TABLA_MERGE$WS)
-min_v<- min(TABLA_MERGE$WS)
+max_v<- max(TABLA_MERGE_DEC$WS)
+min_v<- min(TABLA_MERGE_DEC$WS)
 
-TABLA_MERGE<- TABLA_MERGE %>% mutate(PRODUCC_NORM= (PRUDUCCION_MWH-min_p)/(max_p-min_p),
+TABLA_MERGE_DEC<- TABLA_MERGE_DEC %>% mutate(PRODUCC_NORM= (PRUDUCCION_MWH-min_p)/(max_p-min_p),
                                      WS_NORM= (WS-min_v)/(max_v-min_v) )
-ggplot(data = TABLA_MERGE)+
+ggplot(data = TABLA_MERGE_DEC)+
     geom_line(aes(y= PRODUCC_NORM, x=DATE), alpha= 0.5)+
   geom_line(aes(y= WS_NORM, x=DATE), col="red", alpha= 0.5)+
    ggtitle('VELOCIDAD DEL VIENTO (ROJO) VS PRODUCCION MWH')+
@@ -324,7 +323,7 @@ ggplot(data = TABLA_MERGE)+
 
 
 ```{r}
-x<- cor(TABLA_MERGE$PRODUCC_NORM, TABLA_MERGE$WS_NORM)
+x<- cor(TABLA_MERGE_DEC$PRODUCC_NORM, TABLA_MERGE_DEC$WS_NORM)
 print(paste('Correlacion de: ', x))
 ```
 
@@ -333,7 +332,7 @@ print(paste('Correlacion de: ', x))
 
 
 ```{r}
-ggplot(data = TABLA_MERGE)+
+ggplot(data = TABLA_MERGE_DEC)+
     geom_line(aes(y= FC, x=DATE), alpha= 0.5, col= 'blue')+
   geom_line(aes(y= WS_NORM, x=DATE), col="red", alpha= 0.5)+
    ggtitle('VELOCIDAD DEL VIENTO (ROJO) VS FACTOR DE PLANTA')+
@@ -346,8 +345,8 @@ ggplot(data = TABLA_MERGE)+
 
 
 ```{r}
-TABLA_MERGE<- TABLA_MERGE[complete.cases(TABLA_MERGE), ] 
-x<- cor(TABLA_MERGE$FC, TABLA_MERGE$WS_NORM, use = "all.obs")
+TABLA_MERGE_DEC<- TABLA_MERGE_DEC[complete.cases(TABLA_MERGE_DEC), ] 
+x<- cor(TABLA_MERGE_DEC$FC, TABLA_MERGE_DEC$WS_NORM, use = "all.obs")
 
 print(paste('Correlacion de: ', x))
 
@@ -359,7 +358,7 @@ print(paste('Correlacion de: ', x))
 
 
 ```{r}
-ggplot(data = TABLA_MERGE)+
+ggplot(data = TABLA_MERGE_DEC)+
     geom_line(aes(y= FC, x=DATE), alpha= 0.5, col= 'blue')+
   geom_line(aes(y= PRODUCC_NORM, x=DATE), col="green", alpha= 0.5)+
    ggtitle('FACTOR DE PLANTA (AZUL) VS PRODUCCION_NORMALIZADA (VERDE)')+
@@ -377,6 +376,205 @@ ME PARECE MUY CURIOSO Y DESCONCERTANTE QUE EL FACTOR DE CAPACIDAD Y LA PRODUCCI�
 <br />
 <br />
 
+```{r}
+TABLA_CORR<- TABLA_MERGE %>% group_split(month(DATE), year(DATE)) %>% lapply(function(x){
+  tabla_cor<- data.frame(year(x$DATE) %>% unique(),
+                         month(x$DATE) %>% unique(), 
+                         cor(x$FC, x$WS),
+                         cor(x$FC, x$WSMAX),
+                         cor(x$PRUDUCCION_MWH, x$WS),
+                         cor(x$PRUDUCCION_MWH, x$WSMAX),
+                         nrow(x))
+  colnames(tabla_cor)<- c("year", "mont", "FC_cor",
+                           "FC_corMAX", "PRODUC_cor", 
+                          "PRODUC_corMAX", "cases")
+  return(tabla_cor)
+  
+  }) %>% bind_rows() 
+
+TABLA_CORR %>% kable()
+
+
+TABLA_CORR[,3:ncol(TABLA_CORR)] %>% summarise_all(mean) %>%  kable()
+```
+
+
+Filtramos la tabla y eliminamos los meses que contengan menos de  400 casos. 
+```{r}
+TABLA_CORR_FILT<- TABLA_CORR %>% filter(cases > 400 )
+TABLA_CORR_FILT %>% kable()
+
+TABLA_CORR_FILT[,3:ncol(TABLA_CORR)] %>% summarise_all(mean) %>%  kable()
+
+```
+
+
+A continuacion realizamos lo mismo pero añadiendo un filtrado tambien semanal. El objetivo es obtener la semana con mejor y la semana con peor correlación y después hacer un anáñisis mas exhaustivo de esas semanas. 
+
+```{r}
+TABLA_CORR<- TABLA_MERGE %>% group_split(month(DATE), year(DATE), week(DATE)) %>% lapply(function(x){
+  tabla_cor<- data.frame(year(x$DATE) %>% unique(),
+                         month(x$DATE) %>% unique(), 
+                         week(x$DATE) %>% unique(),
+                         cor(x$FC, x$WS),
+                         cor(x$FC, x$WSMAX),
+                         cor(x$PRUDUCCION_MWH, x$WS),
+                         cor(x$PRUDUCCION_MWH, x$WSMAX),
+                         nrow(x))
+  colnames(tabla_cor)<- c("year", "mont","week", "FC_cor",
+                           "FC_corMAX", "PRODUC_cor", 
+                          "PRODUC_corMAX", "cases")
+  return(tabla_cor)
+  
+  }) %>% bind_rows() 
+
+TABLA_CORR %>% kable()
+
+
+TABLA_CORR[,3:ncol(TABLA_CORR)] %>%  .[complete.cases(.),] %>% summarise_all(mean) %>%  kable()
+```
+
+
+
+```{r}
+
+TABLA_CORR_FILT<- TABLA_CORR %>% .[complete.cases(.),] %>% filter(cases > 130 )
+TABLA_CORR_FILT %>% kable()
+
+TABLA_CORR_FILT[,3:ncol(TABLA_CORR)] %>% summarise_all(mean) %>%  kable()
+```
+
+```{r}
+max_cor<- TABLA_CORR_FILT[(TABLA_CORR_FILT[,c("FC_cor")] %>% which.max()),]
+max_cor %>% kable()
+min_cor<-TABLA_CORR_FILT[(TABLA_CORR_FILT[,c("FC_cor")] %>% which.min()),]
+min_cor %>% kable()
+```
+
+
+```{r}
+TABLA_MAX_WEEK<- TABLA_MERGE %>% filter(year(DATE)==max_cor$year,
+                       month(DATE)==max_cor$mont,
+                       week(DATE)==max_cor$week)
+
+TABLA_MIN_WEEK<- TABLA_MERGE %>% filter(year(DATE)==min_cor$year,
+                       month(DATE)==min_cor$mont,
+                       week(DATE)==min_cor$week)
+```
+
+
+## ANÁLISIS DE LA SEMANA CON PEOR CORRELACION
+
+```{r}
+ggplot(TABLA_MIN_WEEK)+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD))+
+  geom_line(aes(x=DATE, y=FC * 100), col= "red" , alpha= 0.3)+
+  geom_line(aes(x=DATE, y=PRUDUCCION_MWH), col= "blue" , alpha= 0.4)+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)')
+  
+
+```
+```{r}
+max_p<- max(TABLA_MIN_WEEK$PRUDUCCION_MWH)
+min_p<- min(TABLA_MIN_WEEK$PRUDUCCION_MWH)
+
+max_v<- max(TABLA_MIN_WEEK$WS)
+min_v<- min(TABLA_MIN_WEEK$WS)
+
+TABLA_MIN_WEEK<- TABLA_MIN_WEEK %>% mutate(PRODUCC_NORM= (PRUDUCCION_MWH-min_p)/(max_p-min_p),
+                                     WS_NORM= (WS-min_v)/(max_v-min_v) )
+ggplot(data = TABLA_MIN_WEEK)+
+    geom_line(aes(y= PRODUCC_NORM, x=DATE), alpha= 0.5)+
+  geom_line(aes(y= WS_NORM, x=DATE), col="red", alpha= 0.5)+
+   ggtitle('VELOCIDAD DEL VIENTO (ROJO) VS PRODUCCION MWH')+
+  labs(subtitle = 'VARIABLES NORMALIZADAS')+
+  theme_light()
+```
+```{r}
+ggplot(data = TABLA_MIN_WEEK)+
+    geom_line(aes(y= FC, x=DATE), alpha= 0.5, col= 'blue')+
+  geom_line(aes(y= WS_NORM, x=DATE), col="red", alpha= 0.5)+
+   ggtitle('VELOCIDAD DEL VIENTO (ROJO) VS FACTOR DE PLANTA')+
+  theme_light()
+```
+
+Analizamos la influencia de las demás variables.
+
+```{r}
+ggplot(TABLA_MIN_WEEK)+
+  geom_line(aes(x=DATE, y=T02_MIN-273), col= "orange", alpha= 0.5)+
+  geom_line(aes(x=DATE, y=T02_MEAN-273), col= "orange")+
+  geom_line(aes(x=DATE, y=T02_MAX-273), col= "orange", alpha= 0.7)+
+
+  geom_line(aes(x=DATE, y=WS), col= "red" , alpha= 0.9)+
+  geom_line(aes(x=DATE, y=WSMAX), col= "red" , alpha= 0.6)+
+  geom_line(aes(x=DATE, y=G10_MAX), col= "purple", alpha= 0.9)+
+  geom_line(aes(x=DATE, y=GUST10M), col= "purple", alpha= 0.6)+
+
+
+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD*0.2))+
+  theme_light()+
+  labs(title = 'TEMPERATURA(naranja), GUST(violeta), Wind(red), Produccion(NEGRO)')
+  
+```
+
+
+
+## ANÁLISIS DE LA SEMANA CON MEJOR CORRELACION
+
+```{r}
+ggplot(TABLA_MAX_WEEK)+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD))+
+  geom_line(aes(x=DATE, y=FC * 100), col= "red" , alpha= 0.3)+
+  geom_line(aes(x=DATE, y=PRUDUCCION_MWH), col= "blue" , alpha= 0.4)+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)')
+  
+
+```
+```{r}
+max_p<- max(TABLA_MAX_WEEK$PRUDUCCION_MWH)
+min_p<- min(TABLA_MAX_WEEK$PRUDUCCION_MWH)
+
+max_v<- max(TABLA_MAX_WEEK$WS)
+min_v<- min(TABLA_MAX_WEEK$WS)
+
+TABLA_MAX_WEEK<- TABLA_MAX_WEEK %>% mutate(PRODUCC_NORM= (PRUDUCCION_MWH-min_p)/(max_p-min_p),
+                                     WS_NORM= (WS-min_v)/(max_v-min_v) )
+ggplot(data = TABLA_MAX_WEEK)+
+    geom_line(aes(y= PRODUCC_NORM, x=DATE), alpha= 0.5)+
+  geom_line(aes(y= WS_NORM, x=DATE), col="red", alpha= 0.5)+
+   ggtitle('VELOCIDAD DEL VIENTO (ROJO) VS PRODUCCION MWH')+
+  labs(subtitle = 'VARIABLES NORMALIZADAS')+
+  theme_light()
+```
+```{r}
+ggplot(data = TABLA_MAX_WEEK)+
+    geom_line(aes(y= FC, x=DATE), alpha= 0.5, col= 'blue')+
+  geom_line(aes(y= WS_NORM, x=DATE), col="red", alpha= 0.5)+
+   ggtitle('VELOCIDAD DEL VIENTO (ROJO) VS FACTOR DE PLANTA')+
+  theme_light()
+```
+
+```{r}
+ggplot(TABLA_MAX_WEEK)+
+  geom_line(aes(x=DATE, y=T02_MIN-273), col= "orange", alpha= 0.5)+
+  geom_line(aes(x=DATE, y=T02_MEAN-273), col= "orange")+
+  geom_line(aes(x=DATE, y=T02_MAX-273), col= "orange", alpha= 0.7)+
+
+  geom_line(aes(x=DATE, y=WS), col= "red" , alpha= 0.9)+
+  geom_line(aes(x=DATE, y=WSMAX), col= "red" , alpha= 0.6)+
+  geom_line(aes(x=DATE, y=G10_MAX), col= "purple", alpha= 0.9)+
+  geom_line(aes(x=DATE, y=GUST10M), col= "purple", alpha= 0.6)+
+
+
+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD*0.3))+
+  theme_light()+
+  labs(title = 'TEMPERATURA(naranja), GUST(violeta), Wind(red), Produccion(NEGRO)')
+```
 
 
 ### LOCALIZACION CERROBLANCO 
@@ -395,3 +593,20 @@ include_graphics(here::here('RMDS/imagenes/cerroblanco1.png'))
 ```{r}
 include_graphics(here::here('RMDS/imagenes/cerroblanco2.png'))
 ```
+
+```{r}
+library(rasterVis)
+
+raster_files<- here::here('Mapas/Raster_Cerroblanco/') %>% list.files(full.names = T)
+
+for (i in 1:length(raster_files)) {
+  
+  map_raster<- raster_files[i] %>% readRDS()
+  print(  levelplot(map_raster) + 
+  layer(panel.points(TABLA_MERGE$LON %>% unique(),
+                     TABLA_MERGE$LAT %>% unique(), pch=21, cex=1, colour='white', fill= 'white')))
+  
+}
+
+```
+

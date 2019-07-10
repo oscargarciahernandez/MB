@@ -7,3 +7,5 @@
 *.png
 *.sql
 *.php
+Gribs/
+*.grib2

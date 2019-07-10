@@ -60,10 +60,9 @@ if(HACER_HISTORICO_CERRO_BLANCO){
   
   
   r<- lista_WRF_cb %>% lapply(function(x){
-    x2<- x %>% lapply(function(y){y[,1:13]}) %>% bind_rows(.id = "Date")
+    x2<- x %>% bind_rows(.id = "Date")
     
     x2$Date<- ifelse(nchar(x2$Date)<12, paste(x2$Date,"00:00:00"), x2$Date) %>% ymd_hms
-    x2[,c("RAINSH","RAINNC","RAINC")]<- NULL
     return(x2)
   }) %>% bind_rows()
   
@@ -86,6 +85,7 @@ if(HACER_HISTORICO_CERRO_BLANCO){
   
   
   #longitud latitud parque
+  Lista_sindupli<- readRDS( paste0(path_cerro_historico,"HISTORICO_WRF.RDS"))
   Longitud_Parque= -2.409666
   Latitud_Parque= 38.72292
   
@@ -117,8 +117,8 @@ if(HACER_HISTORICO_CERRO_BLANCO){
   WRF_vercano$WS<- wind_abs
   WRF_vercano$WSmax<- sqrt(WRF_vercano$U10_MAX^2 + WRF_vercano$V10_MAX^2)
   
-  WRF_sum<- WRF_vercano[,c("Date", "WS","WSmax", "Dir")]
-  WRF_sum<- WRF_sum[complete.cases(WRF_sum), ]
+
+  WRF_sum<- WRF_vercano[complete.cases(WRF_vercano), ]
   saveRDS(WRF_sum, paste0(path_cerro_historico,"TABLA_WIND_CERROBLANCO_AFINADA.RDS"))
   
 }
@@ -133,8 +133,9 @@ INFO_CB<- INFO_PE %>% filter(PARQUE=='P.E. Cerroblanco')
 
 #CARGAMOS NUESTRO HISTÓRICO WRF
 HIST_WRF<-  here::here('Data/Parques/CERROBLANCO/Historico/TABLA_WIND_CERROBLANCO_AFINADA.RDS') %>% readRDS()
-colnames(HIST_WRF)<- c("DATE", "WS","WSMAX", "DIR")
-
+colnames(HIST_WRF)<- HIST_WRF %>% colnames() %>% toupper()
+HIST_WRF[,c("LON_WRF", "LAT_WRF")]<-HIST_WRF[,c("LON", "LAT")] 
+HIST_WRF[,c("LON","LAT")]<- NULL
 
 # JUNTAMOS LOS DATOS 
 TABLA_MERGE<- left_join(INFO_CB, HIST_WRF, by= "DATE")
@@ -183,7 +184,7 @@ ul <- round(c(n,w),digits = 2)  #Upper Left
 lr <- round(c(s,e), digits = 2)  #Lower Right
 
 
-download_maps(ul, lr, maptyp = "bing", res=80)
+#download_maps(ul, lr, maptyp = "bing", res=80)
 
 
 
@@ -218,3 +219,36 @@ p_ros<- WR_parameters2(data = TABLA_MERGE,
 
 pmap+p_ros$subgrobs
 ggsave(here::here('RMDS/imagenes/cerroblanco2.png'), dpi= 600)
+
+
+
+
+# ELEVATE R ---------------------------------------------------------------
+
+library(elevatr)
+library(rasterVis)
+
+
+path_raster_cerroblanco<- here::here('Mapas/Raster_Cerroblanco/')
+if(!dir.exists(path_raster_cerroblanco)){dir.create(path_raster_cerroblanco)}
+
+for (incremento in seq(0,1,0.2)) {
+  
+  lon_location<- seq(lr[1]- incremento,ul[1]+ incremento,length.out = 100 ) 
+  lat_location<- seq(ul[2]- incremento,lr[2]+ incremento, length.out = 100)
+  data_loc<- expand.grid(lat_location,lon_location)
+  colnames(data_loc)<- c("x", "y")
+  
+  spdf <- SpatialPointsDataFrame(coords = data_loc, data = data_loc,
+                                 proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+  
+  
+  map_raster<- get_elev_raster(spdf, z=14)
+  saveRDS(map_raster, paste0(path_raster_cerroblanco,"RASTER_",incremento,".RDS"))
+  levelplot(map_raster) + 
+    layer(panel.points(lonros,latros, pch=21, cex=2, colour='white', fill= 'white'))
+  
+  
+}
+
+
