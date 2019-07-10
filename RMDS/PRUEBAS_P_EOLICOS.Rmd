@@ -594,7 +594,7 @@ include_graphics(here::here('RMDS/imagenes/cerroblanco1.png'))
 include_graphics(here::here('RMDS/imagenes/cerroblanco2.png'))
 ```
 
-```{r}
+```{r fig.height = 10, fig.width = 10, fig.align = "center"}
 library(rasterVis)
 
 raster_files<- here::here('Mapas/Raster_Cerroblanco/') %>% list.files(full.names = T)

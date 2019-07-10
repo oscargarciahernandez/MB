@@ -228,27 +228,59 @@ ggsave(here::here('RMDS/imagenes/cerroblanco2.png'), dpi= 600)
 library(elevatr)
 library(rasterVis)
 
+#DESCARGAR DATOS DE ELEVACION USANDO elevatr
+#PLOTEAR DATOS CON RasterVis
+
+#LO HE PENSADO PARA QUE FUNCIONE SELECCIONANDO n,s,e y w 
+# DEL MISMO MODO QUE HACIAMOS PARA DESCARGAR LOS TILES CON 
+# OPENSTREETMAP
+
+n=max(TABLA_MERGE$LAT)    
+s=min(TABLA_MERGE$LAT)    
+e=max(TABLA_MERGE$LON)    
+w=min(TABLA_MERGE$LON) 
+
+incr<- 0.1
+
+
+if(n > 0){n<- n + incr}else{n<- n + incr}
+if(s > 0){s<- s - incr}else{s<- s- incr}
+if(e > 0){e<- e + incr}else{e<- e + incr}
+if(w > 0){w<- w - incr}else{w<- w- incr}
+
+
+
+ul <- round(c(n,w),digits = 2)  #Upper Left
+lr <- round(c(s,e), digits = 2)  #Lower Right
+
+
 
 path_raster_cerroblanco<- here::here('Mapas/Raster_Cerroblanco/')
 if(!dir.exists(path_raster_cerroblanco)){dir.create(path_raster_cerroblanco)}
 
+#PONGO ESE IF DENTRO DEL BUCLE PORQUE TARDA LA VIDA
+# Y SEGURAMENTE DESCARGARÉ LOS RASTERS DE VARIAS VECES...VARIOS DIAS
 for (incremento in seq(0,1,0.2)) {
+  file_raster<- paste0(path_raster_cerroblanco,"RASTER_",incremento,".RDS")
+  if(file.exists(file_raster)){
+    print("Este raster ya existe en: ", file_raster)
+  }else{
+    
+    lon_location<- seq(lr[1]- incremento,ul[1]+ incremento,length.out = 100 ) 
+    lat_location<- seq(ul[2]- incremento,lr[2]+ incremento, length.out = 100)
+    data_loc<- expand.grid(lat_location,lon_location)
+    colnames(data_loc)<- c("x", "y")
+    
+    spdf <- SpatialPointsDataFrame(coords = data_loc, data = data_loc,
+                                   proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+    
+    
+    map_raster<- get_elev_raster(spdf, z=14)
+    saveRDS(map_raster, file_raster)
+    
+  }
   
-  lon_location<- seq(lr[1]- incremento,ul[1]+ incremento,length.out = 100 ) 
-  lat_location<- seq(ul[2]- incremento,lr[2]+ incremento, length.out = 100)
-  data_loc<- expand.grid(lat_location,lon_location)
-  colnames(data_loc)<- c("x", "y")
-  
-  spdf <- SpatialPointsDataFrame(coords = data_loc, data = data_loc,
-                                 proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
-  
-  
-  map_raster<- get_elev_raster(spdf, z=14)
-  saveRDS(map_raster, paste0(path_raster_cerroblanco,"RASTER_",incremento,".RDS"))
-  levelplot(map_raster) + 
-    layer(panel.points(lonros,latros, pch=21, cex=2, colour='white', fill= 'white'))
-  
-  
+
 }
 
 
