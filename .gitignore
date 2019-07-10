@@ -9,3 +9,6 @@
 *.php
 Gribs/
 *.grib2
+*.pgrb2f*
+*_cache/
+Mareas/
