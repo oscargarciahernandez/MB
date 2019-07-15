@@ -596,17 +596,347 @@ include_graphics(here::here('RMDS/imagenes/cerroblanco2.png'))
 
 ```{r fig.height = 10, fig.width = 10, fig.align = "center"}
 library(rasterVis)
+library(elevatr)
 
-raster_files<- here::here('Mapas/Raster_Cerroblanco/') %>% list.files(full.names = T)
 
-for (i in 1:length(raster_files)) {
-  
-  map_raster<- raster_files[i] %>% readRDS()
-  print(  levelplot(map_raster) + 
+
+n=max(TABLA_MERGE$LAT) 
+s=min(TABLA_MERGE$LAT)    
+e=max(TABLA_MERGE$LON)    
+w=min(TABLA_MERGE$LON) 
+
+incr<- 0.1
+
+
+if(n > 0){n<- n + incr}else{n<- n + incr}
+if(s > 0){s<- s - incr}else{s<- s- incr}
+if(e > 0){e<- e + incr}else{e<- e + incr}
+if(w > 0){w<- w - incr}else{w<- w- incr}
+
+
+
+ul <- round(c(n,w),digits = 2)  #Upper Left
+lr <- round(c(s,e), digits = 2)  #Lower Right
+
+
+lon_location<- seq(lr[1],ul[1],length.out = 100 ) 
+lat_location<- seq(ul[2],lr[2], length.out = 100)
+data_loc<- expand.grid(lat_location,lon_location)
+colnames(data_loc)<- c("x", "y")
+
+spdf <- SpatialPointsDataFrame(coords = data_loc, data = data_loc,
+                               proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+
+if(file.exists(here::here('Mapas/Raster_Cerroblanco/map_raster1.RDS'))){
+  map_raster1<- readRDS(here::here('Mapas/Raster_Cerroblanco/map_raster1.RDS'))
+}else{
+  map_raster1<- get_elev_raster(spdf, z=12)
+  saveRDS(map_raster1,here::here('Mapas/Raster_Cerroblanco/map_raster1.RDS'))
+  }
+
+levelplot(map_raster1) + 
   layer(panel.points(TABLA_MERGE$LON %>% unique(),
-                     TABLA_MERGE$LAT %>% unique(), pch=21, cex=1, colour='white', fill= 'white')))
+                   TABLA_MERGE$LAT %>% unique(), pch=21, cex=1, colour='white', fill= 'white'))
+  
+
+```
+
+Se puede deducir que la rosa de los vientos tiene sentido... debido a que por la direccion sur tiene una coordillera que imposibilita que haya viento en esa dirección por ello se manifiesta en dirección Oeste y Sur-Este, rodeando el obstáculo. 
+
+
+# ANÁLSIS CON VARIOS PUNTOS DE WRF
+
+Los análsis presentados anteriormente fueron hechos con el punto ofrecido por WRF más cercano, ahora pasaremos a analizar el conjunto de puntos... a ver si podemos sacar alguna conclusión. 
+
+```{r fig.height = 10, fig.width = 10, fig.align = "center"}
+TABLA_10_LOC<- here::here('Data/Parques/CERROBLANCO/Historico/TABLA_WIND_CERROBLANCO_160LOC.RDS') %>% 
+  readRDS()
+
+rm(x,r)
+
+GRID_WRF<- TABLA_10_LOC %>% group_split(lon, lat) %>% lapply(function(x){ 
+  r<-cbind(x$lon %>% unique(), x$lat %>% unique()) %>% as.data.frame()
+  colnames(r)<- c('lon', 'lat')
+  return(r)
+  }) %>% bind_rows()
+
+
+
+
+n=max(TABLA_MERGE$LAT)    
+s=min(TABLA_MERGE$LAT)    
+e=max(TABLA_MERGE$LON)    
+w=min(TABLA_MERGE$LON) 
+
+incr<- 0.3
+
+
+if(n > 0){n<- n + incr}else{n<- n + incr}
+if(s > 0){s<- s - incr}else{s<- s- incr}
+if(e > 0){e<- e + incr}else{e<- e + incr}
+if(w > 0){w<- w - incr}else{w<- w- incr}
+
+
+
+ul <- round(c(n,w),digits = 2)  #Upper Left
+lr <- round(c(s,e), digits = 2)  #Lower Right
+
+
+lon_location<- seq(lr[1],ul[1],length.out = 100 ) 
+lat_location<- seq(ul[2],lr[2], length.out = 100)
+data_loc<- expand.grid(lat_location,lon_location)
+colnames(data_loc)<- c("x", "y")
+
+spdf <- SpatialPointsDataFrame(coords = data_loc, data = data_loc,
+                               proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+
+if(file.exists(here::here('Mapas/Raster_Cerroblanco/map_raster2.RDS'))){
+  map_raster2<- readRDS(here::here('Mapas/Raster_Cerroblanco/map_raster2.RDS'))
+}else{
+  map_raster2<- get_elev_raster(spdf, z=10)
+  saveRDS(map_raster2,here::here('Mapas/Raster_Cerroblanco/map_raster2.RDS'))
+  }
+
+
+
+levelplot(map_raster2) + 
+  layer(panel.points(TABLA_MERGE$LON %>% unique(),
+                     TABLA_MERGE$LAT %>% unique(), pch=21, cex=1, colour='white', fill= 'white'))+
+  layer(panel.points(GRID_WRF$lon,
+                     GRID_WRF$lat, pch=21, cex=1, colour='red', fill= 'red'))
+
+#plot3D(map_raster1)
+
+
+
+```
+
+## GRÁFICA DE CORRELACIÓN PARA LOS DIFERENTES PUNTOS DE WRF
+
+ La escala de color esta definida entre negro y amarillo. Los puntos con un color amarillo más intenso son los puntos con mejor correlación... A partir de aquí lo que haremos será realizar el análsis que hicimos anteriormente pero comparando los diferentes puntos... a ver si podemos sacar alguna conclusión potente. 
+
+```{r}
+ORDEN_MASCERCANOS<- TABLA_10_LOC %>% group_split(lon,lat) %>% sapply(function(x){
+  lon_wrf<- x$lon %>% unique()
+  lat_wrf<- x$lat %>% unique()
+  
+  distm(c(TABLA_MERGE$LON %>% unique(),
+          TABLA_MERGE$LAT %>% unique()),
+        c(lon_wrf, lat_wrf))
+}) %>% order(.)
+
+
+TABLA_20_MC<- TABLA_10_LOC %>% group_split(lon,lat) %>% .[ORDEN_MASCERCANOS] %>% bind_rows()
+
+colnames(TABLA_20_MC)<- TABLA_20_MC %>% colnames() %>% toupper()
+TABLA_20_MC[,c("LON_WRF", "LAT_WRF")]<-TABLA_20_MC[,c("LON", "LAT")] 
+TABLA_20_MC[,c("LON","LAT")]<- NULL
+
+# JUNTAMOS LOS DATOS 
+TABLA_MERGE<- left_join(TABLA_20_MC, INFO_CB, by= "DATE")
+
+
+
+
+###NOS QUEDAMOS SOLO CON LOS DATOS COMPLETOS
+TABLA_MERGE <- TABLA_MERGE %>% .[complete.cases(.), ] 
+
+
+```
+
+```{r  fig.height = 10, fig.width = 10, fig.align = "center"}
+
+library(DescTools)
+
+TABLA_CORRELATION20<- TABLA_MERGE %>% group_split(LON_WRF, LAT_WRF) %>% lapply(function(x){
+  tabla_cor<- cbind(cor(x$PRUDUCCION_MWH, x$WS),
+        cor(x$FC, x$WS), 
+          distm(c(x$LON %>% unique(),
+                  x$LAT %>% unique()),
+                c(x$LON_WRF %>% unique(),
+                  x$LAT_WRF %>% unique())), 
+        x$LON_WRF, x$LAT_WRF) %>% as.data.frame()
+  colnames(tabla_cor)<- c("PRODU_WS", "FC_WS", "DISTANCIA", "LON", "LAT")
+  return(tabla_cor)
+  
+  
+  
+}) %>% bind_rows()
+
+TABLA_GRID<- TABLA_CORRELATION20 %>% .[order(.$FC, decreasing = T),]
+kable(TABLA_GRID)
+
+map2color<-function(x,pal,limits=NULL){
+    if(is.null(limits)) limits=range(x)
+    pal[findInterval(x,seq(limits[1],limits[2],length.out=length(pal)+1), all.inside=TRUE)]
+}
+
+
+
+
+n=max(TABLA_MERGE$LAT)    
+s=min(TABLA_MERGE$LAT)    
+e=max(TABLA_MERGE$LON)    
+w=min(TABLA_MERGE$LON) 
+
+incr<- 0.4
+
+
+if(n > 0){n<- n + incr}else{n<- n + incr}
+if(s > 0){s<- s - incr}else{s<- s- incr}
+if(e > 0){e<- e + incr}else{e<- e + incr}
+if(w > 0){w<- w - incr}else{w<- w- incr}
+
+
+
+ul <- round(c(n,w),digits = 2)  #Upper Left
+lr <- round(c(s,e), digits = 2)  #Lower Right
+
+
+lon_location<- seq(lr[1],ul[1],length.out = 100 ) 
+lat_location<- seq(ul[2],lr[2], length.out = 100)
+data_loc<- expand.grid(lat_location,lon_location)
+colnames(data_loc)<- c("x", "y")
+
+spdf <- SpatialPointsDataFrame(coords = data_loc, data = data_loc,
+                               proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+if(file.exists(here::here('Mapas/Raster_Cerroblanco/map_raster3.RDS'))){
+  map_raster3<- readRDS(here::here('Mapas/Raster_Cerroblanco/map_raster3.RDS'))
+}else{
+  map_raster3<- get_elev_raster(spdf, z=11)
+  saveRDS(map_raster3,here::here('Mapas/Raster_Cerroblanco/map_raster3.RDS'))
+  }
+
+
+
+AF <- TABLA_GRID$FC_WS
+AF_colors <- colorRampPalette(c("black", "yellow"))(length(AF))
+pal <- map2color(AF, AF_colors)
+
+levelplot(map_raster3) + 
+  layer(panel.points(TABLA_MERGE$LON %>% unique(),
+                     TABLA_MERGE$LAT %>% unique(), pch=21, cex=1, colour='white', fill= 'white'))+
+  layer(panel.points(TABLA_GRID$LON,
+                     TABLA_GRID$LAT, pch=21, cex=2, colour='NA', fill= pal))
+
+# PINTAMOS LOS 6 PRIMEROS CON DIFERENTES COLORES
+
+
+```
+
+
+```{r eval=FALSE}
+nc_metgrid<- '/usr1/uems/runs/peninsula_iberica/static/geo_em.d01.nc' %>% open.nc() %>% read.nc()
+
+lista_xyz<- list()
+k<-1
+for (i in 1:dim(nc_metgrid$XLAT_M)[1]) {
+  for (j in 1:dim(nc_metgrid$XLAT_M)[2]) {
+    lista_xyz[[k]]<-  cbind(nc_metgrid$XLONG_M[i,j],
+          nc_metgrid$XLAT_M[i,j],
+          nc_metgrid$HGT_M[i,j]) %>% as.data.frame()
+    k<- k+1
+    
+    
+  }
   
 }
+
+tabla_xyz<- lista_xyz %>% bind_rows()
+colnames(tabla_xyz)<- c("x", "y", "z")
+
+ORDEN_MASCERCANOS<- tabla_xyz %>% group_split(x,y) %>% sapply(function(input){
+  lon_wrf<- input$x %>% unique()
+  lat_wrf<- input$y %>% unique()
+  
+  distm(c(TABLA_MERGE$LON %>% unique(),
+          TABLA_MERGE$LAT %>% unique()),
+        c(lon_wrf, lat_wrf))
+}) %>% order(.)
+
+
+
+library(raster)
+prueba<- tabla_xyz %>% group_split(x,y) %>%
+  .[ORDEN_MASCERCANOS[1:500]] %>% bind_rows() %>% as.data.frame()
+
+
+r3 <- raster(nrow=length(prueba$y %>% unique()),
+             ncol=length(prueba$x %>% unique()), 
+             xmn=prueba$x %>% min(),
+             xmx=prueba$x %>% max(),
+             ymn=prueba$y %>% min(),
+             ymx=prueba$y %>% max()) 		# create empty raster
+cells <- cellFromXY(r3, prueba[,1:2]) 									# compute cell numbers
+r3[cells] <- prueba[,3] 												#
+
+
+install.packages("akima")
+library(akima)
+s=interp(prueba$x,
+          prueba$y,
+          prueba$z)
+
+surface3d(s$x,s$y,s$z)
+
+plot(r3)
+
+levelplot(r3)
+plot3D(r3)
+
+```
+
+
+
+```{r}
+
+n=max(TABLA_MERGE$LAT_WRF)    
+s=min(TABLA_MERGE$LAT_WRF)    
+e=max(TABLA_MERGE$LON_WRF)    
+w=min(TABLA_MERGE$LON_WRF)    
+
+
+#Fijamos incremento para hacer más grande el mapa
+
+incr<- 0.5
+
+
+if(n > 0){n<- n + incr}else{n<- n + incr}
+if(s > 0){s<- s - incr}else{s<- s- incr}
+if(e > 0){e<- e + incr}else{e<- e + incr}
+if(w > 0){w<- w - incr}else{w<- w- incr}
+
+
+
+ul <- round(c(n,w),digits = 2)  #Upper Left
+lr <- round(c(s,e), digits = 2)  #Lower Right
+
+
+#download_maps(ul, lr, maptyp = 'bing' , res=80)
+
+path_maps<- '/home/oscar/MB//Mapas/39.46_-1.61/' %>% list.files(full.names = T)
+
+i<- 1
+mapa<- path_maps[i] %>% readRDS()
+
+#REPRESENTAMOS MAPA A PELO, SIN EJES NI NADA ELEMENT_BLANK FTW
+pmap<- autoplot(mapa)+ theme(axis.line=element_blank(),axis.text.x=element_blank(),
+                             axis.text.y=element_blank(),axis.ticks=element_blank(),
+                             axis.title.x=element_blank(),
+                             axis.title.y=element_blank(),
+                             panel.background=element_blank(),panel.border=element_blank(),panel.grid.major=element_blank(),
+                             panel.grid.minor=element_blank(),plot.background=element_blank())
+
+pmap + 
+  geom_point(data=TABLA_CORRELATION20, aes(x=LON , y= LAT , color= FC_WS, size= FC_WS * 2))+
+      scale_colour_gradientn(colours=rainbow(3))+
+   geom_point(aes(x=TABLA_MERGE$LON %>% unique() ,
+                         y= TABLA_MERGE$LAT %>% unique()), color= "white", size= 2)
+
+
 
 ```
 

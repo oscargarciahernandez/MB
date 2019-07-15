@@ -98,6 +98,18 @@ if(HACER_HISTORICO_CERRO_BLANCO){
   }) %>% which.min()
   
   
+  Diez_puntos_MC<- Lista_sindupli %>% sapply(function(x){
+    vector_lon_lat<- c(x$lon %>% unique(),
+                       x$lat %>% unique())
+    distm(vector_lon_lat,
+          c(Longitud_Parque,
+            Latitud_Parque))
+  }) %>% order(.) %>% .[1:10]
+  
+  
+  
+  
+  
   WRF_vercano<- Lista_sindupli[[Punto_mascercano]]
   
   
@@ -120,6 +132,31 @@ if(HACER_HISTORICO_CERRO_BLANCO){
 
   WRF_sum<- WRF_vercano[complete.cases(WRF_vercano), ]
   saveRDS(WRF_sum, paste0(path_cerro_historico,"TABLA_WIND_CERROBLANCO_AFINADA.RDS"))
+  
+  
+  WRF_vercano10<- Lista_sindupli[1:length(Lista_sindupli)] %>% lapply(function(x){
+    u10<- x$U10_MEAN
+    v10<- x$V10_MEAN
+    wind_abs <- sqrt(u10^2 + v10^2)
+    wind_dir_rad <-  atan2(u10/wind_abs, v10/wind_abs) 
+    wind_dir_deg1 <-  wind_dir_rad * 180/pi 
+    wind_dir_deg2 <-  wind_dir_deg1+ 180 
+    
+    x$Dir<- cut(wind_dir_deg2, 
+                          breaks = c(0,seq(11.5,360,22.5), 361),
+                          labels = seq(0,360,22.5))%>% 
+      as.character() %>% ifelse(.==360,0,. ) %>% as.numeric()
+    
+    x$WS<- wind_abs
+    x$WSmax<- sqrt(x$U10_MAX^2 + x$V10_MAX^2)
+    
+    
+    WRF_sum<- x[complete.cases(x), ]
+    
+  })
+  
+  saveRDS(WRF_vercano10 %>% bind_rows(), paste0(path_cerro_historico,"TABLA_WIND_CERROBLANCO_160LOC.RDS"))
+  
   
 }
 
