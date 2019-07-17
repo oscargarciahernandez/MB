@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 # LUEGO HAREMOS UN SCRIPT PARA SELECCIONAR LAS QUE QUERAMOS Y DESCARGARLA. 
 
 
-    
+'''    
 URL_BUSQUEDA= 'http://ems3.comet.ucar.edu/data/grib/gfsp25/'
 
 #INICIAMOS SESION REQUEST
@@ -68,13 +68,17 @@ with open('URLS_GFS025.txt', 'w') as f:
     for item in Lista_2018:
         f.write("%s\n" % item)
 
+'''
+with open('/home/asus/MB/python/URLS_GFS025.txt') as f:
+    Lista_2018= f.readlines()
 
-session = requests.Session()
-session.trust_env = False
-grib= session.get(Lista_2018[0])
-  
-with open('afp://admin@METEOBIT.local/MeteoBit/', 'wb') as f:
-    f.write(grib.content)
+for i in range(len(Lista_2018)): 
+    session = requests.Session()
+    session.trust_env = False
+    grib= session.get(str(Lista_2018[i])[:-1])  
+    PATH_ELEMENTS= '/media/asus/Elements/GRIB025/' + str(Lista_2018[i])[:-1].split('/')[-1]
+    with open( PATH_ELEMENTS, 'wb') as f:
+        f.write(grib.content)
 
 
 
