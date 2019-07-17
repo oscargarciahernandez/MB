@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #################################################################
 
+import os
 import requests
 from bs4 import BeautifulSoup
 
@@ -69,15 +70,34 @@ with open('URLS_GFS025.txt', 'w') as f:
         f.write("%s\n" % item)
 
 '''
-with open('/home/asus/MB/python/URLS_GFS025.txt') as f:
-    Lista_2018= f.readlines()
 
+PATH_ELEMENTS= '/media/oscar/Elements/GRIB025/'
+Gribs_downloaded= os.listdir(PATH_ELEMENTS)
+
+
+#LEER LOS LINKS DESDE EL TXT
+with open('/home/oscar/MB/python/URLS_GFS025.txt') as f:
+    Lista_2018= f.readlines()
+    
+
+
+#COMPROBAR CUALES ESTÁN YA DESCARGADOS Y BORRARLOS DE LA LISTA
+YA_DESCARGADOS= []
+for i in range(len(Lista_2018)):
+    if str(Lista_2018[i].split('/')[-1])[:-1] in Gribs_downloaded:
+        YA_DESCARGADOS.append(i)
+
+for i in range(len(YA_DESCARGADOS)):     
+    del Lista_2018[YA_DESCARGADOS[i]]
+
+
+#DESCARGAR GRIBS
 for i in range(len(Lista_2018)): 
     session = requests.Session()
     session.trust_env = False
     grib= session.get(str(Lista_2018[i])[:-1])  
-    PATH_ELEMENTS= '/media/asus/Elements/GRIB025/' + str(Lista_2018[i])[:-1].split('/')[-1]
-    with open( PATH_ELEMENTS, 'wb') as f:
+    PATH_GRIB=  PATH_ELEMENTS + str(Lista_2018[i])[:-1].split('/')[-1]
+    with open( PATH_GRIB, 'wb') as f:
         f.write(grib.content)
 
 

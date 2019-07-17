@@ -932,11 +932,305 @@ pmap<- autoplot(mapa)+ theme(axis.line=element_blank(),axis.text.x=element_blank
 
 pmap + 
   geom_point(data=TABLA_CORRELATION20, aes(x=LON , y= LAT , color= FC_WS, size= FC_WS * 2))+
-      scale_colour_gradientn(colours=rainbow(3))+
+      scale_colour_gradient(low = "blue", high = "red")+
    geom_point(aes(x=TABLA_MERGE$LON %>% unique() ,
                          y= TABLA_MERGE$LAT %>% unique()), color= "white", size= 2)
 
 
 
 ```
+
+```{r eval=FALSE }
+PUNTO_BC<- TABLA_CORRELATION20[TABLA_CORRELATION20$FC_WS %>% which.max(),]
+TABLA_BC<- TABLA_MERGE %>% filter(LON_WRF== PUNTO_BC$LON, LAT_WRF==PUNTO_BC$LAT)
+TABLA_BC %>% 
+  ggplot()+ 
+  geom_density_2d(aes(x= U10_MEAN, y= V10_MEAN, fill= PRUDUCCION_MWH))
+
+ggplot(TABLA_BC, aes(x=U10_MEAN, y=V10_MEAN) ) +
+  stat_density_2d(geom = "polygon",
+                  colour="white",
+                  position = "identity")
+ 
+X<- ggplot(TABLA_BC, aes(x=U10_MEAN, y=V10_MEAN) ) +
+  geom_bin2d(bins = 40) +
+  theme_bw()
+
+r<- ggplot_build(X)
+r2<- r$data %>% .[[1]]
+
+
+lista_contour<- list()
+for (i in 1:nrow(r2)) {
+  value=r2[i,]
+  
+  tabl<- TABLA_BC %>% filter(U10_MEAN< value$xmax,
+                             U10_MEAN> value$xmin,
+                             V10_MEAN< value$ymax,
+                             V10_MEAN> value$ymin) 
+  tabla_countour<- cbind(tabl$PRUDUCCION_MWH %>% mean(),
+                         value$x,
+                         value$y) %>% as.data.frame()
+  colnames(tabla_countour)<- c("prod0", "x","y")
+  lista_contour[[i]]<- tabla_countour
+  
+
+}
+
+tabla_contour<- lista_contour %>% bind_rows()
+
+
+ggplot()+ geom_raster(data = tabla_contour, aes(x= tabla_contour$x,
+                                           y=tabla_contour$y,
+                                           fill=tabla_contour$prod0))+ geom_contour(colour= "white")
+
+  scale_y_continuous(breaks = 1, labels = "y", expand = c(0,0)) + 
+          scale_x_discrete(expand = c(0,0))
+
+
+
+
+
+
+tabla_contour$x %>% range()
+tabla_contour$y %>% range()
+
+ggplot() +  geom_contour(data = tabla_contour, aes(x= tabla_contour$x,
+                                           y=tabla_contour$y,
+                                           z=tabla_contour$prod0), 
+                         binwidth= 10)
+
+
+
+ggplot(TABLA_BC, aes(x=U10_MEAN, 
+                     y=V10_MEAN)) + 
+  geom_raster(data = tabla_contour, aes(x= tabla_contour$x,
+                                           y=tabla_contour$y,
+                                           fill=tabla_contour$prod0))+
+  geom_density_2d(aes(colour= stat(level)))
+
+ggplot(TABLA_BC, aes(x=U10_MEAN, 
+                     y=V10_MEAN)) + 
+  geom_raster(aes(fill=PRUDUCCION_MWH))
+
+
+  library(plotly)
+  plot_ly(x=TABLA_BC$U10_MEAN, 
+          y=TABLA_BC$V10_MEAN, 
+          z=TABLA_BC$PRUDUCCION_MWH, 
+          type="scatter3d", mode="markers", color=TABLA_BC$PRUDUCCION_MWH)
+  
+```
+  
+```{r}
+PUNTO_BC<- TABLA_CORRELATION20[TABLA_CORRELATION20$FC_WS %>% which.max(),]
+TABLA_BC<- TABLA_MERGE %>% filter(LON_WRF== PUNTO_BC$LON, LAT_WRF==PUNTO_BC$LAT)
+
+
+TABLA_CORR<- TABLA_BC %>% group_split(month(DATE), year(DATE)) %>% lapply(function(x){
+  tabla_cor<- data.frame(year(x$DATE) %>% unique(),
+                         month(x$DATE) %>% unique(), 
+                         cor(x$FC, x$WS),
+                         cor(x$FC, x$WSMAX),
+                         cor(x$PRUDUCCION_MWH, x$WS),
+                         cor(x$PRUDUCCION_MWH, x$WSMAX),
+                         nrow(x))
+  colnames(tabla_cor)<- c("year", "mont", "FC_cor",
+                           "FC_corMAX", "PRODUC_cor", 
+                          "PRODUC_corMAX", "cases")
+  return(tabla_cor)
+  
+  }) %>% bind_rows() 
+
+TABLA_CORR %>% kable()
+
+
+TABLA_CORR[,3:ncol(TABLA_CORR)] %>% summarise_all(mean) %>%  kable()
+```
+
+
+
+
+```{r}
+TABLA_CORR_FILT<- TABLA_CORR %>% .[complete.cases(.),] %>% filter(cases > 130 )
+
+max_cor<- TABLA_CORR_FILT[(TABLA_CORR_FILT[,c("FC_cor")] %>% which.max()),]
+max_cor %>% kable()
+min_cor<-TABLA_CORR_FILT[(TABLA_CORR_FILT[,c("FC_cor")] %>% which.min()),]
+min_cor %>% kable()
+```
+
+
+
+```{r}
+LISTA_LONLAT<- TABLA_MERGE %>%group_split(LON_WRF, LAT_WRF)
+
+
+LISTA_CORR<- list()
+for (i in 1:length(LISTA_LONLAT)) {
+  TABLA_LONLAT<- LISTA_LONLAT[[i]]
+TABLA_CORR<- TABLA_LONLAT %>% group_split(month(DATE), year(DATE)) %>% lapply(function(x){
+  tabla_cor<- data.frame(year(x$DATE) %>% unique(),
+                         month(x$DATE) %>% unique(), 
+                         cor(x$FC, x$WS),
+                         cor(x$FC, x$WSMAX),
+                         cor(x$PRUDUCCION_MWH, x$WS),
+                         cor(x$PRUDUCCION_MWH, x$WSMAX),
+                         nrow(x))
+  colnames(tabla_cor)<- c("year", "mont", "FC_cor",
+                           "FC_corMAX", "PRODUC_cor", 
+                          "PRODUC_corMAX", "cases")
+  return(tabla_cor)
+  
+  }) %>% bind_rows() 
+
+TABLA_FINAL<- cbind(TABLA_CORR, 
+                        TABLA_LONLAT$LON_WRF %>% unique() %>% rep(nrow(TABLA_CORR)),
+                        TABLA_LONLAT$LAT_WRF %>% unique() %>% rep(nrow(TABLA_CORR))) %>% as.data.frame()
+colnames(TABLA_FINAL)<- c(colnames(TABLA_CORR), "LON", "LAT")
+LISTA_CORR[[i]]<- TABLA_FINAL
+
+  
+}
+
+
+TABLA_CORR_TOTAL<- LISTA_CORR %>% bind_rows()
+
+```
+
+```{r}
+TABLA_MERGELONLAT<- LISTA_LONLAT %>% bind_rows()
+plot_list<- TABLA_CORR_TOTAL %>% group_split(year, mont)
+for (i in 1:length(plot_list)) {
+  
+  print(pmap + 
+  geom_point(data=plot_list[[i]], aes(x=LON , y= LAT , 
+                                 color= FC_cor, 
+                                 size= 0.5 + (FC_cor * 3)))+
+      scale_colour_gradient2(low = "green" ,high = "red",
+                             midpoint = plot_list[[i]]$FC_cor %>% mean())+
+  geom_point(aes(x=TABLA_MERGE$LON %>% unique() ,
+                 y= TABLA_MERGE$LAT %>% unique()), color= "red", size= 2)+
+  ggtitle(paste("Año/mes: ", plot_list[[i]]$year,
+                            paste(plot_list[[i]]$mont))))
+  
+  DATA_MAX<- plot_list[[i]] %>% .[which.max(.$FC_cor),]
+  Datos_rosa<- TABLA_MERGELONLAT %>% filter(LON_WRF==DATA_MAX$LON,
+                               LAT_WRF==DATA_MAX$LAT,
+                                year(DATE)== DATA_MAX$year,
+                               month(DATE)== DATA_MAX$mont)
+  library(openair)
+  windRose(Datos_rosa, ws = "WS", wd = "DIR", paddle = FALSE)    
+  
+  
+  
+}
+
+    
+```
+
+# TRATAMIENTO DE LOS DATOS TENIENDO EN CUENTA LAS ESPECIFICACIONES DE LOS AEROGENERADORES
+
+
+Los aerogeneradores empleandos en el parque de cerroblanco son ACCIONA AW77/1500. 
+
+Estos aerogeneradores tienen el buje a una altura de 77 metros, para ello, es interesante obtener la direccion y velocidad a diferentes alturas. Tienen un cut-in de 3.5 m/s y un cut-off de 25. Creo que alcanza potencia nominal a 11.5 m/s. A partir de aquí construimos la curva de potencia.  En rojo se representa la potencia del viento multiplicada con un CP constante de 0.35. La negra es una regresion exponencial normal y la azul es una media entre las dos... voy a pillar este valor medio... TOTAL, es una mierda de curva. 
+```{r eval=TRUE}
+
+cut_in<- 3.5
+nominal<- 11.5
+cut_off<- 25
+max_power<- 1500
+
+x<- data.frame(vwind= c(3.5, 11.5), power= c(0, 1500))
+fit<- lm(power ~ exp(vwind), data = x)
+
+
+plot(x$vwind, x$power, 
+     xlim=c(0,30),
+     ylim= c(0,1600), xlab= "Wind Speed (m/s)",
+     ylab= "Power (kW)", 
+     main= "AW77/1500 Estimated power curve ")
+lines(seq(0,11.5,length.out = 1000), predict(fit, data.frame(vwind=seq(0,11.5,length.out = 1000))))
+lines(x= c(11.5, 25, 25.1), y=c(1500,1500, 0))
+lines(seq(0,11.5,length.out = 1000), 
+      ((seq(0,11.5,length.out = 1000)^3*0.5*1.2*4657)/1000)*0.35, col="red")
+
+r<-(((seq(0,11.5,length.out = 1000)^3*0.5*1.2*4657)/1000)*0.35)-
+        predict(fit, data.frame(vwind=seq(0,11.5,length.out = 1000)))
+mean_c<- (seq(0,11.5,length.out = 1000)^3*0.5*1.2*4657/1000)*0.35 - r/2
+lines(seq(0,11.5,length.out = 1000), 
+      mean_c, col="blue")
+
+
+CURVA_FINAL<- data.frame(Vwind= c(seq(0,11.5,length.out = 1000),
+                                  seq(11.51,25,length.out = 100)),
+                         power= c(mean_c, rep(1500, 100)),
+                         power2= c(((seq(0,11.5,length.out = 1000)^3*0.5*1.2*4657)/1000)*0.35, rep(1500,100)),
+                         power3= c(predict(fit, data.frame(vwind=seq(0,11.5,length.out = 1000))), rep(1500,100)))
+CURVA_FINAL$power<- ifelse(CURVA_FINAL$Vwind<3.5, 0, CURVA_FINAL$power)
+ggplot(CURVA_FINAL)+
+  geom_line(aes(x= Vwind, y=power))+
+  theme_light()
+
+```
+
+```{r}
+
+CURVA_FINAL$interval<-  CURVA_FINAL$Vwind %>% cut(breaks=seq(0, 50, 0.1))
+TABLA_AGRUP<- CURVA_FINAL %>% group_split(interval) %>% lapply(function(x){
+  tabla<- cbind(x$power %>% mean(),
+                x$power2 %>% mean(),
+                x$power3 %>% mean(),
+        x$Vwind %>% mean(),
+        x$interval %>% unique() %>% as.character()) %>% as.data.frame()
+  colnames(tabla)<- c("power", "WS", "interval")
+  tabla
+  }) %>% bind_rows()
+
+TABLA_BC$Wind_INTERVAL<- TABLA_BC$WS%>% cut(breaks=seq(0, 50, 0.1))
+
+TABLA_POTENCIA<- TABLA_BC %>% group_split(Wind_INTERVAL) %>% 
+  lapply(function(x){
+    ESTM_POWER1<- CURVA_FINAL$power[which(CURVA_FINAL$interval== x$Wind_INTERVAL %>% unique() %>% as.character())]*32/1000
+    ESTM_POWER2<- CURVA_FINAL$power2[which(CURVA_FINAL$interval== x$Wind_INTERVAL %>% unique() %>% as.character())]*32/1000
+    ESTM_POWER3<- CURVA_FINAL$power3[which(CURVA_FINAL$interval== x$Wind_INTERVAL %>% unique() %>% as.character())]*32/1000
+    
+    x$EST_POWER1<- ifelse(length(ESTM_POWER1)==0, 
+                          rep(NA, 
+                              length(x$WS)),
+                          ESTM_POWER1)
+    x$EST_POWER2<- ifelse(length(ESTM_POWER2)==0, rep(NA, length(x$WS)), ESTM_POWER2)
+    x$EST_POWER3<- ifelse(length(ESTM_POWER3)==0, rep(NA, length(x$WS)), ESTM_POWER3)  
+  x
+  }) %>% bind_rows()
+
+TABLA_POTENCIA<- TABLA_POTENCIA %>% .[order(.$DATE), ]
+
+
+
+TABLA_MARZO<- TABLA_POTENCIA %>% group_split(month(DATE), week(DATE))
+for (i in 1:length(TABLA_MARZO)) {
+  print(ggplot(TABLA_MARZO[[i]]) + 
+  geom_line(aes(x= DATE, y=PRUDUCCION_MWH))+
+  geom_line(aes(x= DATE, y=WS), col= "red")+
+  geom_line(aes(x= DATE, y=EST_POWER1*DISPONIBILIDAD/100), col= "blue")+
+  geom_line(aes(x= DATE, y=EST_POWER2*DISPONIBILIDAD/100), col= "purple")+
+   geom_line(aes(x= DATE, y=EST_POWER3*DISPONIBILIDAD/100), col= "orange")+
+    theme_light()+
+  labs(main="Potencia Estimada (azul) Vs Potencia Real(Negra)", 
+       subtitle = "Velocidad del viento (rojo)",
+       caption = paste("Cor 1=  ",
+                       cor(TABLA_MARZO[[i]]$PRUDUCCION_MWH,
+                           TABLA_MARZO[[i]]$EST_POWER1,
+                           use= "complete.obs" ) %>% round(3)))+
+  xlab("Date")+
+  ylab("MW ó m/s"))
+  
+}
+
+  
+```
+
+
 
