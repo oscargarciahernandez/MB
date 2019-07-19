@@ -4,7 +4,17 @@
 import os
 import requests
 from bs4 import BeautifulSoup
-
+from bs4 import BeautifulSoup
+import requests
+import numpy as np
+import os
+import random
+import re
+import csv    
+import tqdm
+import multiprocessing as mp
+from  itertools import chain
+from datetime import date
 #ESTE SCRIPT ES PARA OBTENER TODAS LAS URLS DE LOS GRIBS QUE INICIALIZAN AL MODELO
 # TIENEN ESTA FORMA PARA IR POR CAPAS, 
 # PRIMERO OBTIENE LOS DATOS DE LOS MESES
@@ -76,29 +86,47 @@ Gribs_downloaded= os.listdir(PATH_ELEMENTS)
 
 
 #LEER LOS LINKS DESDE EL TXT
-with open('/home/oscar/MB/python/URLS_GFS025.txt') as f:
+with open('URLS_GFS025.txt') as f:
     Lista_2018= f.readlines()
     
 
 
-#COMPROBAR CUALES ESTÁN YA DESCARGADOS Y BORRARLOS DE LA LISTA
+#COMPROBAR CUALES ESTAN YA DESCARGADOS Y BORRARLOS DE LA LISTA
 YA_DESCARGADOS= []
 for i in range(len(Lista_2018)):
     if str(Lista_2018[i].split('/')[-1])[:-1] in Gribs_downloaded:
         YA_DESCARGADOS.append(i)
+        
+        
+Lista_nueva= [item for item in Lista_2018  if not str(item.split('/')[-1])[:-1] in Gribs_downloaded]
 
-for i in range(len(YA_DESCARGADOS)):     
-    del Lista_2018[YA_DESCARGADOS[i]]
-
-
+'''
 #DESCARGAR GRIBS
-for i in range(len(Lista_2018)): 
+for i in range(len(Lista_nueva)): 
     session = requests.Session()
     session.trust_env = False
-    grib= session.get(str(Lista_2018[i])[:-1])  
-    PATH_GRIB=  PATH_ELEMENTS + str(Lista_2018[i])[:-1].split('/')[-1]
+    grib= session.get(str(Lista_nueva[i])[:-1])  
+    PATH_GRIB=  PATH_ELEMENTS + str(Lista_nueva[i])[:-1].split('/')[-1]
     with open( PATH_GRIB, 'wb') as f:
+        print('Guardando ' + PATH_GRIB)
+        f.write(grib.content)
+'''   
+
+
+def DOWNLOAD_GFS(URL):
+    session = requests.Session()
+    session.trust_env = False
+    grib= session.get(str(URL)[:-1])  
+    PATH_GRIB=  PATH_ELEMENTS + str(URL)[:-1].split('/')[-1]
+    with open( PATH_GRIB, 'wb') as f:
+        #print('Guardando ' + PATH_GRIB)
         f.write(grib.content)
 
-
+pool = mp.Pool(mp.cpu_count()-3)
+for _ in tqdm.tqdm(pool.imap_unordered(DOWNLOAD_GFS, Lista_nueva)  , total=len(Lista_nueva)):
+    pass
+#MATAMOS SUBPROCESOS 
+pool.close()
+pool.terminate()
+pool.join()
 
