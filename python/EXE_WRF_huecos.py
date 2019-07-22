@@ -37,18 +37,19 @@ def COPY_GRIB_FILES():
     print('\n GRIBs guardados a la carpeta ' + PATH_SAVE_GRIBS)
 
 
-def COPY_NETCDF_FILES():
+def COPY_NETCDF_FILES(DATE_EXE):
     os.chdir(PATH_OUTPUT)
-    if not os.path.exists(PATH_SAVE_GRIBS):
-        os.makedirs(PATH_SAVE_OUTPUT)
+    PATH_SAVE_OUTPUT_DATE= PATH_SAVE_OUTPUT + '/' +  DATE_EXE
+    if not os.path.exists(PATH_SAVE_OUTPUT_DATE):
+        os.makedirs(PATH_SAVE_OUTPUT_DATE)
     
     grib_files = os.listdir()
     for file_name in grib_files:
         full_file_name = os.path.join(os.getcwd(), file_name)
         if os.path.isfile(full_file_name):
-            shutil.copy(full_file_name, PATH_SAVE_OUTPUT)
+            shutil.copy(full_file_name, PATH_SAVE_OUTPUT_DATE)
     
-    print('\n NETCDFs guardados a la carpeta ' + PATH_SAVE_GRIBS)
+    print('\n NETCDFs guardados a la carpeta ' + PATH_SAVE_OUTPUT_DATE)
 
 
 # IMPORTAMOS LA LISTA DE HUECOS... ESTA LISTA CONTIENE
@@ -56,11 +57,11 @@ def COPY_NETCDF_FILES():
 # HORA DE INICIALIZACION Y DURACION DEL LA SIMULACION
         
 import re    
-with open('/home/oscar/MB/python/huecos_info.txt') as f:
+with open('/home/asus/MB/python/huecos_info.txt') as f:
     Lista_huecos= f.readlines()
 
 
-for i in np.arange(1, len(Lista_huecos)):
+for i in np.arange(8, len(Lista_huecos)):
     HORA_EXE= re.sub("[^0-9]", "", Lista_huecos[i].split(';')[-3])
     DURATION_EXE= re.sub("[^0-9]", "", Lista_huecos[i].split(';')[-2])
     DATE_EXE= re.sub("[^0-9]", "", Lista_huecos[i].split(';')[-1])
@@ -70,8 +71,14 @@ for i in np.arange(1, len(Lista_huecos)):
     
     procces= subprocess.Popen(command_modelo,stdout= subprocess.PIPE, cwd= PATH_MODELO, shell=True)
     output, error = procces.communicate()
+    print(str(output))
     print('\n Simulacion para el dia ' + DATE_EXE + '  finalizada --- ' + str(datetime.datetime.now())[:-7])
     
+    
+    print('\n Guardando Gribs')
+    
     COPY_GRIB_FILES()
-    COPY_NETCDF_FILES()
-
+    
+    print('\n Guardando NetCDFs')   
+    COPY_NETCDF_FILES(DATE_EXE)
+    

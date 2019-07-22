@@ -24,8 +24,8 @@ from datetime import date
 # LUEGO HAREMOS UN SCRIPT PARA SELECCIONAR LAS QUE QUERAMOS Y DESCARGARLA. 
 
 
-'''    
-URL_BUSQUEDA= 'http://ems3.comet.ucar.edu/data/grib/gfsp25/'
+  
+URL_BUSQUEDA= 'https://opendata.dwd.de/weather/nwp/icon/grib/'
 
 #INICIAMOS SESION REQUEST
 session = requests.Session()
@@ -52,21 +52,55 @@ for j in range(len(Lista_disponible)):
     user_soup = BeautifulSoup(GET_CAPA2.content, 'html.parser')
     user_soup1=user_soup.find_all('a')
     for i in range(len(user_soup1)):
-        
-        if user_soup1[i].text[:-1].isdigit():
-            Lista_disponible1.append(URL_MES + user_soup1[i].text)
+        Lista_disponible1.append(URL_MES + user_soup1[i].text)
             
 Lista_disponible2= []
 for j in range(len(Lista_disponible1)): 
-    URL_DIA= Lista_disponible1[j] + 'grib.t00z/'
+    URL_DIA= Lista_disponible1[j]
     GET_CAPA3= session.get(URL_DIA)
     user_soup = BeautifulSoup(GET_CAPA3.content, 'html.parser')
     user_soup1=user_soup.find_all('a')
     for i in range(len(user_soup1)):
-        if user_soup1[i].text[:5].isdigit():
-            Lista_disponible2.append(URL_DIA + user_soup1[i].text)
-            
-            
+        Lista_disponible2.append(URL_DIA + user_soup1[i]['href'])
+
+
+GRIBS_DISPONIBLES= [item for item in Lista_disponible2 if '.grib2.bz2' in item]       
+
+SINGLE_L_GRIBS=[item for item in GRIBS_DISPONIBLES if 'icon_global_icosahedral_single-level_' in item]
+
+LEVELS_GRIBS=[item for item in GRIBS_DISPONIBLES if 'icon_global_icosahedral_model-level_' in item]
+
+PRESSURE_LEVELS= [item for item in GRIBS_DISPONIBLES if 'icon_global_icosahedral_pressure-level_' in item]
+
+SOIL_LEVEL_GRIBS= [item for item in GRIBS_DISPONIBLES if 'icon_global_icosahedral_soil-level_' in item]
+
+TIME_INVARIANT_GRIB=   [item for item in GRIBS_DISPONIBLES if 'icon_global_icosahedral_time-invariant_' in item]
+
+
+
+SINGLE_L_GRIBS_48= [item for item in SINGLE_L_GRIBS if int(item.split('/')[-1].replace('icon_global_icosahedral_single-level_', "").split("_")[1]) <= 48 ]
+
+LEVELS_GRIBS_48= [item for item in LEVELS_GRIBS if int(item.split('/')[-1].replace('icon_global_icosahedral_model-level_', "").split("_")[1]) <= 48 ]
+
+PRESSURE_GRIBS_48= [item for item in PRESSURE_LEVELS if int(item.split('/')[-1].replace('icon_global_icosahedral_pressure-level_', "").split("_")[1]) <= 48 ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ESCOJEMOS SOLO LOS DATOS DE 2018 Y SOLO HASTA 48 HORAS DE FORECAST
 Lista_2018= []
 for i in range(len(Lista_disponible2)): 
