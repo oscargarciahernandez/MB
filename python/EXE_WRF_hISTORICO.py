@@ -12,7 +12,7 @@ import subprocess
 import datetime
 
 
-NOMBRE_DOMINIO= 'eibar2'
+NOMBRE_DOMINIO= 'tamaulipas'
 PATH_MODELO= '/usr1/uems/runs/'+ NOMBRE_DOMINIO 
 PATH_GRIBS=  PATH_MODELO + '/grib'
 PATH_OUTPUT= PATH_MODELO + '/wrfprd'
@@ -21,7 +21,7 @@ PATH_SAVE= '/usr1/uems/runs/ARCHIVOS_GUARDADOS'
 PATH_SAVE_GRIBS= PATH_SAVE + '/grib'
 PATH_SAVE_OUTPUT= PATH_SAVE + '/netcdf/' + NOMBRE_DOMINIO
 
-GRIB_SOURCE= '/media/asus/Elements/GRIB025/'
+GRIB_SOURCE= '/home/meteobit/GRIBS_201801/'
 
 
 
@@ -55,18 +55,28 @@ def COPY_FROM_X_TO_GRIB(FECHA_EJECUCION):
 
 
 
-def COPY_NETCDF_FILES():
+def COPY_NETCDF_FILES(FECHA_EJECUCION):
+    
     os.chdir(PATH_OUTPUT)
     if not os.path.exists(PATH_SAVE_OUTPUT):
         os.makedirs(PATH_SAVE_OUTPUT)
+        
+        
+    PATH_SAVE_EXE_DATE= PATH_SAVE_OUTPUT + '/' + FECHA_EJECUCION
+    
+    if not os.path.exists(PATH_SAVE_EXE_DATE):
+        os.makedirs(PATH_SAVE_EXE_DATE)
     
     grib_files = os.listdir()
-    for file_name in grib_files:
-        full_file_name = os.path.join(os.getcwd(), file_name)
-        if os.path.isfile(full_file_name):
-            shutil.copy(full_file_name, PATH_SAVE_OUTPUT)
-    
-    print('\n NETCDFs guardados a la carpeta ' + PATH_SAVE_OUTPUT)
+    if grib_files:
+        for file_name in grib_files:
+            full_file_name = os.path.join(os.getcwd(), file_name)
+            if os.path.isfile(full_file_name):
+                shutil.copy(full_file_name, PATH_SAVE_EXE_DATE)
+        
+        print('\n NETCDFs guardados a la carpeta ' + PATH_SAVE_EXE_DATE)
+    else:
+        print('\n Carpeta de WRFPRD vacia, ha fallado la ejecucion del modelo')
 
 
 # PONEMOS LOS DÍAS QUE QUEREMOS DESDE 20190101 HASTA 20190631
@@ -90,16 +100,23 @@ for mes in np.arange(1,13):
 if not os.path.exists(PATH_SAVE):
     os.makedirs(PATH_SAVE)
 
-for FECHA_EJECUCION in dias_2018: 
+for FECHA_EJECUCION in dias_2018[1:5]: 
     
+    #COPIAMOS LOS GRIBS A LA CARPETA DE GRIBS
     COPY_FROM_X_TO_GRIB(FECHA_EJECUCION)
-    command_modelo= './ems_autorun --date ' +  FECHA_EJECUCION + ' --length 48 --dset gfsp25 --local'
+    
+    #CREAMOS EL COMANDO ANADIENDO LA FECHA DE EJECUCION 
+    command_modelo= './ems_prep --date ' +  FECHA_EJECUCION + ' --cycle 00:00:48 --dset gfsp25 --local --domain 1,2,3 && ./ems_run --domain 1,2,3'
     print('\n Ejecutamos modelo para el dia ' + FECHA_EJECUCION + ' --- ' + str(datetime.datetime.now())[:-7])
     
+    
+    #EJECUTAMOS EL MODELO 
     procces= subprocess.Popen(command_modelo,stdout= subprocess.PIPE, cwd= PATH_MODELO, shell=True)
     output, error = procces.communicate()
+    print(output)
     print('\n Simulacion para el dia ' + FECHA_EJECUCION + '  finalizada --- ' + str(datetime.datetime.now())[:-7])
     
     
-    COPY_NETCDF_FILES()
-
+    #COPIAMOS LA SALIDA DEL MODELO A CARPETA EXTERIOR
+    COPY_NETCDF_FILES(FECHA_EJECUCION)
+    
