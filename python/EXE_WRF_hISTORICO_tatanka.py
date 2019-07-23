@@ -12,7 +12,7 @@ import subprocess
 import datetime
 
 
-NOMBRE_DOMINIO= 'tamaulipas'
+NOMBRE_DOMINIO= 'tatanka'
 PATH_MODELO= '/usr1/uems/runs/'+ NOMBRE_DOMINIO 
 PATH_GRIBS=  PATH_MODELO + '/grib'
 PATH_OUTPUT= PATH_MODELO + '/wrfprd'
@@ -90,6 +90,7 @@ for mes in np.arange(1,13):
 
 
         
+
 
 
 #EJECUTAMOS EL MODELO PARA TODOS LOS DIAS UN PERIODO DE 24 HORAS
