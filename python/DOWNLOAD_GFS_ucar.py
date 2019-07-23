@@ -100,6 +100,11 @@ for i in range(len(Lista_2018)):
         
 Lista_nueva= [item for item in Lista_2018  if not str(item.split('/')[-1])[:-1] in Gribs_downloaded]
 
+with open('URLS_GFS025.txt', 'w') as f:
+    for item in Lista_nueva:
+        f.write("%s\n" % item)
+
+
 '''
 #DESCARGAR GRIBS
 for i in range(len(Lista_nueva)): 

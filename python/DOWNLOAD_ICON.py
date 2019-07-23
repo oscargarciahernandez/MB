@@ -141,7 +141,7 @@ def DOWNLOAD_ICON(URLs_PATH_ICON):
     
     
     #CREAMOS EL PATH SI NO EXISTE 
-    PATH_GRIB=  PATH_DOWN_ICON + '/' + str(URL)[:-1].split('/')[-1]    
+    PATH_GRIB=  PATH_DOWN_ICON + '/' + str(URL)[:].split('/')[-1]    
     if not os.path.exists(PATH_DOWN_ICON):
         os.makedirs(PATH_DOWN_ICON)
     
@@ -155,7 +155,7 @@ def DOWNLOAD_ICON(URLs_PATH_ICON):
 #HACEMOS MULTIPROCCESO CON BARRA DE PROGRESO
 for Lista_var in [SINGLE_L_GRIBS_48_00, LEVELS_GRIBS_48_00, PRESSURE_GRIBS_48_00]:
     
-    Lista_nueva= [item for item in Lista_var if not str(item.split('/')[-1])[:-1] in str(Gribs_downloaded)]
+    Lista_nueva= [item for item in Lista_var if not str(item.split('/')[-1])[:] in str(Gribs_downloaded)]
     
     
     MERGE_INPUT=[]
@@ -177,7 +177,21 @@ for Lista_var in [SINGLE_L_GRIBS_48_00, LEVELS_GRIBS_48_00, PRESSURE_GRIBS_48_00
 
 
 
+'''
+#CON ESTE PEDAZON DE CODIGO SE CAMBIA EL NOMBRE DE LOS ARCHIVOS DE BZ A BZ2
 
+PATH_ICON_DOWNLOAD= '/home/asus/MB/python/ICON'
+Gribs_downloaded= []
+for (dirpath, dirnames, filenames) in os.walk(PATH_ICON_DOWNLOAD):
+     Gribs_downloaded.append([dirpath, filenames])
+     
 
-
+for i in Gribs_downloaded[1:]:
+    if i:
+        for j in range(len(i[1])):
+            if i[1][j]:
+                os.rename( i[0] + '/' +i[1][j] , i[0] + '/' +i[1][j] + str(2))
+      
+    
+'''
 

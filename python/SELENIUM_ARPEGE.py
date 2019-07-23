@@ -52,7 +52,9 @@ def main():
          for x in wx:
              LOG_DATES.append(x)
     
-    for Av_dates in TXT_DATE: 
+    
+    #SELECCIONAMOS SOLO LA SIMULACION 0
+    for Av_dates in [item for item in TXT_DATE if int(item.split(' ')[-2])==0]: 
         if Av_dates not in str(LOG_DATES):
            
             for HP in [1,2]:              
