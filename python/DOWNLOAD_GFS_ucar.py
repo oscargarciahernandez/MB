@@ -100,21 +100,15 @@ for i in range(len(Lista_2018)):
         
 Lista_nueva= [item for item in Lista_2018  if not str(item.split('/')[-1])[:-1] in Gribs_downloaded]
 
+
+
+'''
+#REESCRIBIR URLS_GFS025 ANTES DE GUARDAR AL NAS
+
 with open('URLS_GFS025.txt', 'w') as f:
     for item in Lista_nueva:
         f.write("%s\n" % item)
 
-
-'''
-#DESCARGAR GRIBS
-for i in range(len(Lista_nueva)): 
-    session = requests.Session()
-    session.trust_env = False
-    grib= session.get(str(Lista_nueva[i])[:-1])  
-    PATH_GRIB=  PATH_ELEMENTS + str(Lista_nueva[i])[:-1].split('/')[-1]
-    with open( PATH_GRIB, 'wb') as f:
-        print('Guardando ' + PATH_GRIB)
-        f.write(grib.content)
 '''   
 
 
