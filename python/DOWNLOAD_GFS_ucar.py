@@ -22,9 +22,7 @@ from datetime import date
 # LUEGO ENTRA EN LOS DIAS Y OBTIENE LA URL DEL ARCHIVO GRIB QUE ES EL QUE DESEAMOS
 # DE ESTA FORMA LAS TODAS LAS URLS DISPONIBLES SE ENCUENTRAN EN LISTA_DISPONIBLE2
 # LUEGO HAREMOS UN SCRIPT PARA SELECCIONAR LAS QUE QUERAMOS Y DESCARGARLA. 
-
-
-'''    
+'''
 URL_BUSQUEDA= 'http://ems3.comet.ucar.edu/data/grib/gfsp25/'
 
 #INICIAMOS SESION REQUEST
@@ -73,20 +71,36 @@ for i in range(len(Lista_disponible2)):
     if not int(Lista_disponible2[i].split('/')[7][:4]) < 2018:
         if int(Lista_disponible2[i][-3:])<49:
             Lista_2018.append(Lista_disponible2[i])
+
         
 
 with open('URLS_GFS025.txt', 'w') as f:
     for item in Lista_2018:
         f.write("%s\n" % item)
 
+
+#COJEMOS SOLO LOS DATOS DE 2019
+Lista_2019= []
+for i in range(len(Lista_disponible2)): 
+    if int(Lista_disponible2[i].split('/')[7][:4]) == 2019:
+        if int(Lista_disponible2[i][-3:])<49:
+            Lista_2019.append(Lista_disponible2[i])
+            
+with open('URLS_GFS025_2019.txt', 'w') as f:
+    for item in Lista_2019:
+        f.write("%s\n" % item)
+        
 '''
 
-PATH_ELEMENTS= '/media/asus/Elements/GRIB025/'
+
+
+
+PATH_ELEMENTS= '/home/asus/GRIBS_025_2019/'
 Gribs_downloaded= os.listdir(PATH_ELEMENTS)
 
 
 #LEER LOS LINKS DESDE EL TXT
-with open('URLS_GFS025.txt') as f:
+with open('URLS_GFS025_2019.txt') as f:
     Lista_2018= f.readlines()
     
 
