@@ -1233,4 +1233,130 @@ for (i in 1:length(TABLA_MARZO)) {
 ```
 
 
+# TANTANKA
+
+```{r}
+INFO_PE<-  here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS') %>% readRDS()
+INFO_CB<- INFO_PE %>% filter(PARQUE=='P.E.Tatanka')
+
+head(INFO_CB)
+
+
+```
+
+<br />
+
+
+**El parque de cerroblanco cuenta con una potencia máxima instalada de 48 MW.**
+
+<br />
+ 
+
+```{r}
+summary(INFO_CB[, c("PRUDUCCION_MWH","DISPONIBILIDAD")])
+```
+```{r}
+INFO_CB<- INFO_CB %>% mutate(CAPACIDAD_REAL= (DISPONIBILIDAD*CAPACIDAD/100),
+                             FC= (PRUDUCCION_MWH/CAPACIDAD_REAL))
+
+ggplot(INFO_CB)+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD))+
+  geom_line(aes(x=DATE, y=FC * 100), col= "red" , alpha= 0.3)+
+  geom_line(aes(x=DATE, y=PRUDUCCION_MWH), col= "blue" , alpha= 0.4)+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)')
+  
+
+```
+
+En la gráfica en la que no eliminamos el ruido nos encontramos con varios valores de factor de capacidad infinito... Hay que tener en cuenta para eliminarlos posteriormente. 
+
+
+<br />
+<br />
+
+```{r}
+
+#ELIMINAMOS LOS INFINITOS
+ INFO_CB$FC<- ifelse(is.infinite(INFO_CB$FC), 0, INFO_CB$FC)
+ INFO_CB$FC<- ifelse(INFO_CB$FC > 1, 1, INFO_CB$FC)
+ ggplot(INFO_CB)+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD))+
+  geom_line(aes(x=DATE, y=FC * 100), col= "red" , alpha= 0.3)+
+  geom_line(aes(x=DATE, y=PRUDUCCION_MWH), col= "blue" , alpha= 0.4)+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)')
+  
+ 
+
+
+MA<- INFO_CB %>% .[complete.cases(.), ]
+MA<- MA[!is.infinite(MA$FC),]
+MA$DISP<- SMA(MA$DISPONIBILIDAD, 48)
+MA$FC<- SMA((MA$FC * 100), 96)
+MA$PROD<- SMA(MA$PRUDUCCION_MWH, 96)
+
+ggplot(MA)+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD), alpha= 0.4)+
+  geom_line(aes(x=DATE, y=FC), col= "red")+
+  geom_line(aes(x=DATE, y= PROD), col= "blue")+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)',
+       subtitle = 'Aplicando MA para suavizar la gráfica')
+
+
+
+ INFO_CB$FC<- ifelse(is.infinite(INFO_CB$FC), 0, INFO_CB$FC)
+ INFO_CB$FC<- ifelse(INFO_CB$FC > 1, 1, INFO_CB$FC)
+ for (i in 1:6) {
+  
+   print( ggplot(INFO_CB %>% filter(month(DATE)== i, year(DATE) == 2019))+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD))+
+  geom_line(aes(x=DATE, y=FC * 100), col= "red" , alpha= 0.3)+
+  geom_line(aes(x=DATE, y=PRUDUCCION_MWH), col= "blue" , alpha= 0.4)+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)')) 
+ }
+
+  
+ 
+    ggplot(INFO_CB %>% filter(month(DATE)== 4, year(DATE) == 2019))+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD))+
+  geom_line(aes(x=DATE, y=FC * 100), col= "red" , alpha= 0.3)+
+  geom_line(aes(x=DATE, y=PRUDUCCION_MWH), col= "blue" , alpha= 0.4)+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)')
+
+```
+
+<br />
+<br />
+
+```{r}
+ INFO_CB$FC<- ifelse(is.infinite(INFO_CB$FC), 0, INFO_CB$FC)
+ ggplot(INFO_CB)+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD))+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)')
+ for (i in 1:12) {
+   
+  INFO_CB$FC<- ifelse(is.infinite(INFO_CB$FC), 0, INFO_CB$FC)
+ print(ggplot(INFO_CB %>% filter(month(DATE)== i, year(DATE) == 2018))+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD))+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)'))
+   
+ }
+ 
+  for (i in 1:6) {
+   
+  INFO_CB$FC<- ifelse(is.infinite(INFO_CB$FC), 0, INFO_CB$FC)
+ print(ggplot(INFO_CB %>% filter(month(DATE)== i, year(DATE) == 2019))+
+  geom_line(aes(x=DATE, y=DISPONIBILIDAD))+
+  theme_light()+
+  labs(title = 'Disponibilidad[%](negra), FC[%](roja) y Producción[MWH](azul)'))
+   
+ }
+  
+```
 
