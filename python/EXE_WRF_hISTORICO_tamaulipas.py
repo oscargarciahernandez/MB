@@ -12,7 +12,7 @@ import subprocess
 import datetime
 
 
-NOMBRE_DOMINIO= 'waubra'
+NOMBRE_DOMINIO= 'tamaulipas'
 PATH_MODELO= '/usr1/uems/runs/'+ NOMBRE_DOMINIO 
 PATH_GRIBS=  PATH_MODELO + '/grib'
 PATH_OUTPUT= PATH_MODELO + '/wrfprd'
@@ -140,9 +140,6 @@ for mes in np.arange(1,13):
 
 if not os.path.exists(PATH_SAVE):
     os.makedirs(PATH_SAVE)
-
-if not os.path.exists(PATH_SAVE_OUTPUT):
-    os.makedirs(PATH_SAVE_OUTPUT)
 
 for FECHA_EJECUCION in dias_2018[1:]: 
     

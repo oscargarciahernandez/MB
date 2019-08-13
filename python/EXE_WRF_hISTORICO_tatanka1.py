@@ -91,7 +91,6 @@ for mes in np.arange(1,13):
 
         
 
-
 #EJECUTAMOS EL MODELO PARA TODOS LOS DIAS UN PERIODO DE 24 HORAS
 # CORREMOS EL MODELO CON --noscour ESO ES IMPORTANTE PORQUE ASI NO SE BORRAN LOS GRIBS 
 # Y SE PUEDEN EMPLEAR PARA CORRER OTROS DOMINIOS
@@ -100,23 +99,31 @@ for mes in np.arange(1,13):
 if not os.path.exists(PATH_SAVE):
     os.makedirs(PATH_SAVE)
 
-for FECHA_EJECUCION in dias_2018[1:5]: 
+for FECHA_EJECUCION in dias_2018[1:]: 
     
     #COPIAMOS LOS GRIBS A LA CARPETA DE GRIBS
-    COPY_FROM_X_TO_GRIB(FECHA_EJECUCION)
+    SIMULACIONES_HECHAS= os.listdir(PATH_SAVE_OUTPUT)
+
+    if FECHA_EJECUCION in SIMULACIONES_HECHAS:
+        print('\n SIMULACION ' + FECHA_EJECUCION  + ' YA HECHA ')
+        pass
     
-    #CREAMOS EL COMANDO ANADIENDO LA FECHA DE EJECUCION 
-    command_modelo= './ems_prep --date ' +  FECHA_EJECUCION + ' --cycle 00:00:48 --dset gfsp25 --local --domain 1,2,3 && ./ems_run --domain 1,2,3'
-    print('\n Ejecutamos modelo para el dia ' + FECHA_EJECUCION + ' --- ' + str(datetime.datetime.now())[:-7])
-    
-    
-    #EJECUTAMOS EL MODELO 
-    procces= subprocess.Popen(command_modelo,stdout= subprocess.PIPE, cwd= PATH_MODELO, shell=True)
-    output, error = procces.communicate()
-    print(output)
-    print('\n Simulacion para el dia ' + FECHA_EJECUCION + '  finalizada --- ' + str(datetime.datetime.now())[:-7])
-    
-    
-    #COPIAMOS LA SALIDA DEL MODELO A CARPETA EXTERIOR
-    COPY_NETCDF_FILES(FECHA_EJECUCION)
+    else:
+        COPY_FROM_X_TO_GRIB(FECHA_EJECUCION)
+        
+        
+        #CREAMOS EL COMANDO ANADIENDO LA FECHA DE EJECUCION 
+        command_modelo= './ems_prep --date ' +  FECHA_EJECUCION + ' --cycle 00:00:48 --dset gfsp25 --local --domain 1,2,3 && ./ems_run --domain 1,2,3'
+        print('\n Ejecutamos modelo para el dia ' + FECHA_EJECUCION + ' --- ' + str(datetime.datetime.now())[:-7])
+        
+        
+        #EJECUTAMOS EL MODELO 
+        procces= subprocess.Popen(command_modelo,stdout= subprocess.PIPE, cwd= PATH_MODELO, shell=True)
+        output, error = procces.communicate()
+        print(output)
+        print('\n Simulacion para el dia ' + FECHA_EJECUCION + '  finalizada --- ' + str(datetime.datetime.now())[:-7])
+        
+        
+        #COPIAMOS LA SALIDA DEL MODELO A CARPETA EXTERIOR
+        COPY_NETCDF_FILES(FECHA_EJECUCION)
     
