@@ -1,3 +1,6 @@
+library(here)
+source(here::here('libraries.R'), echo=FALSE)
+
 source(here::here('/Spain_CSV_Generator.R'), echo=FALSE)
 source(here::here('/Actualizar_data_parques.R'), echo=FALSE)
 source(here::here('/CSV_Generator_VientoMAX.R'), echo=FALSE)
