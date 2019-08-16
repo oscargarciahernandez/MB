@@ -125,6 +125,13 @@ def CONCAT_AND_NCVIEW(PATH_DOMAIN, NCVIEW= True):
         COMMAND_MERGE_NETCDFS='ncecat * -O ' + MERGE_FILE 
         procces= subprocess.Popen(COMMAND_MERGE_NETCDFS, stdout= subprocess.PIPE, cwd= PATH_DOMAIN, shell=True)
         output, error = procces.communicate()
+        
+        '''
+        QUIERO ELIMINAR TODOS LOS ARCHIVOS JUSTO DESPUES DE CONCATENARLOS
+        LISTA_WRFOUT= [item for item in os.listdir(PATH_DOMAIN) if 'wrfout_' in item]
+        for i in LISTA_WRFOUT:
+            os.remove(PATH_DOMAIN + i)
+        '''
     
     if NCVIEW:
         COMMAND_NCVIEW='ncview ' + PATH_DOMAIN.split('/')[-2] + '.nc'   
@@ -177,9 +184,15 @@ BUCLE PARA CONCATENAR LOS ARCHIVOS NETCDFS EN UN UNICO ARCHIVO
 
 SUBDIRS= os.listdir(PATH_OUTPUTS)
 
+
+'''
+ESTO ES EXCLUSIVO PARA TAMAULIPAS PORQUE SE NOS COLARON ESTAS SIMULACIONES QUE NO NOS 
+VALE, POR ESO LAS ELIMINO
+
+'''
+
 SUBDIRS.remove('20180102')
 SUBDIRS.remove('20180105')
-SUBDIRS.remove('20190113')
 
 
 for dirs in SUBDIRS:
@@ -215,7 +228,6 @@ for dirs in SUBDIRS:
         
         for i in FILES_D02:
             os.rename(PATH_TO_NETCDFS + i, PATH_D02 + i.replace(':', '_')  )
-                
         for i in FILES_D03:
             os.rename(PATH_TO_NETCDFS + i, PATH_D03 + i.replace(':', '_')  )
     
