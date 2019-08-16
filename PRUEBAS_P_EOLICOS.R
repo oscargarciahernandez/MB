@@ -71,10 +71,6 @@ A CONTINUACION TRATAMOS LA SALIDA DEL MODELO DE TANTAKA PARA VER LAS DIFERENCIAS
 
 "
 
-"
-A CONTINUACION TRATAMOS LA SALIDA DEL MODELO DE TANTAKA PARA VER LAS DIFERENCIAS EXISTENTES DEBIDOS 
-
-"
 library(here)
 source('libraries.R')
 library(tools)
@@ -147,7 +143,7 @@ spdf <- SpatialPointsDataFrame(coords = data_loc, data = data_loc,
 if(!dir.exists(here::here('Mapas/Raster_TATANKA/'))){dir.create(here::here('Mapas/Raster_TATANKA/'), recursive = T)}
 
 if(file.exists(here::here('Mapas/Raster_TATANKA/map_raster1.RDS'))){
-  map_raster1<- readRDS(here::here('Mapas/Raster_Cerroblanco/map_raster1.RDS'))
+  map_raster1<- readRDS(here::here('Mapas/Raster_TATANKA/map_raster1.RDS'))
 }else{
   map_raster1<- get_elev_raster(spdf, z=12)
   saveRDS(map_raster1,here::here('Mapas/Raster_TATANKA/map_raster1.RDS'))
@@ -191,10 +187,10 @@ spdf <- SpatialPointsDataFrame(coords = data_loc, data = data_loc,
 if(!dir.exists(here::here('Mapas/Raster_TATANKA/'))){dir.create(here::here('Mapas/Raster_TATANKA/'), recursive = T)}
 
 if(file.exists(here::here('Mapas/Raster_TATANKA/map_raster1.RDS'))){
-  map_raster1<- readRDS(here::here('Mapas/Raster_Cerroblanco/map_raster1.RDS'))
+  map_raster1<- readRDS(here::here('Mapas/Raster_TATANKA/map_raster2.RDS'))
 }else{
   map_raster1<- get_elev_raster(spdf, z=12)
-  saveRDS(map_raster1,here::here('Mapas/Raster_TATANKA/map_raster1.RDS'))
+  saveRDS(map_raster1,here::here('Mapas/Raster_TATANKA/map_raster2.RDS'))
 }
 
 levelplot(map_raster1) + 
@@ -202,3 +198,20 @@ levelplot(map_raster1) +
                      COORD_SIM$LAT, pch=21, cex=1, colour='white', fill= 'white'))+
   layer(panel.points(LON_TNK ,
                      LAT_TNK, pch=21, cex=1, colour='white', fill= 'red'))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
