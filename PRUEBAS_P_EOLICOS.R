@@ -81,6 +81,8 @@ library(sf)
 
 PATH_TO_CSVS<- '/media/oscar/14002CD4002CBF1C/tamaulipas/'
 
+LON_TNK<- -98.196080
+LAT_TNK<- 25.78788
 
 CSV_FILES<- list.files(PATH_TO_CSVS, recursive = T, full.names = T) %>% .[str_detect(., '.csv')]
 
@@ -97,7 +99,7 @@ COORD_SIM_D01<- DATA_SIM_D01[,c("LON", 'LAT')] %>% unique()
 COORD_SIM_D02<- DATA_SIM_D02[,c("LON", 'LAT')] %>% unique()
 COORD_SIM_D03<- DATA_SIM_D03[,c("LON", 'LAT')] %>% unique()
 
-MAPAS_NATURAL_EARTH<- TRUE
+MAPAS_NATURAL_EARTH<- FALSE
 if(MAPAS_NATURAL_EARTH){
   world <- ne_countries(scale = "medium", returnclass = "sf")
   states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
@@ -121,11 +123,42 @@ if(MAPAS_NATURAL_EARTH){
 
 
 
+n=max(COORD_SIM_D01$LAT) 
+s=min(COORD_SIM_D01$LAT)    
+e=max(COORD_SIM_D01$LON)    
+w=min(COORD_SIM_D01$LON) 
+
+incr<- 5
+
+
+if(n > 0){n<- n + incr}else{n<- n + incr}
+if(s > 0){s<- s - incr}else{s<- s- incr}
+if(e > 0){e<- e + incr}else{e<- e + incr}
+if(w > 0){w<- w - incr}else{w<- w- incr}
+
+
+
+
+
+ul <- round(c(n,w),digits = 3)  #Upper Left
+lr <- round(c(s,e), digits = 3)  #Lower Right
+
+library(OpenStreetMap)
+
+download_maps(ul, lr, maptyp = "bing", res=15)
+
+TAMAULIPAS_MAP<- readRDS('/home/oscar/MB//Mapas/32.162_-91.78//bing15.RDS')
+autoplot(TAMAULIPAS_MAP)+ 
+  geom_point(aes(x= LON_TNK, y= LAT_TNK), cex= 3, col = 'red')
+  
+
+
+
+
 library(rasterVis)
 library(elevatr)
 
-LON_TNK<- -98.196080
-LAT_TNK<- 25.78788
+
 
 
 n=max(COORD_SIM_D01$LAT) 
@@ -350,15 +383,77 @@ LISTA_2<- LISTA_CORR_LEVEL %>% lapply(function(x){
                       '2WS_NORMALIZADO', '2WS3_NORMALIZADO', '2WS_SIN_NORMALIZAR', '2WS3_SIN_NORMALIZAR')
   return(TABLA)
   })
-
-MATRIZ_SUMA<- data.frame(matrix(0,ncol = 3, nrow = 8))
-for (i in 1:10) {
-  MATRIZ_SUMA= MATRIZ_SUMA + LISTA_2[[i]]
+names(LISTA_2)<- paste0('L', seq(1,10,1))
+for(x in 1:length(LISTA_2)){
+  TABLA<- as.data.frame(unname(LISTA_2[[x]]))
+  colnames(TABLA)<- c('D01','D02', 'D03')
+  TABLA$LEVEL<- names(LISTA_2)[x]
+  TABLA$METHOD<- rownames(LISTA_2[[x]])
+  LISTA_2[[x]]<- TABLA
 }
-MATRIZ_SUMA<- MATRIZ_SUMA/10
-rownames(MATRIZ_SUMA)<- rownames(LISTA_2[[1]])
-colnames(MATRIZ_SUMA)<- colnames(LISTA_2[[1]])
-MATRIZ_SUMA
+TABLA_CORR<- bind_rows(LISTA_2)
+
+TABLA_CORR_WS<- TABLA_CORR[!str_detect(TABLA_CORR$METHOD, 'WS3'),]
+
+TABLA_CORR_WS_MELT_MEAN<- melt(TABLA_CORR_WS, id.vars=c("METHOD", 'LEVEL'))
+
+ggplot(TABLA_CORR_WS_MELT_MEAN) +
+  geom_point(aes(x=LEVEL ,y= value, color= METHOD, pch = variable), cex=5)+
+  scale_x_discrete(limits=paste0('L', seq(1,10,1)))+
+  theme_light()
+
+
+
+
+
+LISTA_MAX<- LISTA_CORR_LEVEL %>% lapply(function(x){
+  TABLA<- x %>% sapply(function(y){
+    apply(y,2,max)
+  })
+  colnames(TABLA)<- c('D01', 'D02', 'D03')
+  rownames(TABLA)<- c('WS_NORMALIZADO', 'WS3_NORMALIZADO', 'WS_SIN_NORMALIZAR', 'WS3_SIN_NORMALIZAR',
+                      '2WS_NORMALIZADO', '2WS3_NORMALIZADO', '2WS_SIN_NORMALIZAR', '2WS3_SIN_NORMALIZAR')
+  return(TABLA)
+})
+names(LISTA_MAX)<- paste0('L', seq(1,10,1))
+for(x in 1:length(LISTA_MAX)){
+  TABLA<- as.data.frame(unname(LISTA_MAX[[x]]))
+  colnames(TABLA)<- c('D01','D02', 'D03')
+  TABLA$LEVEL<- names(LISTA_MAX)[x]
+  TABLA$METHOD<- rownames(LISTA_MAX[[x]])
+  LISTA_MAX[[x]]<- TABLA
+}
+TABLA_CORR<- bind_rows(LISTA_MAX)
+
+TABLA_CORR_WS<- TABLA_CORR[!str_detect(TABLA_CORR$METHOD, 'WS3'),]
+
+TABLA_CORR_WS_MELT_MAX<- melt(TABLA_CORR_WS, id.vars=c("METHOD", 'LEVEL'))
+
+
+ggplot(TABLA_CORR_WS_MELT_MAX) +
+  geom_point(aes(x=LEVEL ,y= value, color= METHOD, pch = variable), cex=5)+
+  scale_x_discrete(limits=paste0('L', seq(1,10,1)))+
+  theme_light()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 cut_in<- 3.5
