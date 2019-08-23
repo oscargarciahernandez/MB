@@ -5,8 +5,13 @@ date: "20/8/2019"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE, }
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.width=10, 
+                      fig.height=10, 
+                      message=FALSE, 
+                      results='hide',
+                      fig.align = 'center')
 ```
 
 # INTRODUCCION
@@ -21,6 +26,7 @@ library(maps)
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(sf)
+library(OpenStreetMap)
 
 PATH_TO_CSVS<- '/media/oscar/14002CD4002CBF1C/tamaulipas/'
 
@@ -39,26 +45,6 @@ DATA_SIM_D03<-CSV_FILES_D03[1] %>% read.csv(header = T)
 COORD_SIM_D01<- DATA_SIM_D01[,c("LON", 'LAT')] %>% unique()
 COORD_SIM_D02<- DATA_SIM_D02[,c("LON", 'LAT')] %>% unique()
 COORD_SIM_D03<- DATA_SIM_D03[,c("LON", 'LAT')] %>% unique()
-
-
-world <- ne_countries(scale = "medium", returnclass = "sf")
-states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
-states$ID <- toTitleCase(states$ID)
-states <- cbind(states, st_coordinates(st_centroid(states)))
-
-incr= 0.05
-ggplot(data = world) +
-  geom_sf()+
-  geom_sf(data = states, fill = NA) + 
-  geom_text(data = states, aes(X, Y, label = ID), size = 5)+
-  geom_point(data=COORD_SIM_D01 , aes(x= LON, y= LAT), color= "red")+
-  geom_point(data=COORD_SIM_D02 , aes(x= LON, y= LAT), color= "green", size= 0.7)+
-  geom_point(data=COORD_SIM_D03 , aes(x= LON, y= LAT), color= "orange", size = 0.4)+
-  
-  coord_sf(xlim = c(min(COORD_SIM_D01$LON) - incr , max(COORD_SIM_D01$LON) + incr), 
-           ylim = c(min(COORD_SIM_D01$LAT) - incr , max(COORD_SIM_D01$LAT) + incr), expand = FALSE)
-theme_light()
-
 
 
 ```
@@ -183,20 +169,29 @@ for(LEVELS in 1:10){
     #CREAMOS LA LISTA COMPLETA
     LISTA_SIM<- list()
     for( i in 1:length(CSV_FILES_D01)){
-      LISTA_SIM[[i]]<-CSV_FILES_D01[i] %>% read.csv(header = T)
+      TABLA_DOM<- CSV_FILES_D01[i] %>% read.csv(header = T)
+      TABLA_DOM$SIM_TIME<- as.numeric(with(TABLA_DOM, difftime(ymd_hms(DATE),ymd_hms(DATE)[1],units="hours") ))
+
+      LISTA_SIM[[i]]<-TABLA_DOM
     }
-    
     
     TABLA_SIM<- bind_rows(LISTA_SIM)
     TABLA_SIM_0<- TABLA_SIM %>% group_split(LEVEL) %>% .[[LEVELS]]
-    for(i in 1:nrow(TABLA_SIM_0)){
-      TABLA_SIM_0[i, 'DIST']<- distm(TABLA_SIM_0[i, c("LON", "LAT")], c(LON_TNK, LAT_TNK))
+    
+    ADD_DISTANCIA<- FALSE
+    if(ADD_DISTANCIA){
+      
+      for(i in 1:nrow(TABLA_SIM_0)){
+        TABLA_SIM_0[i, 'DIST']<- distm(TABLA_SIM_0[i, c("LON", "LAT")], c(LON_TNK, LAT_TNK))
+      }
+      DISTANCIAS_MENORES<- TABLA_SIM_0$DIST %>% unique() %>% .[order(., decreasing = FALSE)] %>% .[1:50]
+      
+      
+      TABLA_SIM_10<- TABLA_SIM_0[TABLA_SIM_0$DIST%in%DISTANCIAS_MENORES, ]
+    }else{
+      TABLA_SIM_10<- TABLA_SIM_0
     }
-    
-    
-    
-    DISTANCIAS_MENORES<- TABLA_SIM_0$DIST %>% unique() %>% .[order(., decreasing = FALSE)] %>% .[1:50]
-    TABLA_SIM_10<- TABLA_SIM_0[TABLA_SIM_0$DIST%in%DISTANCIAS_MENORES, ]
+
     
     
     TABLA_CORR<- data.frame(matrix(ncol = 8))
@@ -204,8 +199,8 @@ for(LEVELS in 1:10){
       
       TABLA_INDV<- TABLA_SIM_10 %>% group_split(LON,LAT)%>% .[[i]]
       TABLA_INDV$DATE<-ymd_hms(TABLA_INDV$DATE)
-      TABLA_1<- TABLA_INDV[duplicated(TABLA_INDV$DATE),] %>% .[complete.cases(.),]
-      TABLA_2<- TABLA_INDV[!duplicated(TABLA_INDV$DATE),] %>% .[complete.cases(.),]
+      TABLA_1<- TABLA_INDV[TABLA_INDV$SIM_TIME<24,] %>% .[!duplicated(prueba),] %>% .[complete.cases(.),]
+      TABLA_2<- TABLA_INDV[TABLA_INDV$SIM_TIME>24,] %>% .[!duplicated(prueba),] %>% .[complete.cases(.),]
       
       
       INFO_PARQUES<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS'))
@@ -269,77 +264,10 @@ for(LEVELS in 1:10){
 
 
 
-TABLA_DOM<- LISTA_DATOS[[1]]
-
-for(i in 1:length( TABLA_DOM %>% group_split(LON,LAT))){
-  
-  TABLA_INDV<- TABLA_DOM %>% group_split(LON,LAT)%>% .[[i]]
-  TABLA_INDV$DATE<-ymd_hms(TABLA_INDV$DATE)
-  TABLA_1<- TABLA_INDV[duplicated(TABLA_INDV$DATE),] %>% .[complete.cases(.),]
-  TABLA_2<- TABLA_INDV[!duplicated(TABLA_INDV$DATE),] %>% .[complete.cases(.),]
-  
-  
-  INFO_PARQUES<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS'))
-  INFO_TATANKA<- INFO_PARQUES[str_detect(INFO_PARQUES$PARQUE, 'Tamaulipas'),]
-  TABLA_1_JOIN<- left_join(TABLA_1, INFO_TATANKA , by= 'DATE') %>% .[complete.cases(.),]
-  TABLA_2_JOIN<- left_join(TABLA_2, INFO_TATANKA , by= 'DATE') %>% .[complete.cases(.),]
-  
-  
-  
-  
-  
-  TABLA_2_JOIN$PRUDUCCION_DISP_NORM<- (TABLA_2_JOIN$PRUDUCCION_MWH*TABLA_2_JOIN$DISPONIBILIDAD/100 - mean(TABLA_2_JOIN$PRUDUCCION_MWH*TABLA_2_JOIN$DISPONIBILIDAD/100))/sd(TABLA_2_JOIN$PRUDUCCION_MWH*TABLA_2_JOIN$DISPONIBILIDAD/100)
-  TABLA_2_JOIN$PRUDUCCION_MWH_NORM<- (TABLA_2_JOIN$PRUDUCCION_MWH - mean(TABLA_2_JOIN$PRUDUCCION_MWH))/sd(TABLA_2_JOIN$PRUDUCCION_MWH)
-  
-  TABLA_2_JOIN$WS_NORM<- (TABLA_2_JOIN$WS - mean(TABLA_2_JOIN$WS))/sd(TABLA_2_JOIN$WS)
-  TABLA_2_JOIN$WS3_NORM<- (TABLA_2_JOIN$WS^3 - mean(TABLA_2_JOIN$WS^3))/sd(TABLA_2_JOIN$WS^3)
-  
-  ggplot()+
-    geom_line(data = TABLA_1_JOIN, aes(x= DATE, y= PRUDUCCION_MWH))+
-    geom_line(data = TABLA_1_JOIN, aes(x= DATE, y= WS), col='red')+
-    geom_line(data = TABLA_1_JOIN, aes(x= DATE, y= 0.5*1.2*12272*61*WS^3/10^6*0.3), col='orange')+
-    theme_light()
-  
-  
-  
-  
-  
-  
-  TABLA_1_JOIN$PRUDUCCION_DISP_NORM<- (TABLA_1_JOIN$PRUDUCCION_MWH*TABLA_1_JOIN$DISPONIBILIDAD/100 - mean(TABLA_1_JOIN$PRUDUCCION_MWH*TABLA_1_JOIN$DISPONIBILIDAD/100))/sd(TABLA_1_JOIN$PRUDUCCION_MWH*TABLA_1_JOIN$DISPONIBILIDAD/100)
-  TABLA_1_JOIN$PRUDUCCION_MWH_NORM<- (TABLA_1_JOIN$PRUDUCCION_MWH - mean(TABLA_1_JOIN$PRUDUCCION_MWH))/sd(TABLA_1_JOIN$PRUDUCCION_MWH)
-  
-  TABLA_1_JOIN$WS_NORM<- (TABLA_1_JOIN$WS - mean(TABLA_1_JOIN$WS))/sd(TABLA_1_JOIN$WS)
-  TABLA_1_JOIN$WS3_NORM<- (TABLA_1_JOIN$WS^3 - mean(TABLA_1_JOIN$WS^3))/sd(TABLA_1_JOIN$WS^3)
-  
-  
-  
-  
-  CORR_WS_1<- cor(TABLA_1_JOIN$WS_NORM, TABLA_1_JOIN$PRUDUCCION_DISP_NORM, use = 'complete.obs')
-  CORR_WS3_1<- cor(TABLA_1_JOIN$WS3_NORM, TABLA_1_JOIN$PRUDUCCION_DISP_NORM)
-  
-  CORR_WS_2<- cor(TABLA_2_JOIN$WS_NORM, TABLA_2_JOIN$PRUDUCCION_DISP_NORM)
-  CORR_WS3_2<- cor(TABLA_2_JOIN$WS3_NORM, TABLA_2_JOIN$PRUDUCCION_DISP_NORM)
-  
-  CORR_WS_WO_NORM_1<- cor(TABLA_1_JOIN$WS, TABLA_1_JOIN$PRUDUCCION_MWH)
-  CORR_WS_WO_NORM_2<- cor(TABLA_2_JOIN$WS, TABLA_2_JOIN$PRUDUCCION_MWH)
-  
-  CORR_WS3_WO_NORM_1<- cor(TABLA_1_JOIN$WS^3, TABLA_1_JOIN$PRUDUCCION_MWH)
-  CORR_WS3_WO_NORM_2<- cor(TABLA_2_JOIN$WS^3, TABLA_2_JOIN$PRUDUCCION_MWH)
-  
-  TABLA_CORR[i,]<- c(CORR_WS_1, CORR_WS3_1, CORR_WS_WO_NORM_1,CORR_WS3_WO_NORM_1, 
-                     CORR_WS_2, CORR_WS3_2, CORR_WS_WO_NORM_2,CORR_WS3_WO_NORM_2)
-}
-
-
-
-TABLA_CORRS<- LISTA_CORR_LEVEL %>% sapply(function(x){lapply(x, function(y){print(max(y))})})
-
-colnames(TABLA_CORRS)<-paste0('L' , seq(1,10,1))
-rownames(TABLA_CORRS)<- c('D01', 'D02', 'D03')
-
 dir.create(here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/'))
 saveRDS(LISTA_DATOS_LEVELS,here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/LISTA_DATOS.RDS'))
 saveRDS(LISTA_CORR_LEVEL,here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/LISTA_CORRELATION.RDS'))
+
 
 ```
 
@@ -360,16 +288,69 @@ LISTA_2<- LISTA_CORR_LEVEL %>% lapply(function(x){
                       '2WS_NORMALIZADO', '2WS3_NORMALIZADO', '2WS_SIN_NORMALIZAR', '2WS3_SIN_NORMALIZAR')
   return(TABLA)
   })
-
-MATRIZ_SUMA<- data.frame(matrix(0,ncol = 3, nrow = 8))
-for (i in 1:10) {
-  MATRIZ_SUMA= MATRIZ_SUMA + LISTA_2[[i]]
+names(LISTA_2)<- paste0('L', seq(1,10,1))
+for(x in 1:length(LISTA_2)){
+  TABLA<- as.data.frame(unname(LISTA_2[[x]]))
+  colnames(TABLA)<- c('D01','D02', 'D03')
+  TABLA$LEVEL<- names(LISTA_2)[x]
+  TABLA$METHOD<- rownames(LISTA_2[[x]])
+  LISTA_2[[x]]<- TABLA
 }
-MATRIZ_SUMA<- MATRIZ_SUMA/10
-rownames(MATRIZ_SUMA)<- rownames(LISTA_2[[1]])
-colnames(MATRIZ_SUMA)<- colnames(LISTA_2[[1]])
-MATRIZ_SUMA
+TABLA_CORR<- bind_rows(LISTA_2)
+
+TABLA_CORR_WS<- TABLA_CORR[!str_detect(TABLA_CORR$METHOD, 'WS3'),]
+
+TABLA_CORR_WS_MELT_MEAN<- melt(TABLA_CORR_WS, id.vars=c("METHOD", 'LEVEL'))
+
+ggplot(TABLA_CORR_WS_MELT_MEAN) +
+  geom_point(aes(x=LEVEL ,y= value, color= METHOD, pch = variable), cex=5)+
+  scale_x_discrete(limits=paste0('L', seq(1,10,1)))+
+  ggtitle('RESULTADOS DE CORRELACION MEDIA DE LOS 50 PUNTOS MAS CERCANOS DEL DOMINIO')+
+  theme_light()
 
 
+
+
+
+LISTA_MAX<- LISTA_CORR_LEVEL %>% lapply(function(x){
+  TABLA<- x %>% sapply(function(y){
+    apply(y,2,max)
+  })
+  colnames(TABLA)<- c('D01', 'D02', 'D03')
+  rownames(TABLA)<- c('WS_NORMALIZADO', 'WS3_NORMALIZADO', 'WS_SIN_NORMALIZAR', 'WS3_SIN_NORMALIZAR',
+                      '2WS_NORMALIZADO', '2WS3_NORMALIZADO', '2WS_SIN_NORMALIZAR', '2WS3_SIN_NORMALIZAR')
+  return(TABLA)
+})
+names(LISTA_MAX)<- paste0('L', seq(1,10,1))
+for(x in 1:length(LISTA_MAX)){
+  TABLA<- as.data.frame(unname(LISTA_MAX[[x]]))
+  colnames(TABLA)<- c('D01','D02', 'D03')
+  TABLA$LEVEL<- names(LISTA_MAX)[x]
+  TABLA$METHOD<- rownames(LISTA_MAX[[x]])
+  LISTA_MAX[[x]]<- TABLA
+}
+TABLA_CORR<- bind_rows(LISTA_MAX)
+
+TABLA_CORR_WS<- TABLA_CORR[!str_detect(TABLA_CORR$METHOD, 'WS3'),]
+
+TABLA_CORR_WS_MELT_MAX<- melt(TABLA_CORR_WS, id.vars=c("METHOD", 'LEVEL'))
+
+
+ggplot(TABLA_CORR_WS_MELT_MAX) +
+  geom_point(aes(x=LEVEL ,y= value, color= METHOD, pch = variable), cex=5)+
+  scale_x_discrete(limits=paste0('L', seq(1,10,1)))+
+  ggtitle('RESULTADOS DE CORRELACION MAXIMA DE LOS 50 PUNTOS MAS CERCANOS DEL DOMINIO')+
+  theme_light()
+
+
+
+```
+
+
+```{r}
+TAMAULIPAS_MAP<- readRDS('/home/oscar/MB//Mapas/32.162_-91.78//bing15.RDS')
+autoplot(TAMAULIPAS_MAP)+ 
+  geom_point(aes(x= LON_TNK, y= LAT_TNK), cex= 3, col = 'red')
+  
 ```
 
