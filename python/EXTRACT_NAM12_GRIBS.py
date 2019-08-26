@@ -17,17 +17,12 @@ def OBTAIN_50_NEAREST_POINTS(LONG_NP, LAT_NP, LON, LAT):
     FUNCION PARA OBTENER LOS 50 PUNTOS MAS CERCANOS A LA ZONA A ESTUDIAR...
     SACAR INFORMACION DE TODOS LOS PUNTOS ES MUY EXIGENTE PARA ESTE SCRIPT
     '''
-    
-    
-    
     TABLA_LONLAT=pd.DataFrame(columns=['LON', 'LAT'])
     TABLA_LONLAT['LON']= LONG_NP[:, :].ravel()
     TABLA_LONLAT['LAT']= LAT_NP[:, :].ravel()
     
     '''
     METODO MAS CLARO PERO MAS LENTO... EL METODO ANTERIOR ESTA BIEN¡
-    
-    
     TABLA_LONLAT=pd.DataFrame(columns=['LON', 'LAT'])
     k=0
     for i in range(LONG_NP.shape[1]):
@@ -69,31 +64,31 @@ pd.set_option('display.max_columns', 15)
 pd.set_option('display.max_rows', 30)
 
 
-HRRR_PATH= '/media/meteobit/Elements/HRRR_from_UofU/'
-HRRR_FILES= os.listdir(HRRR_PATH)
+NAM12_PATH= '/media/meteobit/Elements/NAM12/'
+NAM12_FILES= os.listdir(NAM12_PATH)
 
 
 '''
-LOS ARCHIVOS SE DIVIDEN POR NIVELES O POR SUPERFICIE
+TENEMOS 24 H DE SIMULACION VAMOS A HACER PRIMERO SOLAMENTE ENERO
 
 '''
 
-HRRR_prs= [item for item in HRRR_FILES if 'wrfprs' in item]
-HRRR_sfc = [item for item in HRRR_FILES if 'wrfsfc' in item]
+
+NAM12_JAN= [item for item in NAM12_FILES if '201901' in item]
 
 
-for i in range(len(HRRR_sfc)):
-    HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[i]
-    HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)
+for i in range(len(NAM12_JAN)):
+    NAM12_FILE_NAME = NAM12_PATH + NAM12_JAN[i]
+    NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)
     
-    MAKE_VARIABLES_CSV=False
+    
     
     if 'TABLA_WIND' not in locals(): 
       
         VARIABLE_NAMES=[]
         k=1
-        HRRR_GRIB.seek(0)
-        for i in HRRR_GRIB:
+        NAM12_GRIB.seek(0)
+        for i in NAM12_GRIB:
             VARIABLE_NAMES.append(str(i).split(':'))
             k=k+1
         
@@ -109,12 +104,12 @@ for i in range(len(HRRR_sfc)):
         
         TABLA_WIND = TABLA_VAR[TABLA_VAR.NAME.isin(set([item for item in list(TABLA_VAR['NAME']) if 'wind' in item]))]
         
-        PATH_TO_HRRR= os.getcwd() + '/HRRR/'
-        if not os.path.isdir(PATH_TO_HRRR):
-            os.mkdir(PATH_TO_HRRR)
+        PATH_TO_NAM12= os.getcwd() + '/NAM12/'
+        if not os.path.isdir(PATH_TO_NAM12):
+            os.mkdir(PATH_TO_NAM12)
             
-        TABLA_WIND.to_csv(PATH_TO_HRRR + 'TABLA_WIND_SFC.csv', index = False, sep= ';')
-        TABLA_VAR.to_csv(PATH_TO_HRRR + 'TABLA_VARIABLES_SFC.csv', index = False, sep= ';')
+        TABLA_WIND.to_csv(PATH_TO_NAM12 + 'TABLA_WIND_SFC.csv', index = False, sep= ';')
+        TABLA_VAR.to_csv(PATH_TO_NAM12 + 'TABLA_VARIABLES_SFC.csv', index = False, sep= ';')
     
     
     '''
@@ -130,7 +125,7 @@ for i in range(len(HRRR_sfc)):
     '''
     
     
-    SELECTED_VARIABLES = TABLA_WIND[pd.to_numeric(TABLA_WIND['index']) > 27]
+    SELECTED_VARIABLES = TABLA_WIND[pd.to_numeric(TABLA_WIND['index']).isin([313,314,322,323,329,330,369,370,404,408])]
     
     
     
@@ -147,13 +142,13 @@ for i in range(len(HRRR_sfc)):
         
         VAR_LEVEL= SELECTED_VARIABLES['LEVEL_Pa'].iloc[i]
         VAR_NAME= SELECTED_VARIABLES['NAME'].iloc[i]
-        NOMBRE_ARCHIVO = HRRR_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'
+        NOMBRE_ARCHIVO = NAM12_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'
         
         if os.path.isfile(NOMBRE_ARCHIVO):
             print(NOMBRE_ARCHIVO +  ' YA EXISTE')
         else:
         
-            VARIABLE = HRRR_GRIB.select(name= VAR_NAME)
+            VARIABLE = NAM12_GRIB.select(name= VAR_NAME)
             
             
             VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
@@ -202,4 +197,4 @@ for i in range(len(HRRR_sfc)):
                                
                 
             print('GUARDANDO CSV en ' + NOMBRE_ARCHIVO)
-            dfObj.to_csv(NOMBRE_ARCHIVO + '.csv', index = False)
+            dfObj.to_csv(NOMBRE_ARCHIVO, index = False)
