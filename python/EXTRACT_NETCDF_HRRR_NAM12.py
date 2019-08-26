@@ -15,37 +15,29 @@ import pandas as pd
 import numpy as np
 import shutil
 
+import pygrib
+import os
+PATH_HRRR = '/media/oscar/14002CD4002CBF1C/HRRR/'
+
+os.listdir(PATH_HRRR)
 
 
-'''
-#######################################################################################################################################
-CONFIG
-#######################################################################################################################################
-'''
-'''
-HAY QUE PONER LA POSICION DEL PARQUE Y EL PATH DONDE SE ENCUENTRAN LAS CARPETAS DE LAS SIMULACIONES
-ESTE SCRIPT SE ENCARGA DEL RESTO.
-CONCATENA LOS ARCHIVOS, SACA LA INFORMACION DE VIENTO CREANDO UN CSV POR SIMULACION Y NIVEL 
-Y BORRA EL RESTO DE LAS CARPETAS DEJANDO UNICAMENTE LOS CSVS Y LOS ARCHIVOS CONCATENADOS
-'''
+def FIND_FILES_IN_FOLDER(PATH_OUTPUTS):
+    '''
+    A ESTA FUNCION SE LE METE EL PATH DONDE ESTAN LAS CARPETAS ORDENADAS Y DEVUELVE LA RUTA DE LOS ARCHIVOS
+    
+    '''    
+    LISTA_FILES= []
+    for root, dirs, files in os.walk(PATH_OUTPUTS, topdown=False):
+       for name in files:
+          LISTA_FILES.append(os.path.join(root, name))    
+    return LISTA_FILES
 
+HRRR_FILES = FIND_FILES_IN_FOLDER(PATH_HRRR)
 
-LAT_PARQUE= 25.78788
-LON_PARQUE= -98.196080
-PATH_OUTPUTS= '/media/oscar/14002CD4002CBF1C/tamaulipas/'
+HRRR_READ = pygrib.read(HRRR_FILES[0])
 
-
-'''
-#######################################################################################################################################
-/CONFIG
-#######################################################################################################################################
-'''
-
-
-
-
-
-
+pygrib.grb
 
 '''
 #######################################################################################################################################

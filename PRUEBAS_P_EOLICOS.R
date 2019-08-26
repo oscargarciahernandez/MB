@@ -302,8 +302,8 @@ for(LEVELS in 1:10){
       
       TABLA_INDV<- TABLA_SIM_10 %>% group_split(LON,LAT)%>% .[[i]]
       TABLA_INDV$DATE<-ymd_hms(TABLA_INDV$DATE)
-      TABLA_1<- TABLA_INDV[TABLA_INDV$SIM_TIME<24,] %>% .[!duplicated(prueba),] %>% .[complete.cases(.),]
-      TABLA_2<- TABLA_INDV[TABLA_INDV$SIM_TIME>24,] %>% .[!duplicated(prueba),] %>% .[complete.cases(.),]
+      TABLA_1<- TABLA_INDV[TABLA_INDV$SIM_TIME<24,] %>% .[!duplicated(.$DATE),] %>% .[complete.cases(.),]
+      TABLA_2<- TABLA_INDV[TABLA_INDV$SIM_TIME>24,] %>% .[!duplicated(.$DATE),] %>% .[complete.cases(.),]
       
       
       INFO_PARQUES<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS'))
@@ -356,6 +356,7 @@ for(LEVELS in 1:10){
             theme_light())
     
     LISTA_CORR_DOM[[DOM]]<- TABLA_CORR
+    LISTA_DATOS[[DOM]]<- TABLA_SIM_0
     
   }
   
@@ -364,11 +365,17 @@ for(LEVELS in 1:10){
   
 }
 
+LISTA_DATOS_NAMED<- LISTA_DATOS_LEVELS %>% lapply(function(x){
+  names(x)<- c('D01', 'D02','D03')
+  return(x)
+})
+
+names(LISTA_DATOS_NAMED)<- paste0('L', seq(1,10,1))
 
 
 
 dir.create(here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/'))
-saveRDS(LISTA_DATOS_LEVELS,here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/LISTA_DATOS.RDS'))
+saveRDS(LISTA_DATOS_NAMED,here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/LISTA_DATOS.RDS'))
 saveRDS(LISTA_CORR_LEVEL,here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/LISTA_CORRELATION.RDS'))
 
 
