@@ -109,7 +109,7 @@ if __name__ == '__main__':
             forecasts = range(19)
         
             # Specify a Save Directory
-            SAVEDIR = '/media/meteobit/Elements/HRRR_from_UofU/'
+            SAVEDIR = '/media/oscar/Elements/HRRR_from_UofU/'
             
             # -------------------------------------------------------------------------
         

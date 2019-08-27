@@ -12,6 +12,7 @@ import pandas as pd
 from math import sin, cos, sqrt, atan2, radians
 import numpy as np
 import re
+import cython
 
 
 
@@ -63,6 +64,7 @@ def OBTAIN_50_NEAREST_POINTS(LONG_NP, LAT_NP, LON, LAT):
     FUNCION PARA OBTENER LOS 50 PUNTOS MAS CERCANOS A LA ZONA A ESTUDIAR...
     SACAR INFORMACION DE TODOS LOS PUNTOS ES MUY EXIGENTE PARA ESTE SCRIPT
     '''
+    cdef float R, c, a, lon1,lat1, lon2,lat2, dlon,lat
     
     TABLA_LONLAT=pd.DataFrame(columns=['LON', 'LAT'])
     TABLA_LONLAT['LON']= LONG_NP[:, :].ravel()
@@ -157,78 +159,54 @@ def EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES,
 
 
 
-
-HRRR_PATH= '/media/oscar/Elements/HRRR_from_UofU/'
-HRRR_FILES= os.listdir(HRRR_PATH)
-
-
-'''
-LOS ARCHIVOS SE DIVIDEN POR NIVELES O POR SUPERFICIE
-'''
-
-HRRR_prs= [item for item in HRRR_FILES if 'wrfprs' in item]
-HRRR_sfc = [item for item in HRRR_FILES if 'wrfsfc' in item]
-HRRR_sfc = [item for item in HRRR_sfc if 'csv' not in item]
-
-PATTERN_HOURS= re.compile(r't(06|00|12|18)')
-HRRR_sfc = [item for item in HRRR_sfc if re.search(PATTERN_HOURS, item)]
-
-                
-CUSTOM_WORD =    'wind' 
-HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]
-
-
-
-
-TABLA_VARIABLES = EXTRACT_VARIABLES_FROM_GRIB(HRRR_FILE_NAME, CUSTOM_WORD)
-
-
-SELECTED_VARIABLES = TABLA_VARIABLES[TABLA_VARIABLES.NAME.isin(set([item for item in list(TABLA_VARIABLES['NAME']) if 'wind' in item.lower()]))]
-SELECTED_VARIABLES_LEVEL= SELECTED_VARIABLES[SELECTED_VARIABLES['LEVEL_Pa'].isin(['level 80 m', 'level 10 m'])]
-
-VAR_LEVEL= SELECTED_VARIABLES_LEVEL['LEVEL_Pa'].iloc[1]
-VAR_NAME= SELECTED_VARIABLES_LEVEL['NAME'].iloc[1]
-
-HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]
-HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)
-VARIABLE = HRRR_GRIB.select(name= VAR_NAME)
-
-VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
-LATS , LONS = VARIABLE_ITEM[0].latlons()
-
-
-LON_TATANKA= -98.955699 	
-LAT_TATANKA= 45.95685
-
-NEAREST_POINTS = OBTAIN_50_NEAREST_POINTS(LONS, LATS, LON_TATANKA, LAT_TATANKA)
-
-
-HRRR_FILES_PATH = [HRRR_PATH + s for s in HRRR_sfc]
-
-for file in HRRR_FILES_PATH:
-    EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES_LEVEL,NEAREST_POINTS,False, file)
-'''
-
-from functools import partial
-import multiprocessing as mp
-
+def MAIN():
+    HRRR_PATH= '/media/oscar/Elements/HRRR_from_UofU/'
+    HRRR_FILES= os.listdir(HRRR_PATH)
     
-HRRR_FILES_PATH = [HRRR_PATH + s for s in HRRR_sfc]
-pool = mp.Pool(4)
-func = partial(EXTRACT_CSV_INFO_HRRR, SELECTED_VARIABLES_LEVEL, NEAREST_POINTS, False)
-pool.map(func, HRRR_FILES_PATH)
-pool.close()
-pool.join()
-'''
-''' 
-import tqdm
-import multiprocessing as mp
-pool = mp.Pool(mp.cpu_count()-6)
-for _ in tqdm.tqdm(pool.imap_unordered(EXTRACT_CSV_INFO_HRRR, NAM12_JAN)  , total=len(NAM12_JAN)):
-    pass
-
-#MATAMOS SUBPROCESOS 
-pool.close()
-pool.terminate()
-pool.join()
-'''
+    
+    '''
+    LOS ARCHIVOS SE DIVIDEN POR NIVELES O POR SUPERFICIE
+    '''
+    
+    HRRR_prs= [item for item in HRRR_FILES if 'wrfprs' in item]
+    HRRR_sfc = [item for item in HRRR_FILES if 'wrfsfc' in item]
+    HRRR_sfc = [item for item in HRRR_sfc if 'csv' not in item]
+    
+    PATTERN_HOURS= re.compile(r't(06|00|12|18)')
+    HRRR_sfc = [item for item in HRRR_sfc if re.search(PATTERN_HOURS, item)]
+    
+                    
+    CUSTOM_WORD =    'wind' 
+    HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]
+    
+    
+    
+    
+    TABLA_VARIABLES = EXTRACT_VARIABLES_FROM_GRIB(HRRR_FILE_NAME, CUSTOM_WORD)
+    
+    
+    SELECTED_VARIABLES = TABLA_VARIABLES[TABLA_VARIABLES.NAME.isin(set([item for item in list(TABLA_VARIABLES['NAME']) if 'wind' in item.lower()]))]
+    SELECTED_VARIABLES_LEVEL= SELECTED_VARIABLES[SELECTED_VARIABLES['LEVEL_Pa'].isin(['level 80 m', 'level 10 m'])]
+    
+    VAR_LEVEL= SELECTED_VARIABLES_LEVEL['LEVEL_Pa'].iloc[1]
+    VAR_NAME= SELECTED_VARIABLES_LEVEL['NAME'].iloc[1]
+    
+    HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]
+    HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)
+    VARIABLE = HRRR_GRIB.select(name= VAR_NAME)
+    
+    VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
+    LATS , LONS = VARIABLE_ITEM[0].latlons()
+    
+    
+    LON_TATANKA= -98.955699 	
+    LAT_TATANKA= 45.95685
+    
+    NEAREST_POINTS = OBTAIN_50_NEAREST_POINTS(LONS, LATS, LON_TATANKA, LAT_TATANKA)
+    
+    
+    HRRR_FILES_PATH = [HRRR_PATH + s for s in HRRR_sfc]
+    
+    for file in HRRR_FILES_PATH:
+        EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES_LEVEL,NEAREST_POINTS,False, file)
+   
