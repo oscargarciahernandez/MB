@@ -93,7 +93,7 @@ if __name__ == '__main__':
     
         # Variable field: options include 'sfc' or 'prs'
         # (if you want to initialize WRF with HRRR, you'll need the prs files)
-        for sfc_levels in ['sfc', 'prs']:
+        for sfc_levels in ['sfc']:
             var_type = sfc_levels
         
             # Specify which hours to download
@@ -102,11 +102,11 @@ if __name__ == '__main__':
                 # HRRR Alaska run every 3 hours at [0, 3, 6, 9, 12, 15, 18, 21] UTC
                 hours = range(0, 24, 3)
             else:
-                hours = range(0, 24)
+                hours = range(0, 24,6)
         
             # Specify which forecasts hours to download. Most can be range(19) for hrrr.
             # (this example downloads the analysis hours, f00)
-            forecasts = [0]
+            forecasts = range(19)
         
             # Specify a Save Directory
             SAVEDIR = '/media/meteobit/Elements/HRRR_from_UofU/'
