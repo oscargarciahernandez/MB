@@ -117,13 +117,14 @@ def OBTAIN_50_NEAREST_POINTS(LONG_NP, LAT_NP, LON, LAT):
 
 
 
-HRRR_PATH= '/media/meteobit/Elements/HRRR_from_UofU/'
+HRRR_PATH= '/media/oscar/Elements/HRRR_from_UofU/'
 HRRR_FILES= os.listdir(HRRR_PATH)
 
 HRRR_csv = [item for item in HRRR_FILES if 'csv' in item]
 
 PATTERN_HOURS= re.compile(r't(06|00|12|18)')
 HRRR_csv = [item for item in HRRR_csv if re.search(PATTERN_HOURS, item)]
+HRRR_csv = [item for item in HRRR_csv if '.~lock.' not in item]
 
 
 CSV_HRRR= pd.read_csv(HRRR_PATH + HRRR_csv[0])
@@ -168,19 +169,22 @@ NON_DESIRED = [item for item in INDEX_ALL if item not in INDEX_1 ]
 
 
 for var_group in VARIABLE_GROUPS:
-    HRRR_CSV_FILT= [item for item in HRRR_csv if var_group in item ]
-    
-    TABLA_FILT = pd.DataFrame()
-    for i in HRRR_CSV_FILT:
-        print(i)
-        CSV_HRRR= pd.read_csv(HRRR_PATH + i, skiprows = NON_DESIRED)
+    if os.path.isfile(HRRR_PATH + var_group):
+        print('YA EXISTE ' + HRRR_PATH + var_group)
+    else:
+        HRRR_CSV_FILT= [item for item in HRRR_csv if var_group in item ]
         
-        TABLA_CUT_TATANKA = CSV_HRRR[(CSV_HRRR['LON'].isin(NEAREST_POINTS_TATANKA['LON'])) & (CSV_HRRR['LAT'].isin(NEAREST_POINTS_TATANKA['LAT']))]
-        TABLA_CUT_TATANKA['TSIM'] = re.findall(PATTERN_TSIM, i)[0]
-        TABLA_CUT_TATANKA['SIMT'] = re.findall(PATTERN_HOURS, i)[0]
+        TABLA_FILT = pd.DataFrame()
+        for i in HRRR_CSV_FILT:
+            print(i)
+            CSV_HRRR= pd.read_csv(HRRR_PATH + i, skiprows = NON_DESIRED)
+            
+            TABLA_CUT_TATANKA = CSV_HRRR[(CSV_HRRR['LON'].isin(NEAREST_POINTS_TATANKA['LON'])) & (CSV_HRRR['LAT'].isin(NEAREST_POINTS_TATANKA['LAT']))]
+            TABLA_CUT_TATANKA['TSIM'] = re.findall(PATTERN_TSIM, i)[0]
+            TABLA_CUT_TATANKA['SIMT'] = re.findall(PATTERN_HOURS, i)[0]
+            
+            TABLA_FILT= TABLA_FILT.append(TABLA_CUT_TATANKA)
         
-        TABLA_FILT= TABLA_FILT.append(TABLA_CUT_TATANKA)
-    
-    TABLA_FILT.to_csv(HRRR_PATH + var_group)
+        TABLA_FILT.to_csv(HRRR_PATH + var_group)
 
 
