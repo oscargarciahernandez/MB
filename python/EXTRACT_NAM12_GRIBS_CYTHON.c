@@ -1089,6 +1089,14 @@ static CYTHON_INLINE PyObject *__Pyx_PyObject_GetItem(PyObject *obj, PyObject* k
 #define __Pyx_PyObject_GetItem(obj, key)  PyObject_GetItem(obj, key)
 #endif
 
+/* PyIntBinop.proto */
+#if !CYTHON_COMPILING_IN_PYPY
+static PyObject* __Pyx_PyInt_SubtractCObj(PyObject *op1, PyObject *op2, long intval, int inplace, int zerodivision_check);
+#else
+#define __Pyx_PyInt_SubtractCObj(op1, op2, intval, inplace, zerodivision_check)\
+    (inplace ? PyNumber_InPlaceSubtract(op1, op2) : PyNumber_Subtract(op1, op2))
+#endif
+
 /* SliceObject.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSlice(
         PyObject* obj, Py_ssize_t cstart, Py_ssize_t cstop,
@@ -1107,11 +1115,10 @@ static CYTHON_INLINE int __Pyx_IterFinish(void);
 /* UnpackItemEndCheck.proto */
 static int __Pyx_IternextUnpackEndCheck(PyObject *retval, Py_ssize_t expected);
 
-/* Import.proto */
-static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level);
-
-/* ImportFrom.proto */
-static PyObject* __Pyx_ImportFrom(PyObject* module, PyObject* name);
+/* GetTopmostException.proto */
+#if CYTHON_USE_EXC_INFO_STACK
+static _PyErr_StackItem * __Pyx_PyErr_GetTopmostException(PyThreadState *tstate);
+#endif
 
 /* PyThreadStateGet.proto */
 #if CYTHON_FAST_THREAD_STATE
@@ -1123,6 +1130,34 @@ static PyObject* __Pyx_ImportFrom(PyObject* module, PyObject* name);
 #define __Pyx_PyThreadState_assign
 #define __Pyx_PyErr_Occurred()  PyErr_Occurred()
 #endif
+
+/* SaveResetException.proto */
+#if CYTHON_FAST_THREAD_STATE
+#define __Pyx_ExceptionSave(type, value, tb)  __Pyx__ExceptionSave(__pyx_tstate, type, value, tb)
+static CYTHON_INLINE void __Pyx__ExceptionSave(PyThreadState *tstate, PyObject **type, PyObject **value, PyObject **tb);
+#define __Pyx_ExceptionReset(type, value, tb)  __Pyx__ExceptionReset(__pyx_tstate, type, value, tb)
+static CYTHON_INLINE void __Pyx__ExceptionReset(PyThreadState *tstate, PyObject *type, PyObject *value, PyObject *tb);
+#else
+#define __Pyx_ExceptionSave(type, value, tb)   PyErr_GetExcInfo(type, value, tb)
+#define __Pyx_ExceptionReset(type, value, tb)  PyErr_SetExcInfo(type, value, tb)
+#endif
+
+/* GetException.proto */
+#if CYTHON_FAST_THREAD_STATE
+#define __Pyx_GetException(type, value, tb)  __Pyx__GetException(__pyx_tstate, type, value, tb)
+static int __Pyx__GetException(PyThreadState *tstate, PyObject **type, PyObject **value, PyObject **tb);
+#else
+static int __Pyx_GetException(PyObject **type, PyObject **value, PyObject **tb);
+#endif
+
+/* None.proto */
+static CYTHON_INLINE void __Pyx_RaiseUnboundLocalError(const char *varname);
+
+/* Import.proto */
+static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level);
+
+/* ImportFrom.proto */
+static PyObject* __Pyx_ImportFrom(PyObject* module, PyObject* name);
 
 /* PyErrFetchRestore.proto */
 #if CYTHON_FAST_THREAD_STATE
@@ -1246,7 +1281,6 @@ static const char __pyx_k__12[] = "_";
 static const char __pyx_k_cos[] = "cos";
 static const char __pyx_k_csv[] = ".csv";
 static const char __pyx_k_end[] = "end";
-static const char __pyx_k_lat[] = "lat";
 static const char __pyx_k_loc[] = "loc";
 static const char __pyx_k_sep[] = "sep";
 static const char __pyx_k_sin[] = "sin";
@@ -1302,22 +1336,16 @@ static const char __pyx_k_isfile[] = "isfile";
 static const char __pyx_k_name_2[] = "__name__";
 static const char __pyx_k_pandas[] = "pandas";
 static const char __pyx_k_pygrib[] = "pygrib";
-static const char __pyx_k_search[] = "search";
 static const char __pyx_k_select[] = "select";
 static const char __pyx_k_to_csv[] = "to_csv";
 static const char __pyx_k_values[] = "values";
-static const char __pyx_k_wrfprs[] = "wrfprs";
-static const char __pyx_k_wrfsfc[] = "wrfsfc";
 static const char __pyx_k_LONG_NP[] = "LONG_NP";
 static const char __pyx_k_columns[] = "columns";
-static const char __pyx_k_compile[] = "compile";
 static const char __pyx_k_latlons[] = "latlons";
 static const char __pyx_k_listdir[] = "listdir";
 static const char __pyx_k_radians[] = "radians";
 static const char __pyx_k_replace[] = "replace";
 static const char __pyx_k_CUT_DATA[] = "CUT_DATA";
-static const char __pyx_k_HRRR_prs[] = "HRRR_prs";
-static const char __pyx_k_HRRR_sfc[] = "HRRR_sfc";
 static const char __pyx_k_LEVEL_Pa[] = "LEVEL_Pa";
 static const char __pyx_k_TYPE_VAR[] = "TYPE_VAR";
 static const char __pyx_k_VARIABLE[] = "VARIABLE";
@@ -1327,8 +1355,7 @@ static const char __pyx_k_exist_ok[] = "exist_ok";
 static const char __pyx_k_makedirs[] = "makedirs";
 static const char __pyx_k_DISTANCIA[] = "DISTANCIA";
 static const char __pyx_k_DataFrame[] = "DataFrame";
-static const char __pyx_k_HRRR_GRIB[] = "HRRR_GRIB";
-static const char __pyx_k_HRRR_PATH[] = "HRRR_PATH";
+static const char __pyx_k_NAM12_sfc[] = "NAM12_sfc";
 static const char __pyx_k_PATH_SAVE[] = "PATH_SAVE";
 static const char __pyx_k_TABLA_CUT[] = "TABLA_CUT";
 static const char __pyx_k_TABLA_VAR[] = "TABLA_VAR";
@@ -1336,45 +1363,47 @@ static const char __pyx_k_TIMESTAMP[] = "TIMESTAMP";
 static const char __pyx_k_VAR_LEVEL[] = "VAR_LEVEL";
 static const char __pyx_k_YA_EXISTE[] = " YA EXISTE";
 static const char __pyx_k_validDate[] = "validDate";
-static const char __pyx_k_HRRR_FILES[] = "HRRR_FILES";
+static const char __pyx_k_NAM12_GRIB[] = "NAM12_GRIB";
+static const char __pyx_k_NAM12_PATH[] = "NAM12_PATH";
 static const char __pyx_k_level_10_m[] = "level 10 m";
 static const char __pyx_k_level_80_m[] = "level 80 m";
 static const char __pyx_k_set_option[] = "set_option";
 static const char __pyx_k_CUSTOM_WORD[] = "CUSTOM_WORD";
 static const char __pyx_k_LAT_TATANKA[] = "LAT_TATANKA";
 static const char __pyx_k_LON_TATANKA[] = "LON_TATANKA";
+static const char __pyx_k_NAM12_FILES[] = "NAM12_FILES";
 static const char __pyx_k_sort_values[] = "sort_values";
 static const char __pyx_k_TABLA_CUSTOM[] = "TABLA_CUSTOM";
 static const char __pyx_k_TABLA_LONLAT[] = "TABLA_LONLAT";
 static const char __pyx_k_CREANDO_TABLA[] = "CREANDO TABLA";
 static const char __pyx_k_CSV_VARIABLES[] = "/CSV_VARIABLES/";
-static const char __pyx_k_PATTERN_HOURS[] = "PATTERN_HOURS";
+static const char __pyx_k_NO_ENCONTRADO[] = " NO ENCONTRADO ";
 static const char __pyx_k_VARIABLE_ITEM[] = "VARIABLE_ITEM";
-static const char __pyx_k_t_06_00_12_18[] = "t(06|00|12|18)";
-static const char __pyx_k_HRRR_FILE_NAME[] = "HRRR_FILE_NAME";
 static const char __pyx_k_NEAREST_POINTS[] = "NEAREST_POINTS";
 static const char __pyx_k_NOMBRE_ARCHIVO[] = "NOMBRE_ARCHIVO";
 static const char __pyx_k_TABLA_ORD_DIST[] = "TABLA_ORD_DIST";
 static const char __pyx_k_TABLA_WIND_csv[] = "TABLA_WIND.csv";
 static const char __pyx_k_VARIABLE_NAMES[] = "VARIABLE_NAMES";
-static const char __pyx_k_HRRR_FILES_PATH[] = "HRRR_FILES_PATH";
+static const char __pyx_k_NAM12_FILE_NAME[] = "NAM12_FILE_NAME";
 static const char __pyx_k_TABLA_VARIABLES[] = "TABLA_VARIABLES";
 static const char __pyx_k_VARIABLE_VALUES[] = "VARIABLE_VALUES";
 static const char __pyx_k_GUARDANDO_CSV_en[] = "GUARDANDO CSV en ";
+static const char __pyx_k_NAM12_FILES_PATH[] = "NAM12_FILES_PATH";
 static const char __pyx_k_display_max_rows[] = "display.max_rows";
 static const char __pyx_k_SELECTED_VARIABLES[] = "SELECTED_VARIABLES";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
 static const char __pyx_k_TABLA_VARIABLES_csv[] = "TABLA_VARIABLES.csv";
 static const char __pyx_k_display_max_columns[] = "display.max_columns";
-static const char __pyx_k_EXTRACT_CSV_INFO_HRRR[] = "EXTRACT_CSV_INFO_HRRR";
+static const char __pyx_k_EXTRACT_CSV_INFO_NAM12[] = "EXTRACT_CSV_INFO_NAM12";
 static const char __pyx_k_OBTAIN_50_NEAREST_POINTS[] = "OBTAIN_50_NEAREST_POINTS";
 static const char __pyx_k_SELECTED_VARIABLES_LEVEL[] = "SELECTED_VARIABLES_LEVEL";
 static const char __pyx_k_EXTRACT_NAM12_GRIBS_CYTHON[] = "EXTRACT_NAM12_GRIBS_CYTHON";
 static const char __pyx_k_EXTRACT_VARIABLES_FROM_GRIB[] = "EXTRACT_VARIABLES_FROM_GRIB";
+static const char __pyx_k_media_meteobit_Elements_NAM12[] = "/media/meteobit/Elements/NAM12/";
 static const char __pyx_k_Created_on_Fri_Aug_23_13_17_24[] = "\nCreated on Fri Aug 23 13:17:24 2019\n\n@author: meteobit\n";
 static const char __pyx_k_EXTRACT_NAM12_GRIBS_CYTHON_pyx[] = "EXTRACT_NAM12_GRIBS_CYTHON.pyx";
 static const char __pyx_k_TABLA_DE_VARIABLES_GUARDADA_EN[] = "TABLA DE VARIABLES GUARDADA EN ";
-static const char __pyx_k_media_oscar_Elements_HRRR_from[] = "/media/oscar/Elements/HRRR_from_UofU/";
+static const char __pyx_k_MAKE_VARIABLE_AND_NEAREST_POINTS[] = "MAKE_VARIABLE_AND_NEAREST_POINTS";
 static const char __pyx_k_TABLA_DE_VARIABLES_DE_VIENTO_GUA[] = "TABLA DE VARIABLES DE VIENTO GUARDADA EN ";
 static PyObject *__pyx_kp_s_;
 static PyObject *__pyx_kp_s_CREANDO_TABLA;
@@ -1385,18 +1414,11 @@ static PyObject *__pyx_n_s_DATE;
 static PyObject *__pyx_n_s_DIST;
 static PyObject *__pyx_n_s_DISTANCIA;
 static PyObject *__pyx_n_s_DataFrame;
-static PyObject *__pyx_n_s_EXTRACT_CSV_INFO_HRRR;
+static PyObject *__pyx_n_s_EXTRACT_CSV_INFO_NAM12;
 static PyObject *__pyx_n_s_EXTRACT_NAM12_GRIBS_CYTHON;
 static PyObject *__pyx_kp_s_EXTRACT_NAM12_GRIBS_CYTHON_pyx;
 static PyObject *__pyx_n_s_EXTRACT_VARIABLES_FROM_GRIB;
 static PyObject *__pyx_kp_s_GUARDANDO_CSV_en;
-static PyObject *__pyx_n_s_HRRR_FILES;
-static PyObject *__pyx_n_s_HRRR_FILES_PATH;
-static PyObject *__pyx_n_s_HRRR_FILE_NAME;
-static PyObject *__pyx_n_s_HRRR_GRIB;
-static PyObject *__pyx_n_s_HRRR_PATH;
-static PyObject *__pyx_n_s_HRRR_prs;
-static PyObject *__pyx_n_s_HRRR_sfc;
 static PyObject *__pyx_n_s_LAT;
 static PyObject *__pyx_n_s_LATS;
 static PyObject *__pyx_n_s_LAT_NP;
@@ -1407,12 +1429,19 @@ static PyObject *__pyx_n_s_LONG_NP;
 static PyObject *__pyx_n_s_LONS;
 static PyObject *__pyx_n_s_LON_TATANKA;
 static PyObject *__pyx_n_s_MAIN;
+static PyObject *__pyx_n_s_MAKE_VARIABLE_AND_NEAREST_POINTS;
+static PyObject *__pyx_n_s_NAM12_FILES;
+static PyObject *__pyx_n_s_NAM12_FILES_PATH;
+static PyObject *__pyx_n_s_NAM12_FILE_NAME;
+static PyObject *__pyx_n_s_NAM12_GRIB;
+static PyObject *__pyx_n_s_NAM12_PATH;
+static PyObject *__pyx_n_s_NAM12_sfc;
 static PyObject *__pyx_n_s_NAME;
 static PyObject *__pyx_n_s_NEAREST_POINTS;
 static PyObject *__pyx_n_s_NOMBRE_ARCHIVO;
+static PyObject *__pyx_kp_s_NO_ENCONTRADO;
 static PyObject *__pyx_n_s_OBTAIN_50_NEAREST_POINTS;
 static PyObject *__pyx_n_s_PATH_SAVE;
-static PyObject *__pyx_n_s_PATTERN_HOURS;
 static PyObject *__pyx_n_s_PROJ;
 static PyObject *__pyx_n_s_R;
 static PyObject *__pyx_n_s_SELECTED_VARIABLES;
@@ -1453,7 +1482,6 @@ static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_n_s_colnames;
 static PyObject *__pyx_n_s_column;
 static PyObject *__pyx_n_s_columns;
-static PyObject *__pyx_n_s_compile;
 static PyObject *__pyx_n_s_cos;
 static PyObject *__pyx_kp_s_csv;
 static PyObject *__pyx_n_s_csv_2;
@@ -1477,7 +1505,6 @@ static PyObject *__pyx_n_s_isfile;
 static PyObject *__pyx_n_s_isin;
 static PyObject *__pyx_n_s_item;
 static PyObject *__pyx_n_s_k;
-static PyObject *__pyx_n_s_lat;
 static PyObject *__pyx_n_s_lat1;
 static PyObject *__pyx_n_s_lat2;
 static PyObject *__pyx_n_s_latlons;
@@ -1491,7 +1518,7 @@ static PyObject *__pyx_n_s_lower;
 static PyObject *__pyx_n_s_main;
 static PyObject *__pyx_n_s_makedirs;
 static PyObject *__pyx_n_s_math;
-static PyObject *__pyx_kp_s_media_oscar_Elements_HRRR_from;
+static PyObject *__pyx_kp_s_media_meteobit_Elements_NAM12;
 static PyObject *__pyx_n_s_name;
 static PyObject *__pyx_n_s_name_2;
 static PyObject *__pyx_n_s_np;
@@ -1509,7 +1536,6 @@ static PyObject *__pyx_n_s_ravel;
 static PyObject *__pyx_n_s_re;
 static PyObject *__pyx_n_s_replace;
 static PyObject *__pyx_n_s_s;
-static PyObject *__pyx_n_s_search;
 static PyObject *__pyx_n_s_seek;
 static PyObject *__pyx_n_s_select;
 static PyObject *__pyx_n_s_sep;
@@ -1519,18 +1545,15 @@ static PyObject *__pyx_n_s_sin;
 static PyObject *__pyx_n_s_sort_values;
 static PyObject *__pyx_n_s_split;
 static PyObject *__pyx_n_s_sqrt;
-static PyObject *__pyx_kp_s_t_06_00_12_18;
 static PyObject *__pyx_n_s_test;
 static PyObject *__pyx_n_s_to_csv;
 static PyObject *__pyx_n_s_validDate;
 static PyObject *__pyx_n_s_value;
 static PyObject *__pyx_n_s_values;
 static PyObject *__pyx_n_s_wind;
-static PyObject *__pyx_n_s_wrfprs;
-static PyObject *__pyx_n_s_wrfsfc;
-static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GRIB(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_HRRR_FILE_NAME, PyObject *__pyx_v_CUSTOM_WORD); /* proto */
+static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GRIB(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_NAM12_FILE_NAME, PyObject *__pyx_v_CUSTOM_WORD); /* proto */
 static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_LONG_NP, PyObject *__pyx_v_LAT_NP, PyObject *__pyx_v_LON, PyObject *__pyx_v_LAT); /* proto */
-static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_SELECTED_VARIABLES, PyObject *__pyx_v_NEAREST_POINTS, PyObject *__pyx_v_CUT_DATA, PyObject *__pyx_v_HRRR_FILE_NAME); /* proto */
+static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_NAM12(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_SELECTED_VARIABLES, PyObject *__pyx_v_NEAREST_POINTS, PyObject *__pyx_v_CUT_DATA, PyObject *__pyx_v_NAM12_FILE_NAME); /* proto */
 static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_6MAIN(CYTHON_UNUSED PyObject *__pyx_self); /* proto */
 static PyObject *__pyx_int_0;
 static PyObject *__pyx_int_1;
@@ -1559,7 +1582,7 @@ static PyObject *__pyx_codeobj__23;
 /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":24
  * 
  * 
- * def EXTRACT_VARIABLES_FROM_GRIB(HRRR_FILE_NAME, CUSTOM_WORD):             # <<<<<<<<<<<<<<
+ * def EXTRACT_VARIABLES_FROM_GRIB(NAM12_FILE_NAME, CUSTOM_WORD):             # <<<<<<<<<<<<<<
  *     '''
  *     FUNCION QUE NOS DEVUELVE LA TABLA DE VARIABLES CONTENIDA EN EL GRIB... Y LA GUARDA A UN CSV
  */
@@ -1569,13 +1592,13 @@ static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_1EXTRACT_VARIABLES_FROM_G
 static char __pyx_doc_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GRIB[] = "\n    FUNCION QUE NOS DEVUELVE LA TABLA DE VARIABLES CONTENIDA EN EL GRIB... Y LA GUARDA A UN CSV\n    ADEMAS PODEMOS DECIRLE QUE NOS DE UNA TABLADE VARIABLES PERSONALIZADA... INTRODUCIONDO UNA \n    PALABRA QUE BUSCARA ENTRE LOS NOMBRES DE LAS VARIABLES\n    \n    ";
 static PyMethodDef __pyx_mdef_26EXTRACT_NAM12_GRIBS_CYTHON_1EXTRACT_VARIABLES_FROM_GRIB = {"EXTRACT_VARIABLES_FROM_GRIB", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_1EXTRACT_VARIABLES_FROM_GRIB, METH_VARARGS|METH_KEYWORDS, __pyx_doc_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GRIB};
 static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_1EXTRACT_VARIABLES_FROM_GRIB(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  PyObject *__pyx_v_HRRR_FILE_NAME = 0;
+  PyObject *__pyx_v_NAM12_FILE_NAME = 0;
   PyObject *__pyx_v_CUSTOM_WORD = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("EXTRACT_VARIABLES_FROM_GRIB (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_HRRR_FILE_NAME,&__pyx_n_s_CUSTOM_WORD,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_NAM12_FILE_NAME,&__pyx_n_s_CUSTOM_WORD,0};
     PyObject* values[2] = {0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
@@ -1591,7 +1614,7 @@ static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_1EXTRACT_VARIABLES_FROM_G
       kw_args = PyDict_Size(__pyx_kwds);
       switch (pos_args) {
         case  0:
-        if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_HRRR_FILE_NAME)) != 0)) kw_args--;
+        if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_NAM12_FILE_NAME)) != 0)) kw_args--;
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
@@ -1609,7 +1632,7 @@ static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_1EXTRACT_VARIABLES_FROM_G
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
     }
-    __pyx_v_HRRR_FILE_NAME = values[0];
+    __pyx_v_NAM12_FILE_NAME = values[0];
     __pyx_v_CUSTOM_WORD = values[1];
   }
   goto __pyx_L4_argument_unpacking_done;
@@ -1620,15 +1643,15 @@ static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_1EXTRACT_VARIABLES_FROM_G
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GRIB(__pyx_self, __pyx_v_HRRR_FILE_NAME, __pyx_v_CUSTOM_WORD);
+  __pyx_r = __pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GRIB(__pyx_self, __pyx_v_NAM12_FILE_NAME, __pyx_v_CUSTOM_WORD);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GRIB(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_HRRR_FILE_NAME, PyObject *__pyx_v_CUSTOM_WORD) {
-  PyObject *__pyx_v_HRRR_GRIB = NULL;
+static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GRIB(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_NAM12_FILE_NAME, PyObject *__pyx_v_CUSTOM_WORD) {
+  PyObject *__pyx_v_NAM12_GRIB = NULL;
   PyObject *__pyx_v_VARIABLE_NAMES = NULL;
   PyObject *__pyx_v_k = NULL;
   PyObject *__pyx_v_i = NULL;
@@ -1656,7 +1679,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":31
  * 
  *     '''
- *     HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)             # <<<<<<<<<<<<<<
+ *     NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)             # <<<<<<<<<<<<<<
  * 
  *     VARIABLE_NAMES=[]
  */
@@ -1675,20 +1698,20 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
       __Pyx_DECREF_SET(__pyx_t_3, function);
     }
   }
-  __pyx_t_1 = (__pyx_t_2) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_2, __pyx_v_HRRR_FILE_NAME) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_v_HRRR_FILE_NAME);
+  __pyx_t_1 = (__pyx_t_2) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_2, __pyx_v_NAM12_FILE_NAME) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_v_NAM12_FILE_NAME);
   __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
   if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 31, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_v_HRRR_GRIB = __pyx_t_1;
+  __pyx_v_NAM12_GRIB = __pyx_t_1;
   __pyx_t_1 = 0;
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":33
- *     HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)
+ *     NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)
  * 
  *     VARIABLE_NAMES=[]             # <<<<<<<<<<<<<<
  *     k=1
- *     HRRR_GRIB.seek(0)
+ *     NAM12_GRIB.seek(0)
  */
   __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 33, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -1699,8 +1722,8 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
  * 
  *     VARIABLE_NAMES=[]
  *     k=1             # <<<<<<<<<<<<<<
- *     HRRR_GRIB.seek(0)
- *     for i in HRRR_GRIB:
+ *     NAM12_GRIB.seek(0)
+ *     for i in NAM12_GRIB:
  */
   __Pyx_INCREF(__pyx_int_1);
   __pyx_v_k = __pyx_int_1;
@@ -1708,11 +1731,11 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":35
  *     VARIABLE_NAMES=[]
  *     k=1
- *     HRRR_GRIB.seek(0)             # <<<<<<<<<<<<<<
- *     for i in HRRR_GRIB:
+ *     NAM12_GRIB.seek(0)             # <<<<<<<<<<<<<<
+ *     for i in NAM12_GRIB:
  *         VARIABLE_NAMES.append(str(i).split(':'))
  */
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_HRRR_GRIB, __pyx_n_s_seek); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 35, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_NAM12_GRIB, __pyx_n_s_seek); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 35, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_2 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
@@ -1733,16 +1756,16 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":36
  *     k=1
- *     HRRR_GRIB.seek(0)
- *     for i in HRRR_GRIB:             # <<<<<<<<<<<<<<
+ *     NAM12_GRIB.seek(0)
+ *     for i in NAM12_GRIB:             # <<<<<<<<<<<<<<
  *         VARIABLE_NAMES.append(str(i).split(':'))
  *         k=k+1
  */
-  if (likely(PyList_CheckExact(__pyx_v_HRRR_GRIB)) || PyTuple_CheckExact(__pyx_v_HRRR_GRIB)) {
-    __pyx_t_1 = __pyx_v_HRRR_GRIB; __Pyx_INCREF(__pyx_t_1); __pyx_t_4 = 0;
+  if (likely(PyList_CheckExact(__pyx_v_NAM12_GRIB)) || PyTuple_CheckExact(__pyx_v_NAM12_GRIB)) {
+    __pyx_t_1 = __pyx_v_NAM12_GRIB; __Pyx_INCREF(__pyx_t_1); __pyx_t_4 = 0;
     __pyx_t_5 = NULL;
   } else {
-    __pyx_t_4 = -1; __pyx_t_1 = PyObject_GetIter(__pyx_v_HRRR_GRIB); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 36, __pyx_L1_error)
+    __pyx_t_4 = -1; __pyx_t_1 = PyObject_GetIter(__pyx_v_NAM12_GRIB); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 36, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __pyx_t_5 = Py_TYPE(__pyx_t_1)->tp_iternext; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 36, __pyx_L1_error)
   }
@@ -1781,8 +1804,8 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
     __pyx_t_3 = 0;
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":37
- *     HRRR_GRIB.seek(0)
- *     for i in HRRR_GRIB:
+ *     NAM12_GRIB.seek(0)
+ *     for i in NAM12_GRIB:
  *         VARIABLE_NAMES.append(str(i).split(':'))             # <<<<<<<<<<<<<<
  *         k=k+1
  * 
@@ -1811,7 +1834,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":38
- *     for i in HRRR_GRIB:
+ *     for i in NAM12_GRIB:
  *         VARIABLE_NAMES.append(str(i).split(':'))
  *         k=k+1             # <<<<<<<<<<<<<<
  * 
@@ -1824,8 +1847,8 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":36
  *     k=1
- *     HRRR_GRIB.seek(0)
- *     for i in HRRR_GRIB:             # <<<<<<<<<<<<<<
+ *     NAM12_GRIB.seek(0)
+ *     for i in NAM12_GRIB:             # <<<<<<<<<<<<<<
  *         VARIABLE_NAMES.append(str(i).split(':'))
  *         k=k+1
  */
@@ -1901,7 +1924,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
  *     '''
  *     TABLA_CUSTOM = TABLA_VAR[TABLA_VAR.NAME.isin(set([item for item in list(TABLA_VAR['NAME']) if CUSTOM_WORD in item.lower()]))]             # <<<<<<<<<<<<<<
  * 
- *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +HRRR_GRIB.name.split('/')[-1].replace('.','') + '/'
+ *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +NAM12_GRIB.name.split('/')[-1].replace('.','') + '/'
  */
   __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_TABLA_VAR, __pyx_n_s_NAME); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 47, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
@@ -1980,7 +2003,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":49
  *     TABLA_CUSTOM = TABLA_VAR[TABLA_VAR.NAME.isin(set([item for item in list(TABLA_VAR['NAME']) if CUSTOM_WORD in item.lower()]))]
  * 
- *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +HRRR_GRIB.name.split('/')[-1].replace('.','') + '/'             # <<<<<<<<<<<<<<
+ *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +NAM12_GRIB.name.split('/')[-1].replace('.','') + '/'             # <<<<<<<<<<<<<<
  *     if not os.path.isdir(PATH_SAVE):
  *         os.makedirs(PATH_SAVE, exist_ok=True)
  */
@@ -2007,7 +2030,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
   __pyx_t_3 = PyNumber_Add(__pyx_t_1, __pyx_kp_s_CSV_VARIABLES); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 49, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_HRRR_GRIB, __pyx_n_s_name); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 49, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_NAM12_GRIB, __pyx_n_s_name); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 49, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_split); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 49, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
@@ -2048,7 +2071,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":50
  * 
- *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +HRRR_GRIB.name.split('/')[-1].replace('.','') + '/'
+ *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +NAM12_GRIB.name.split('/')[-1].replace('.','') + '/'
  *     if not os.path.isdir(PATH_SAVE):             # <<<<<<<<<<<<<<
  *         os.makedirs(PATH_SAVE, exist_ok=True)
  * 
@@ -2082,7 +2105,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
   if (__pyx_t_11) {
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":51
- *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +HRRR_GRIB.name.split('/')[-1].replace('.','') + '/'
+ *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +NAM12_GRIB.name.split('/')[-1].replace('.','') + '/'
  *     if not os.path.isdir(PATH_SAVE):
  *         os.makedirs(PATH_SAVE, exist_ok=True)             # <<<<<<<<<<<<<<
  * 
@@ -2110,7 +2133,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":50
  * 
- *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +HRRR_GRIB.name.split('/')[-1].replace('.','') + '/'
+ *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +NAM12_GRIB.name.split('/')[-1].replace('.','') + '/'
  *     if not os.path.isdir(PATH_SAVE):             # <<<<<<<<<<<<<<
  *         os.makedirs(PATH_SAVE, exist_ok=True)
  * 
@@ -2222,7 +2245,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":24
  * 
  * 
- * def EXTRACT_VARIABLES_FROM_GRIB(HRRR_FILE_NAME, CUSTOM_WORD):             # <<<<<<<<<<<<<<
+ * def EXTRACT_VARIABLES_FROM_GRIB(NAM12_FILE_NAME, CUSTOM_WORD):             # <<<<<<<<<<<<<<
  *     '''
  *     FUNCION QUE NOS DEVUELVE LA TABLA DE VARIABLES CONTENIDA EN EL GRIB... Y LA GUARDA A UN CSV
  */
@@ -2239,7 +2262,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_EXTRACT_VARIABLES_FROM_GR
   __Pyx_AddTraceback("EXTRACT_NAM12_GRIBS_CYTHON.EXTRACT_VARIABLES_FROM_GRIB", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
-  __Pyx_XDECREF(__pyx_v_HRRR_GRIB);
+  __Pyx_XDECREF(__pyx_v_NAM12_GRIB);
   __Pyx_XDECREF(__pyx_v_VARIABLE_NAMES);
   __Pyx_XDECREF(__pyx_v_k);
   __Pyx_XDECREF(__pyx_v_i);
@@ -2347,18 +2370,18 @@ static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_3OBTAIN_50_NEAREST_POINTS
 }
 
 static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_LONG_NP, PyObject *__pyx_v_LAT_NP, PyObject *__pyx_v_LON, PyObject *__pyx_v_LAT) {
-  float __pyx_v_R;
-  float __pyx_v_c;
-  float __pyx_v_a;
-  float __pyx_v_lon1;
-  float __pyx_v_lat1;
-  float __pyx_v_lon2;
-  float __pyx_v_lat2;
-  float __pyx_v_dlon;
   PyObject *__pyx_v_TABLA_LONLAT = NULL;
+  double __pyx_v_R;
   PyObject *__pyx_v_DISTANCIA = NULL;
   Py_ssize_t __pyx_v_i;
+  PyObject *__pyx_v_lat1 = NULL;
+  PyObject *__pyx_v_lon1 = NULL;
+  PyObject *__pyx_v_lat2 = NULL;
+  PyObject *__pyx_v_lon2 = NULL;
+  PyObject *__pyx_v_dlon = NULL;
   PyObject *__pyx_v_dlat = NULL;
+  PyObject *__pyx_v_a = NULL;
+  PyObject *__pyx_v_c = NULL;
   PyObject *__pyx_v_TABLA_ORD_DIST = NULL;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -2369,16 +2392,15 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
   Py_ssize_t __pyx_t_5;
   Py_ssize_t __pyx_t_6;
   PyObject *__pyx_t_7 = NULL;
-  float __pyx_t_8;
+  PyObject *__pyx_t_8 = NULL;
   PyObject *__pyx_t_9 = NULL;
   PyObject *__pyx_t_10 = NULL;
-  PyObject *__pyx_t_11 = NULL;
+  int __pyx_t_11;
   int __pyx_t_12;
-  int __pyx_t_13;
   __Pyx_RefNannySetupContext("OBTAIN_50_NEAREST_POINTS", 0);
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":69
- *     cdef float R, c, a, lon1,lat1, lon2,lat2, dlon,lat
+ *     #cdef float R, c, a, lon1,lat1, lon2,lat2, dlon,lat
  * 
  *     TABLA_LONLAT=pd.DataFrame(columns=['LON', 'LAT'])             # <<<<<<<<<<<<<<
  *     TABLA_LONLAT['LON']= LONG_NP[:, :].ravel()
@@ -2534,9 +2556,8 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
     if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 90, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_8 = __pyx_PyFloat_AsFloat(__pyx_t_3); if (unlikely((__pyx_t_8 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 90, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_v_lat1 = __pyx_t_8;
+    __Pyx_XDECREF_SET(__pyx_v_lat1, __pyx_t_3);
+    __pyx_t_3 = 0;
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":91
  *     for i in range(len(TABLA_LONLAT['LAT'])):
@@ -2568,9 +2589,8 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
     if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 91, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_8 = __pyx_PyFloat_AsFloat(__pyx_t_3); if (unlikely((__pyx_t_8 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 91, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_v_lon1 = __pyx_t_8;
+    __Pyx_XDECREF_SET(__pyx_v_lon1, __pyx_t_3);
+    __pyx_t_3 = 0;
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":92
  *         lat1 = radians(TABLA_LONLAT['LAT'][i])
@@ -2596,9 +2616,8 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
     if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 92, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_8 = __pyx_PyFloat_AsFloat(__pyx_t_3); if (unlikely((__pyx_t_8 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 92, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_v_lat2 = __pyx_t_8;
+    __Pyx_XDECREF_SET(__pyx_v_lat2, __pyx_t_3);
+    __pyx_t_3 = 0;
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":93
  *         lon1 = radians(TABLA_LONLAT['LON'][i])
@@ -2624,9 +2643,8 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
     if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 93, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_8 = __pyx_PyFloat_AsFloat(__pyx_t_3); if (unlikely((__pyx_t_8 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 93, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_v_lon2 = __pyx_t_8;
+    __Pyx_XDECREF_SET(__pyx_v_lon2, __pyx_t_3);
+    __pyx_t_3 = 0;
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":95
  *         lon2 = radians(LON)
@@ -2635,7 +2653,10 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
  *         dlat = lat2 - lat1
  * 
  */
-    __pyx_v_dlon = (__pyx_v_lon2 - __pyx_v_lon1);
+    __pyx_t_3 = PyNumber_Subtract(__pyx_v_lon2, __pyx_v_lon1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 95, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    __Pyx_XDECREF_SET(__pyx_v_dlon, __pyx_t_3);
+    __pyx_t_3 = 0;
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":96
  * 
@@ -2644,7 +2665,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
  * 
  *         a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
  */
-    __pyx_t_3 = PyFloat_FromDouble((__pyx_v_lat2 - __pyx_v_lat1)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 96, __pyx_L1_error)
+    __pyx_t_3 = PyNumber_Subtract(__pyx_v_lat2, __pyx_v_lat1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 96, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_XDECREF_SET(__pyx_v_dlat, __pyx_t_3);
     __pyx_t_3 = 0;
@@ -2681,41 +2702,35 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_cos); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 98, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_7 = PyFloat_FromDouble(__pyx_v_lat1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 98, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_7);
-    __pyx_t_9 = NULL;
+    __pyx_t_7 = NULL;
     if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
-      __pyx_t_9 = PyMethod_GET_SELF(__pyx_t_2);
-      if (likely(__pyx_t_9)) {
+      __pyx_t_7 = PyMethod_GET_SELF(__pyx_t_2);
+      if (likely(__pyx_t_7)) {
         PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-        __Pyx_INCREF(__pyx_t_9);
+        __Pyx_INCREF(__pyx_t_7);
         __Pyx_INCREF(function);
         __Pyx_DECREF_SET(__pyx_t_2, function);
       }
     }
-    __pyx_t_3 = (__pyx_t_9) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_9, __pyx_t_7) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_7);
-    __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
-    __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+    __pyx_t_3 = (__pyx_t_7) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_7, __pyx_v_lat1) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_v_lat1);
+    __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
     if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 98, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __Pyx_GetModuleGlobalName(__pyx_t_7, __pyx_n_s_cos); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 98, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
-    __pyx_t_9 = PyFloat_FromDouble(__pyx_v_lat2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 98, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_9);
-    __pyx_t_10 = NULL;
+    __pyx_t_8 = NULL;
     if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_7))) {
-      __pyx_t_10 = PyMethod_GET_SELF(__pyx_t_7);
-      if (likely(__pyx_t_10)) {
+      __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_7);
+      if (likely(__pyx_t_8)) {
         PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_7);
-        __Pyx_INCREF(__pyx_t_10);
+        __Pyx_INCREF(__pyx_t_8);
         __Pyx_INCREF(function);
         __Pyx_DECREF_SET(__pyx_t_7, function);
       }
     }
-    __pyx_t_2 = (__pyx_t_10) ? __Pyx_PyObject_Call2Args(__pyx_t_7, __pyx_t_10, __pyx_t_9) : __Pyx_PyObject_CallOneArg(__pyx_t_7, __pyx_t_9);
-    __Pyx_XDECREF(__pyx_t_10); __pyx_t_10 = 0;
-    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+    __pyx_t_2 = (__pyx_t_8) ? __Pyx_PyObject_Call2Args(__pyx_t_7, __pyx_t_8, __pyx_v_lat2) : __Pyx_PyObject_CallOneArg(__pyx_t_7, __pyx_v_lat2);
+    __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
     if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 98, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
@@ -2725,21 +2740,21 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_sin); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 98, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_9 = PyFloat_FromDouble((__pyx_v_dlon / 2.0)); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 98, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_9);
-    __pyx_t_10 = NULL;
+    __pyx_t_8 = __Pyx_PyNumber_Divide(__pyx_v_dlon, __pyx_int_2); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 98, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_8);
+    __pyx_t_9 = NULL;
     if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_3))) {
-      __pyx_t_10 = PyMethod_GET_SELF(__pyx_t_3);
-      if (likely(__pyx_t_10)) {
+      __pyx_t_9 = PyMethod_GET_SELF(__pyx_t_3);
+      if (likely(__pyx_t_9)) {
         PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
-        __Pyx_INCREF(__pyx_t_10);
+        __Pyx_INCREF(__pyx_t_9);
         __Pyx_INCREF(function);
         __Pyx_DECREF_SET(__pyx_t_3, function);
       }
     }
-    __pyx_t_2 = (__pyx_t_10) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_10, __pyx_t_9) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_9);
-    __Pyx_XDECREF(__pyx_t_10); __pyx_t_10 = 0;
-    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+    __pyx_t_2 = (__pyx_t_9) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_9, __pyx_t_8) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_8);
+    __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
+    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
     if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 98, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -2754,9 +2769,8 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_8 = __pyx_PyFloat_AsFloat(__pyx_t_3); if (unlikely((__pyx_t_8 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 98, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_v_a = __pyx_t_8;
+    __Pyx_XDECREF_SET(__pyx_v_a, __pyx_t_3);
+    __pyx_t_3 = 0;
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":99
  * 
@@ -2769,61 +2783,58 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_GetModuleGlobalName(__pyx_t_7, __pyx_n_s_sqrt); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 99, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
-    __pyx_t_9 = PyFloat_FromDouble(__pyx_v_a); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 99, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_9);
-    __pyx_t_10 = NULL;
+    __pyx_t_8 = NULL;
     if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_7))) {
-      __pyx_t_10 = PyMethod_GET_SELF(__pyx_t_7);
-      if (likely(__pyx_t_10)) {
+      __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_7);
+      if (likely(__pyx_t_8)) {
         PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_7);
-        __Pyx_INCREF(__pyx_t_10);
+        __Pyx_INCREF(__pyx_t_8);
         __Pyx_INCREF(function);
         __Pyx_DECREF_SET(__pyx_t_7, function);
       }
     }
-    __pyx_t_1 = (__pyx_t_10) ? __Pyx_PyObject_Call2Args(__pyx_t_7, __pyx_t_10, __pyx_t_9) : __Pyx_PyObject_CallOneArg(__pyx_t_7, __pyx_t_9);
-    __Pyx_XDECREF(__pyx_t_10); __pyx_t_10 = 0;
-    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+    __pyx_t_1 = (__pyx_t_8) ? __Pyx_PyObject_Call2Args(__pyx_t_7, __pyx_t_8, __pyx_v_a) : __Pyx_PyObject_CallOneArg(__pyx_t_7, __pyx_v_a);
+    __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
     if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 99, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-    __Pyx_GetModuleGlobalName(__pyx_t_9, __pyx_n_s_sqrt); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 99, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_8, __pyx_n_s_sqrt); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 99, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_8);
+    __pyx_t_9 = __Pyx_PyInt_SubtractCObj(__pyx_int_1, __pyx_v_a, 1, 0, 0); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 99, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
-    __pyx_t_10 = PyFloat_FromDouble((1.0 - __pyx_v_a)); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 99, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_10);
-    __pyx_t_11 = NULL;
-    if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_9))) {
-      __pyx_t_11 = PyMethod_GET_SELF(__pyx_t_9);
-      if (likely(__pyx_t_11)) {
-        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_9);
-        __Pyx_INCREF(__pyx_t_11);
+    __pyx_t_10 = NULL;
+    if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_8))) {
+      __pyx_t_10 = PyMethod_GET_SELF(__pyx_t_8);
+      if (likely(__pyx_t_10)) {
+        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_8);
+        __Pyx_INCREF(__pyx_t_10);
         __Pyx_INCREF(function);
-        __Pyx_DECREF_SET(__pyx_t_9, function);
+        __Pyx_DECREF_SET(__pyx_t_8, function);
       }
     }
-    __pyx_t_7 = (__pyx_t_11) ? __Pyx_PyObject_Call2Args(__pyx_t_9, __pyx_t_11, __pyx_t_10) : __Pyx_PyObject_CallOneArg(__pyx_t_9, __pyx_t_10);
-    __Pyx_XDECREF(__pyx_t_11); __pyx_t_11 = 0;
-    __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+    __pyx_t_7 = (__pyx_t_10) ? __Pyx_PyObject_Call2Args(__pyx_t_8, __pyx_t_10, __pyx_t_9) : __Pyx_PyObject_CallOneArg(__pyx_t_8, __pyx_t_9);
+    __Pyx_XDECREF(__pyx_t_10); __pyx_t_10 = 0;
+    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
     if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 99, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
-    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-    __pyx_t_9 = NULL;
-    __pyx_t_12 = 0;
+    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+    __pyx_t_8 = NULL;
+    __pyx_t_11 = 0;
     if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
-      __pyx_t_9 = PyMethod_GET_SELF(__pyx_t_2);
-      if (likely(__pyx_t_9)) {
+      __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_2);
+      if (likely(__pyx_t_8)) {
         PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-        __Pyx_INCREF(__pyx_t_9);
+        __Pyx_INCREF(__pyx_t_8);
         __Pyx_INCREF(function);
         __Pyx_DECREF_SET(__pyx_t_2, function);
-        __pyx_t_12 = 1;
+        __pyx_t_11 = 1;
       }
     }
     #if CYTHON_FAST_PYCALL
     if (PyFunction_Check(__pyx_t_2)) {
-      PyObject *__pyx_temp[3] = {__pyx_t_9, __pyx_t_1, __pyx_t_7};
-      __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_2, __pyx_temp+1-__pyx_t_12, 2+__pyx_t_12); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 99, __pyx_L1_error)
-      __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
+      PyObject *__pyx_temp[3] = {__pyx_t_8, __pyx_t_1, __pyx_t_7};
+      __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_2, __pyx_temp+1-__pyx_t_11, 2+__pyx_t_11); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 99, __pyx_L1_error)
+      __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
@@ -2831,37 +2842,36 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
     #endif
     #if CYTHON_FAST_PYCCALL
     if (__Pyx_PyFastCFunction_Check(__pyx_t_2)) {
-      PyObject *__pyx_temp[3] = {__pyx_t_9, __pyx_t_1, __pyx_t_7};
-      __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_2, __pyx_temp+1-__pyx_t_12, 2+__pyx_t_12); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 99, __pyx_L1_error)
-      __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
+      PyObject *__pyx_temp[3] = {__pyx_t_8, __pyx_t_1, __pyx_t_7};
+      __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_2, __pyx_temp+1-__pyx_t_11, 2+__pyx_t_11); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 99, __pyx_L1_error)
+      __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     } else
     #endif
     {
-      __pyx_t_10 = PyTuple_New(2+__pyx_t_12); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 99, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_10);
-      if (__pyx_t_9) {
-        __Pyx_GIVEREF(__pyx_t_9); PyTuple_SET_ITEM(__pyx_t_10, 0, __pyx_t_9); __pyx_t_9 = NULL;
+      __pyx_t_9 = PyTuple_New(2+__pyx_t_11); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 99, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_9);
+      if (__pyx_t_8) {
+        __Pyx_GIVEREF(__pyx_t_8); PyTuple_SET_ITEM(__pyx_t_9, 0, __pyx_t_8); __pyx_t_8 = NULL;
       }
       __Pyx_GIVEREF(__pyx_t_1);
-      PyTuple_SET_ITEM(__pyx_t_10, 0+__pyx_t_12, __pyx_t_1);
+      PyTuple_SET_ITEM(__pyx_t_9, 0+__pyx_t_11, __pyx_t_1);
       __Pyx_GIVEREF(__pyx_t_7);
-      PyTuple_SET_ITEM(__pyx_t_10, 1+__pyx_t_12, __pyx_t_7);
+      PyTuple_SET_ITEM(__pyx_t_9, 1+__pyx_t_11, __pyx_t_7);
       __pyx_t_1 = 0;
       __pyx_t_7 = 0;
-      __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_10, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 99, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_9, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 99, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
     }
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __pyx_t_2 = PyNumber_Multiply(__pyx_int_2, __pyx_t_3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 99, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_8 = __pyx_PyFloat_AsFloat(__pyx_t_2); if (unlikely((__pyx_t_8 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 99, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_v_c = __pyx_t_8;
+    __Pyx_XDECREF_SET(__pyx_v_c, __pyx_t_2);
+    __pyx_t_2 = 0;
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":101
  *         c = 2 * atan2(sqrt(a), sqrt(1 - a))
@@ -2870,10 +2880,13 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
  * 
  * 
  */
-    __pyx_t_2 = PyFloat_FromDouble((__pyx_v_R * __pyx_v_c)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 101, __pyx_L1_error)
+    __pyx_t_2 = PyFloat_FromDouble(__pyx_v_R); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 101, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_13 = __Pyx_PyList_Append(__pyx_v_DISTANCIA, __pyx_t_2); if (unlikely(__pyx_t_13 == ((int)-1))) __PYX_ERR(0, 101, __pyx_L1_error)
+    __pyx_t_3 = PyNumber_Multiply(__pyx_t_2, __pyx_v_c); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 101, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_12 = __Pyx_PyList_Append(__pyx_v_DISTANCIA, __pyx_t_3); if (unlikely(__pyx_t_12 == ((int)-1))) __PYX_ERR(0, 101, __pyx_L1_error)
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   }
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":105
@@ -2883,18 +2896,18 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
  * 
  *     TABLA_ORD_DIST= TABLA_LONLAT.sort_values(by='DIST')
  */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_TABLA_LONLAT, __pyx_n_s_insert); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 105, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyDict_NewPresized(3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_TABLA_LONLAT, __pyx_n_s_insert); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 105, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_column, __pyx_n_s_DIST) < 0) __PYX_ERR(0, 105, __pyx_L1_error)
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_loc, __pyx_int_0) < 0) __PYX_ERR(0, 105, __pyx_L1_error)
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_value, __pyx_v_DISTANCIA) < 0) __PYX_ERR(0, 105, __pyx_L1_error)
-  __pyx_t_10 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_empty_tuple, __pyx_t_3); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 105, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_10);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_2 = __Pyx_PyDict_NewPresized(3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_column, __pyx_n_s_DIST) < 0) __PYX_ERR(0, 105, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_loc, __pyx_int_0) < 0) __PYX_ERR(0, 105, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_value, __pyx_v_DISTANCIA) < 0) __PYX_ERR(0, 105, __pyx_L1_error)
+  __pyx_t_9 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_empty_tuple, __pyx_t_2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_9);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":107
  *     TABLA_LONLAT.insert(column= 'DIST',   loc= 0,  value= DISTANCIA)
@@ -2903,17 +2916,17 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
  * 
  * 
  */
-  __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_v_TABLA_LONLAT, __pyx_n_s_sort_values); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 107, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_10);
-  __pyx_t_3 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 107, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_by, __pyx_n_s_DIST) < 0) __PYX_ERR(0, 107, __pyx_L1_error)
-  __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_10, __pyx_empty_tuple, __pyx_t_3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 107, __pyx_L1_error)
+  __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_v_TABLA_LONLAT, __pyx_n_s_sort_values); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 107, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_9);
+  __pyx_t_2 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 107, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_v_TABLA_ORD_DIST = __pyx_t_2;
-  __pyx_t_2 = 0;
+  if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_by, __pyx_n_s_DIST) < 0) __PYX_ERR(0, 107, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_9, __pyx_empty_tuple, __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 107, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_v_TABLA_ORD_DIST = __pyx_t_3;
+  __pyx_t_3 = 0;
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":110
  * 
@@ -2923,10 +2936,10 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetSlice(__pyx_v_TABLA_ORD_DIST, 0, 50, NULL, NULL, &__pyx_slice__9, 1, 1, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 110, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_r = __pyx_t_2;
-  __pyx_t_2 = 0;
+  __pyx_t_3 = __Pyx_PyObject_GetSlice(__pyx_v_TABLA_ORD_DIST, 0, 50, NULL, NULL, &__pyx_slice__9, 1, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 110, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_r = __pyx_t_3;
+  __pyx_t_3 = 0;
   goto __pyx_L0;
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":62
@@ -2943,15 +2956,22 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
   __Pyx_XDECREF(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_3);
   __Pyx_XDECREF(__pyx_t_7);
+  __Pyx_XDECREF(__pyx_t_8);
   __Pyx_XDECREF(__pyx_t_9);
   __Pyx_XDECREF(__pyx_t_10);
-  __Pyx_XDECREF(__pyx_t_11);
   __Pyx_AddTraceback("EXTRACT_NAM12_GRIBS_CYTHON.OBTAIN_50_NEAREST_POINTS", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_TABLA_LONLAT);
   __Pyx_XDECREF(__pyx_v_DISTANCIA);
+  __Pyx_XDECREF(__pyx_v_lat1);
+  __Pyx_XDECREF(__pyx_v_lon1);
+  __Pyx_XDECREF(__pyx_v_lat2);
+  __Pyx_XDECREF(__pyx_v_lon2);
+  __Pyx_XDECREF(__pyx_v_dlon);
   __Pyx_XDECREF(__pyx_v_dlat);
+  __Pyx_XDECREF(__pyx_v_a);
+  __Pyx_XDECREF(__pyx_v_c);
   __Pyx_XDECREF(__pyx_v_TABLA_ORD_DIST);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
@@ -2961,24 +2981,24 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_2OBTAIN_50_NEAREST_POINTS
 /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":113
  * 
  * 
- * def EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES,             # <<<<<<<<<<<<<<
+ * def EXTRACT_CSV_INFO_NAM12(SELECTED_VARIABLES,             # <<<<<<<<<<<<<<
  *                           NEAREST_POINTS,
  *                           CUT_DATA,
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_HRRR(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_HRRR = {"EXTRACT_CSV_INFO_HRRR", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_HRRR, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_HRRR(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_NAM12(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_NAM12 = {"EXTRACT_CSV_INFO_NAM12", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_NAM12, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_NAM12(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_SELECTED_VARIABLES = 0;
   PyObject *__pyx_v_NEAREST_POINTS = 0;
   PyObject *__pyx_v_CUT_DATA = 0;
-  PyObject *__pyx_v_HRRR_FILE_NAME = 0;
+  PyObject *__pyx_v_NAM12_FILE_NAME = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("EXTRACT_CSV_INFO_HRRR (wrapper)", 0);
+  __Pyx_RefNannySetupContext("EXTRACT_CSV_INFO_NAM12 (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_SELECTED_VARIABLES,&__pyx_n_s_NEAREST_POINTS,&__pyx_n_s_CUT_DATA,&__pyx_n_s_HRRR_FILE_NAME,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_SELECTED_VARIABLES,&__pyx_n_s_NEAREST_POINTS,&__pyx_n_s_CUT_DATA,&__pyx_n_s_NAM12_FILE_NAME,0};
     PyObject* values[4] = {0,0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
@@ -3004,23 +3024,23 @@ static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_HRRR(Py
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_NEAREST_POINTS)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("EXTRACT_CSV_INFO_HRRR", 1, 4, 4, 1); __PYX_ERR(0, 113, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("EXTRACT_CSV_INFO_NAM12", 1, 4, 4, 1); __PYX_ERR(0, 113, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_CUT_DATA)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("EXTRACT_CSV_INFO_HRRR", 1, 4, 4, 2); __PYX_ERR(0, 113, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("EXTRACT_CSV_INFO_NAM12", 1, 4, 4, 2); __PYX_ERR(0, 113, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
-        if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_HRRR_FILE_NAME)) != 0)) kw_args--;
+        if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_NAM12_FILE_NAME)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("EXTRACT_CSV_INFO_HRRR", 1, 4, 4, 3); __PYX_ERR(0, 113, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("EXTRACT_CSV_INFO_NAM12", 1, 4, 4, 3); __PYX_ERR(0, 113, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "EXTRACT_CSV_INFO_HRRR") < 0)) __PYX_ERR(0, 113, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "EXTRACT_CSV_INFO_NAM12") < 0)) __PYX_ERR(0, 113, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 4) {
       goto __pyx_L5_argtuple_error;
@@ -3033,25 +3053,25 @@ static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_HRRR(Py
     __pyx_v_SELECTED_VARIABLES = values[0];
     __pyx_v_NEAREST_POINTS = values[1];
     __pyx_v_CUT_DATA = values[2];
-    __pyx_v_HRRR_FILE_NAME = values[3];
+    __pyx_v_NAM12_FILE_NAME = values[3];
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("EXTRACT_CSV_INFO_HRRR", 1, 4, 4, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 113, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("EXTRACT_CSV_INFO_NAM12", 1, 4, 4, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 113, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("EXTRACT_NAM12_GRIBS_CYTHON.EXTRACT_CSV_INFO_HRRR", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("EXTRACT_NAM12_GRIBS_CYTHON.EXTRACT_CSV_INFO_NAM12", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(__pyx_self, __pyx_v_SELECTED_VARIABLES, __pyx_v_NEAREST_POINTS, __pyx_v_CUT_DATA, __pyx_v_HRRR_FILE_NAME);
+  __pyx_r = __pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_NAM12(__pyx_self, __pyx_v_SELECTED_VARIABLES, __pyx_v_NEAREST_POINTS, __pyx_v_CUT_DATA, __pyx_v_NAM12_FILE_NAME);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_SELECTED_VARIABLES, PyObject *__pyx_v_NEAREST_POINTS, PyObject *__pyx_v_CUT_DATA, PyObject *__pyx_v_HRRR_FILE_NAME) {
-  PyObject *__pyx_v_HRRR_GRIB = NULL;
+static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_NAM12(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_SELECTED_VARIABLES, PyObject *__pyx_v_NEAREST_POINTS, PyObject *__pyx_v_CUT_DATA, PyObject *__pyx_v_NAM12_FILE_NAME) {
+  PyObject *__pyx_v_NAM12_GRIB = NULL;
   PyObject *__pyx_v_i = NULL;
   PyObject *__pyx_v_VAR_LEVEL = NULL;
   PyObject *__pyx_v_VAR_NAME = NULL;
@@ -3074,17 +3094,20 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CY
   PyObject *(*__pyx_t_5)(PyObject *);
   PyObject *__pyx_t_6 = NULL;
   int __pyx_t_7;
-  Py_ssize_t __pyx_t_8;
-  PyObject *(*__pyx_t_9)(PyObject *);
+  PyObject *__pyx_t_8 = NULL;
+  PyObject *__pyx_t_9 = NULL;
   PyObject *__pyx_t_10 = NULL;
-  PyObject *__pyx_t_11 = NULL;
+  Py_ssize_t __pyx_t_11;
   PyObject *(*__pyx_t_12)(PyObject *);
-  __Pyx_RefNannySetupContext("EXTRACT_CSV_INFO_HRRR", 0);
+  PyObject *__pyx_t_13 = NULL;
+  PyObject *__pyx_t_14 = NULL;
+  PyObject *(*__pyx_t_15)(PyObject *);
+  __Pyx_RefNannySetupContext("EXTRACT_CSV_INFO_NAM12", 0);
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":118
- *                           HRRR_FILE_NAME):
+ *                           NAM12_FILE_NAME):
  * 
- *     HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)             # <<<<<<<<<<<<<<
+ *     NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)             # <<<<<<<<<<<<<<
  * 
  *     for i in range(SELECTED_VARIABLES.shape[0]):
  */
@@ -3103,16 +3126,16 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CY
       __Pyx_DECREF_SET(__pyx_t_3, function);
     }
   }
-  __pyx_t_1 = (__pyx_t_2) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_2, __pyx_v_HRRR_FILE_NAME) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_v_HRRR_FILE_NAME);
+  __pyx_t_1 = (__pyx_t_2) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_2, __pyx_v_NAM12_FILE_NAME) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_v_NAM12_FILE_NAME);
   __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
   if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 118, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_v_HRRR_GRIB = __pyx_t_1;
+  __pyx_v_NAM12_GRIB = __pyx_t_1;
   __pyx_t_1 = 0;
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":120
- *     HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)
+ *     NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)
  * 
  *     for i in range(SELECTED_VARIABLES.shape[0]):             # <<<<<<<<<<<<<<
  * 
@@ -3192,7 +3215,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CY
  *         VAR_LEVEL= SELECTED_VARIABLES['LEVEL_Pa'].iloc[i]
  *         VAR_NAME= SELECTED_VARIABLES['NAME'].iloc[i]             # <<<<<<<<<<<<<<
  * 
- *         NOMBRE_ARCHIVO = HRRR_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'
+ *         NOMBRE_ARCHIVO = NAM12_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'
  */
     __pyx_t_1 = __Pyx_PyObject_Dict_GetItem(__pyx_v_SELECTED_VARIABLES, __pyx_n_s_NAME); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 123, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
@@ -3208,11 +3231,11 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CY
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":125
  *         VAR_NAME= SELECTED_VARIABLES['NAME'].iloc[i]
  * 
- *         NOMBRE_ARCHIVO = HRRR_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'             # <<<<<<<<<<<<<<
+ *         NOMBRE_ARCHIVO = NAM12_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'             # <<<<<<<<<<<<<<
  * 
  *         if os.path.isfile(NOMBRE_ARCHIVO):
  */
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_HRRR_FILE_NAME, __pyx_n_s_replace); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 125, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_NAM12_FILE_NAME, __pyx_n_s_replace); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 125, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_tuple__10, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 125, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
@@ -3242,7 +3265,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CY
     __pyx_t_2 = 0;
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":127
- *         NOMBRE_ARCHIVO = HRRR_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'
+ *         NOMBRE_ARCHIVO = NAM12_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'
  * 
  *         if os.path.isfile(NOMBRE_ARCHIVO):             # <<<<<<<<<<<<<<
  *             print(NOMBRE_ARCHIVO +  ' YA EXISTE')
@@ -3280,7 +3303,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CY
  *         if os.path.isfile(NOMBRE_ARCHIVO):
  *             print(NOMBRE_ARCHIVO +  ' YA EXISTE')             # <<<<<<<<<<<<<<
  *         else:
- *             VARIABLE = HRRR_GRIB.select(name= VAR_NAME)
+ *             try:
  */
       __pyx_t_2 = PyNumber_Add(__pyx_v_NOMBRE_ARCHIVO, __pyx_kp_s_YA_EXISTE); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 128, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_2);
@@ -3288,7 +3311,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CY
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
       /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":127
- *         NOMBRE_ARCHIVO = HRRR_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'
+ *         NOMBRE_ARCHIVO = NAM12_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'
  * 
  *         if os.path.isfile(NOMBRE_ARCHIVO):             # <<<<<<<<<<<<<<
  *             print(NOMBRE_ARCHIVO +  ' YA EXISTE')
@@ -3300,481 +3323,571 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CY
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":130
  *             print(NOMBRE_ARCHIVO +  ' YA EXISTE')
  *         else:
- *             VARIABLE = HRRR_GRIB.select(name= VAR_NAME)             # <<<<<<<<<<<<<<
- *             VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
+ *             try:             # <<<<<<<<<<<<<<
  * 
+ *                 VARIABLE = NAM12_GRIB.select(name= VAR_NAME)
  */
     /*else*/ {
-      __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_HRRR_GRIB, __pyx_n_s_select); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 130, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_6 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 130, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_name, __pyx_v_VAR_NAME) < 0) __PYX_ERR(0, 130, __pyx_L1_error)
-      __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_empty_tuple, __pyx_t_6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 130, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __Pyx_XDECREF_SET(__pyx_v_VARIABLE, __pyx_t_1);
-      __pyx_t_1 = 0;
+      {
+        __Pyx_PyThreadState_declare
+        __Pyx_PyThreadState_assign
+        __Pyx_ExceptionSave(&__pyx_t_8, &__pyx_t_9, &__pyx_t_10);
+        __Pyx_XGOTREF(__pyx_t_8);
+        __Pyx_XGOTREF(__pyx_t_9);
+        __Pyx_XGOTREF(__pyx_t_10);
+        /*try:*/ {
 
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":131
- *         else:
- *             VARIABLE = HRRR_GRIB.select(name= VAR_NAME)
- *             VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]             # <<<<<<<<<<<<<<
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":132
+ *             try:
  * 
+ *                 VARIABLE = NAM12_GRIB.select(name= VAR_NAME)             # <<<<<<<<<<<<<<
+ *                 VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
  * 
  */
-      __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 131, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      if (likely(PyList_CheckExact(__pyx_v_VARIABLE)) || PyTuple_CheckExact(__pyx_v_VARIABLE)) {
-        __pyx_t_6 = __pyx_v_VARIABLE; __Pyx_INCREF(__pyx_t_6); __pyx_t_8 = 0;
-        __pyx_t_9 = NULL;
-      } else {
-        __pyx_t_8 = -1; __pyx_t_6 = PyObject_GetIter(__pyx_v_VARIABLE); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 131, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_6);
-        __pyx_t_9 = Py_TYPE(__pyx_t_6)->tp_iternext; if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 131, __pyx_L1_error)
-      }
-      for (;;) {
-        if (likely(!__pyx_t_9)) {
-          if (likely(PyList_CheckExact(__pyx_t_6))) {
-            if (__pyx_t_8 >= PyList_GET_SIZE(__pyx_t_6)) break;
-            #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-            __pyx_t_2 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_8); __Pyx_INCREF(__pyx_t_2); __pyx_t_8++; if (unlikely(0 < 0)) __PYX_ERR(0, 131, __pyx_L1_error)
-            #else
-            __pyx_t_2 = PySequence_ITEM(__pyx_t_6, __pyx_t_8); __pyx_t_8++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 131, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_2);
-            #endif
-          } else {
-            if (__pyx_t_8 >= PyTuple_GET_SIZE(__pyx_t_6)) break;
-            #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-            __pyx_t_2 = PyTuple_GET_ITEM(__pyx_t_6, __pyx_t_8); __Pyx_INCREF(__pyx_t_2); __pyx_t_8++; if (unlikely(0 < 0)) __PYX_ERR(0, 131, __pyx_L1_error)
-            #else
-            __pyx_t_2 = PySequence_ITEM(__pyx_t_6, __pyx_t_8); __pyx_t_8++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 131, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_2);
-            #endif
-          }
-        } else {
-          __pyx_t_2 = __pyx_t_9(__pyx_t_6);
-          if (unlikely(!__pyx_t_2)) {
-            PyObject* exc_type = PyErr_Occurred();
-            if (exc_type) {
-              if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-              else __PYX_ERR(0, 131, __pyx_L1_error)
-            }
-            break;
-          }
+          __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_NAM12_GRIB, __pyx_n_s_select); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 132, __pyx_L6_error)
           __Pyx_GOTREF(__pyx_t_2);
-        }
-        __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_2);
-        __pyx_t_2 = 0;
-        __pyx_t_10 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyString_Type)), __pyx_v_item); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 131, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_10);
-        __pyx_t_11 = __Pyx_PyObject_GetAttrStr(__pyx_t_10, __pyx_n_s_split); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 131, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_11);
-        __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-        __pyx_t_10 = NULL;
-        if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_11))) {
-          __pyx_t_10 = PyMethod_GET_SELF(__pyx_t_11);
-          if (likely(__pyx_t_10)) {
-            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_11);
-            __Pyx_INCREF(__pyx_t_10);
-            __Pyx_INCREF(function);
-            __Pyx_DECREF_SET(__pyx_t_11, function);
+          __pyx_t_6 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 132, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_6);
+          if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_name, __pyx_v_VAR_NAME) < 0) __PYX_ERR(0, 132, __pyx_L6_error)
+          __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_empty_tuple, __pyx_t_6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 132, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+          __Pyx_XDECREF_SET(__pyx_v_VARIABLE, __pyx_t_1);
+          __pyx_t_1 = 0;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":133
+ * 
+ *                 VARIABLE = NAM12_GRIB.select(name= VAR_NAME)
+ *                 VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+          __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 133, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          if (likely(PyList_CheckExact(__pyx_v_VARIABLE)) || PyTuple_CheckExact(__pyx_v_VARIABLE)) {
+            __pyx_t_6 = __pyx_v_VARIABLE; __Pyx_INCREF(__pyx_t_6); __pyx_t_11 = 0;
+            __pyx_t_12 = NULL;
+          } else {
+            __pyx_t_11 = -1; __pyx_t_6 = PyObject_GetIter(__pyx_v_VARIABLE); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 133, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_6);
+            __pyx_t_12 = Py_TYPE(__pyx_t_6)->tp_iternext; if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 133, __pyx_L6_error)
           }
+          for (;;) {
+            if (likely(!__pyx_t_12)) {
+              if (likely(PyList_CheckExact(__pyx_t_6))) {
+                if (__pyx_t_11 >= PyList_GET_SIZE(__pyx_t_6)) break;
+                #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+                __pyx_t_2 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_11); __Pyx_INCREF(__pyx_t_2); __pyx_t_11++; if (unlikely(0 < 0)) __PYX_ERR(0, 133, __pyx_L6_error)
+                #else
+                __pyx_t_2 = PySequence_ITEM(__pyx_t_6, __pyx_t_11); __pyx_t_11++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 133, __pyx_L6_error)
+                __Pyx_GOTREF(__pyx_t_2);
+                #endif
+              } else {
+                if (__pyx_t_11 >= PyTuple_GET_SIZE(__pyx_t_6)) break;
+                #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+                __pyx_t_2 = PyTuple_GET_ITEM(__pyx_t_6, __pyx_t_11); __Pyx_INCREF(__pyx_t_2); __pyx_t_11++; if (unlikely(0 < 0)) __PYX_ERR(0, 133, __pyx_L6_error)
+                #else
+                __pyx_t_2 = PySequence_ITEM(__pyx_t_6, __pyx_t_11); __pyx_t_11++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 133, __pyx_L6_error)
+                __Pyx_GOTREF(__pyx_t_2);
+                #endif
+              }
+            } else {
+              __pyx_t_2 = __pyx_t_12(__pyx_t_6);
+              if (unlikely(!__pyx_t_2)) {
+                PyObject* exc_type = PyErr_Occurred();
+                if (exc_type) {
+                  if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
+                  else __PYX_ERR(0, 133, __pyx_L6_error)
+                }
+                break;
+              }
+              __Pyx_GOTREF(__pyx_t_2);
+            }
+            __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_2);
+            __pyx_t_2 = 0;
+            __pyx_t_13 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyString_Type)), __pyx_v_item); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 133, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_13);
+            __pyx_t_14 = __Pyx_PyObject_GetAttrStr(__pyx_t_13, __pyx_n_s_split); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 133, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_14);
+            __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+            __pyx_t_13 = NULL;
+            if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_14))) {
+              __pyx_t_13 = PyMethod_GET_SELF(__pyx_t_14);
+              if (likely(__pyx_t_13)) {
+                PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_14);
+                __Pyx_INCREF(__pyx_t_13);
+                __Pyx_INCREF(function);
+                __Pyx_DECREF_SET(__pyx_t_14, function);
+              }
+            }
+            __pyx_t_2 = (__pyx_t_13) ? __Pyx_PyObject_Call2Args(__pyx_t_14, __pyx_t_13, __pyx_kp_s_) : __Pyx_PyObject_CallOneArg(__pyx_t_14, __pyx_kp_s_);
+            __Pyx_XDECREF(__pyx_t_13); __pyx_t_13 = 0;
+            if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 133, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_2);
+            __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
+            __pyx_t_14 = __Pyx_GetItemInt(__pyx_t_2, -3L, long, 1, __Pyx_PyInt_From_long, 0, 1, 1); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 133, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_14);
+            __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+            __pyx_t_2 = PyObject_RichCompare(__pyx_t_14, __pyx_v_VAR_LEVEL, Py_EQ); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 133, __pyx_L6_error)
+            __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
+            __pyx_t_7 = __Pyx_PyObject_IsTrue(__pyx_t_2); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 133, __pyx_L6_error)
+            __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+            if (__pyx_t_7) {
+              if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_v_item))) __PYX_ERR(0, 133, __pyx_L6_error)
+            }
+          }
+          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+          __Pyx_XDECREF_SET(__pyx_v_VARIABLE_ITEM, ((PyObject*)__pyx_t_1));
+          __pyx_t_1 = 0;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":143
+ * 
+ *                 '''
+ *                 VARIABLE_VALUES = VARIABLE_ITEM[0].values             # <<<<<<<<<<<<<<
+ *                 LATS , LONS = VARIABLE_ITEM[0].latlons()
+ *                 DATE = VARIABLE_ITEM[0].validDate
+ */
+          __pyx_t_1 = __Pyx_GetItemInt_List(__pyx_v_VARIABLE_ITEM, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 143, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_values); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 143, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_6);
+          __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+          __Pyx_XDECREF_SET(__pyx_v_VARIABLE_VALUES, __pyx_t_6);
+          __pyx_t_6 = 0;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":144
+ *                 '''
+ *                 VARIABLE_VALUES = VARIABLE_ITEM[0].values
+ *                 LATS , LONS = VARIABLE_ITEM[0].latlons()             # <<<<<<<<<<<<<<
+ *                 DATE = VARIABLE_ITEM[0].validDate
+ * 
+ */
+          __pyx_t_1 = __Pyx_GetItemInt_List(__pyx_v_VARIABLE_ITEM, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 144, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_latlons); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 144, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_2);
+          __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+          __pyx_t_1 = NULL;
+          if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
+            __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_2);
+            if (likely(__pyx_t_1)) {
+              PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+              __Pyx_INCREF(__pyx_t_1);
+              __Pyx_INCREF(function);
+              __Pyx_DECREF_SET(__pyx_t_2, function);
+            }
+          }
+          __pyx_t_6 = (__pyx_t_1) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_1) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
+          __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+          if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 144, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_6);
+          __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+          if ((likely(PyTuple_CheckExact(__pyx_t_6))) || (PyList_CheckExact(__pyx_t_6))) {
+            PyObject* sequence = __pyx_t_6;
+            Py_ssize_t size = __Pyx_PySequence_SIZE(sequence);
+            if (unlikely(size != 2)) {
+              if (size > 2) __Pyx_RaiseTooManyValuesError(2);
+              else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
+              __PYX_ERR(0, 144, __pyx_L6_error)
+            }
+            #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+            if (likely(PyTuple_CheckExact(sequence))) {
+              __pyx_t_2 = PyTuple_GET_ITEM(sequence, 0); 
+              __pyx_t_1 = PyTuple_GET_ITEM(sequence, 1); 
+            } else {
+              __pyx_t_2 = PyList_GET_ITEM(sequence, 0); 
+              __pyx_t_1 = PyList_GET_ITEM(sequence, 1); 
+            }
+            __Pyx_INCREF(__pyx_t_2);
+            __Pyx_INCREF(__pyx_t_1);
+            #else
+            __pyx_t_2 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 144, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_2);
+            __pyx_t_1 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 144, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_1);
+            #endif
+            __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+          } else {
+            Py_ssize_t index = -1;
+            __pyx_t_14 = PyObject_GetIter(__pyx_t_6); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 144, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_14);
+            __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+            __pyx_t_15 = Py_TYPE(__pyx_t_14)->tp_iternext;
+            index = 0; __pyx_t_2 = __pyx_t_15(__pyx_t_14); if (unlikely(!__pyx_t_2)) goto __pyx_L17_unpacking_failed;
+            __Pyx_GOTREF(__pyx_t_2);
+            index = 1; __pyx_t_1 = __pyx_t_15(__pyx_t_14); if (unlikely(!__pyx_t_1)) goto __pyx_L17_unpacking_failed;
+            __Pyx_GOTREF(__pyx_t_1);
+            if (__Pyx_IternextUnpackEndCheck(__pyx_t_15(__pyx_t_14), 2) < 0) __PYX_ERR(0, 144, __pyx_L6_error)
+            __pyx_t_15 = NULL;
+            __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
+            goto __pyx_L18_unpacking_done;
+            __pyx_L17_unpacking_failed:;
+            __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
+            __pyx_t_15 = NULL;
+            if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
+            __PYX_ERR(0, 144, __pyx_L6_error)
+            __pyx_L18_unpacking_done:;
+          }
+          __Pyx_XDECREF_SET(__pyx_v_LATS, __pyx_t_2);
+          __pyx_t_2 = 0;
+          __Pyx_XDECREF_SET(__pyx_v_LONS, __pyx_t_1);
+          __pyx_t_1 = 0;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":145
+ *                 VARIABLE_VALUES = VARIABLE_ITEM[0].values
+ *                 LATS , LONS = VARIABLE_ITEM[0].latlons()
+ *                 DATE = VARIABLE_ITEM[0].validDate             # <<<<<<<<<<<<<<
+ * 
+ *                 print('CREANDO TABLA')
+ */
+          __pyx_t_6 = __Pyx_GetItemInt_List(__pyx_v_VARIABLE_ITEM, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 145, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_6);
+          __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_validDate); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 145, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+          __Pyx_XDECREF_SET(__pyx_v_DATE, __pyx_t_1);
+          __pyx_t_1 = 0;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":147
+ *                 DATE = VARIABLE_ITEM[0].validDate
+ * 
+ *                 print('CREANDO TABLA')             # <<<<<<<<<<<<<<
+ *                 dfObj = pd.DataFrame()
+ *                 dfObj['VALUES']= VARIABLE_VALUES.ravel()
+ */
+          if (__Pyx_PrintOne(0, __pyx_kp_s_CREANDO_TABLA) < 0) __PYX_ERR(0, 147, __pyx_L6_error)
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":148
+ * 
+ *                 print('CREANDO TABLA')
+ *                 dfObj = pd.DataFrame()             # <<<<<<<<<<<<<<
+ *                 dfObj['VALUES']= VARIABLE_VALUES.ravel()
+ *                 dfObj['LON']= LONS.ravel()
+ */
+          __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_pd); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 148, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_6);
+          __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_DataFrame); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 148, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_2);
+          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+          __pyx_t_6 = NULL;
+          if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
+            __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_2);
+            if (likely(__pyx_t_6)) {
+              PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+              __Pyx_INCREF(__pyx_t_6);
+              __Pyx_INCREF(function);
+              __Pyx_DECREF_SET(__pyx_t_2, function);
+            }
+          }
+          __pyx_t_1 = (__pyx_t_6) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_6) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
+          __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+          if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 148, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+          __Pyx_XDECREF_SET(__pyx_v_dfObj, __pyx_t_1);
+          __pyx_t_1 = 0;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":149
+ *                 print('CREANDO TABLA')
+ *                 dfObj = pd.DataFrame()
+ *                 dfObj['VALUES']= VARIABLE_VALUES.ravel()             # <<<<<<<<<<<<<<
+ *                 dfObj['LON']= LONS.ravel()
+ *                 dfObj['LAT']= LATS.ravel()
+ */
+          __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_VARIABLE_VALUES, __pyx_n_s_ravel); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 149, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_2);
+          __pyx_t_6 = NULL;
+          if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
+            __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_2);
+            if (likely(__pyx_t_6)) {
+              PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+              __Pyx_INCREF(__pyx_t_6);
+              __Pyx_INCREF(function);
+              __Pyx_DECREF_SET(__pyx_t_2, function);
+            }
+          }
+          __pyx_t_1 = (__pyx_t_6) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_6) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
+          __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+          if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 149, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+          if (unlikely(PyObject_SetItem(__pyx_v_dfObj, __pyx_n_s_VALUES, __pyx_t_1) < 0)) __PYX_ERR(0, 149, __pyx_L6_error)
+          __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":150
+ *                 dfObj = pd.DataFrame()
+ *                 dfObj['VALUES']= VARIABLE_VALUES.ravel()
+ *                 dfObj['LON']= LONS.ravel()             # <<<<<<<<<<<<<<
+ *                 dfObj['LAT']= LATS.ravel()
+ *                 dfObj['DATE'] = DATE
+ */
+          __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_LONS, __pyx_n_s_ravel); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 150, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_2);
+          __pyx_t_6 = NULL;
+          if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
+            __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_2);
+            if (likely(__pyx_t_6)) {
+              PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+              __Pyx_INCREF(__pyx_t_6);
+              __Pyx_INCREF(function);
+              __Pyx_DECREF_SET(__pyx_t_2, function);
+            }
+          }
+          __pyx_t_1 = (__pyx_t_6) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_6) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
+          __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+          if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 150, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+          if (unlikely(PyObject_SetItem(__pyx_v_dfObj, __pyx_n_s_LON, __pyx_t_1) < 0)) __PYX_ERR(0, 150, __pyx_L6_error)
+          __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":151
+ *                 dfObj['VALUES']= VARIABLE_VALUES.ravel()
+ *                 dfObj['LON']= LONS.ravel()
+ *                 dfObj['LAT']= LATS.ravel()             # <<<<<<<<<<<<<<
+ *                 dfObj['DATE'] = DATE
+ * 
+ */
+          __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_LATS, __pyx_n_s_ravel); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 151, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_2);
+          __pyx_t_6 = NULL;
+          if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
+            __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_2);
+            if (likely(__pyx_t_6)) {
+              PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+              __Pyx_INCREF(__pyx_t_6);
+              __Pyx_INCREF(function);
+              __Pyx_DECREF_SET(__pyx_t_2, function);
+            }
+          }
+          __pyx_t_1 = (__pyx_t_6) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_6) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
+          __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+          if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 151, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+          if (unlikely(PyObject_SetItem(__pyx_v_dfObj, __pyx_n_s_LAT, __pyx_t_1) < 0)) __PYX_ERR(0, 151, __pyx_L6_error)
+          __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":152
+ *                 dfObj['LON']= LONS.ravel()
+ *                 dfObj['LAT']= LATS.ravel()
+ *                 dfObj['DATE'] = DATE             # <<<<<<<<<<<<<<
+ * 
+ *                 if CUT_DATA:
+ */
+          if (unlikely(PyObject_SetItem(__pyx_v_dfObj, __pyx_n_s_DATE, __pyx_v_DATE) < 0)) __PYX_ERR(0, 152, __pyx_L6_error)
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":154
+ *                 dfObj['DATE'] = DATE
+ * 
+ *                 if CUT_DATA:             # <<<<<<<<<<<<<<
+ *                     TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]
+ *                 else:
+ */
+          __pyx_t_7 = __Pyx_PyObject_IsTrue(__pyx_v_CUT_DATA); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 154, __pyx_L6_error)
+          if (__pyx_t_7) {
+
+            /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":155
+ * 
+ *                 if CUT_DATA:
+ *                     TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]             # <<<<<<<<<<<<<<
+ *                 else:
+ *                     TABLA_CUT= dfObj
+ */
+            __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_dfObj, __pyx_n_s_LON); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 155, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_2);
+            __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_isin); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 155, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_6);
+            __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+            __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_NEAREST_POINTS, __pyx_n_s_LON); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 155, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_2);
+            __pyx_t_14 = NULL;
+            if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_6))) {
+              __pyx_t_14 = PyMethod_GET_SELF(__pyx_t_6);
+              if (likely(__pyx_t_14)) {
+                PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_6);
+                __Pyx_INCREF(__pyx_t_14);
+                __Pyx_INCREF(function);
+                __Pyx_DECREF_SET(__pyx_t_6, function);
+              }
+            }
+            __pyx_t_1 = (__pyx_t_14) ? __Pyx_PyObject_Call2Args(__pyx_t_6, __pyx_t_14, __pyx_t_2) : __Pyx_PyObject_CallOneArg(__pyx_t_6, __pyx_t_2);
+            __Pyx_XDECREF(__pyx_t_14); __pyx_t_14 = 0;
+            __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+            if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 155, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_1);
+            __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+            __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_dfObj, __pyx_n_s_LAT); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 155, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_2);
+            __pyx_t_14 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_isin); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 155, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_14);
+            __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+            __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_NEAREST_POINTS, __pyx_n_s_LAT); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 155, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_2);
+            __pyx_t_13 = NULL;
+            if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_14))) {
+              __pyx_t_13 = PyMethod_GET_SELF(__pyx_t_14);
+              if (likely(__pyx_t_13)) {
+                PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_14);
+                __Pyx_INCREF(__pyx_t_13);
+                __Pyx_INCREF(function);
+                __Pyx_DECREF_SET(__pyx_t_14, function);
+              }
+            }
+            __pyx_t_6 = (__pyx_t_13) ? __Pyx_PyObject_Call2Args(__pyx_t_14, __pyx_t_13, __pyx_t_2) : __Pyx_PyObject_CallOneArg(__pyx_t_14, __pyx_t_2);
+            __Pyx_XDECREF(__pyx_t_13); __pyx_t_13 = 0;
+            __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+            if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 155, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_6);
+            __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
+            __pyx_t_14 = PyNumber_And(__pyx_t_1, __pyx_t_6); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 155, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_14);
+            __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+            __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+            __pyx_t_6 = __Pyx_PyObject_GetItem(__pyx_v_dfObj, __pyx_t_14); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 155, __pyx_L6_error)
+            __Pyx_GOTREF(__pyx_t_6);
+            __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
+            __Pyx_XDECREF_SET(__pyx_v_TABLA_CUT, __pyx_t_6);
+            __pyx_t_6 = 0;
+
+            /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":154
+ *                 dfObj['DATE'] = DATE
+ * 
+ *                 if CUT_DATA:             # <<<<<<<<<<<<<<
+ *                     TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]
+ *                 else:
+ */
+            goto __pyx_L19;
+          }
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":157
+ *                     TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]
+ *                 else:
+ *                     TABLA_CUT= dfObj             # <<<<<<<<<<<<<<
+ * 
+ *                 print('GUARDANDO CSV en ' + NOMBRE_ARCHIVO)
+ */
+          /*else*/ {
+            __Pyx_INCREF(__pyx_v_dfObj);
+            __Pyx_XDECREF_SET(__pyx_v_TABLA_CUT, __pyx_v_dfObj);
+          }
+          __pyx_L19:;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":159
+ *                     TABLA_CUT= dfObj
+ * 
+ *                 print('GUARDANDO CSV en ' + NOMBRE_ARCHIVO)             # <<<<<<<<<<<<<<
+ *                 TABLA_CUT.to_csv(NOMBRE_ARCHIVO, index = False)
+ *             except:
+ */
+          __pyx_t_6 = PyNumber_Add(__pyx_kp_s_GUARDANDO_CSV_en, __pyx_v_NOMBRE_ARCHIVO); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 159, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_6);
+          if (__Pyx_PrintOne(0, __pyx_t_6) < 0) __PYX_ERR(0, 159, __pyx_L6_error)
+          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":160
+ * 
+ *                 print('GUARDANDO CSV en ' + NOMBRE_ARCHIVO)
+ *                 TABLA_CUT.to_csv(NOMBRE_ARCHIVO, index = False)             # <<<<<<<<<<<<<<
+ *             except:
+ *                 print(NAM12_FILE_NAME + ' NO ENCONTRADO ' + VAR_NAME)
+ */
+          __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_TABLA_CUT, __pyx_n_s_to_csv); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 160, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_6);
+          __pyx_t_14 = PyTuple_New(1); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 160, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_14);
+          __Pyx_INCREF(__pyx_v_NOMBRE_ARCHIVO);
+          __Pyx_GIVEREF(__pyx_v_NOMBRE_ARCHIVO);
+          PyTuple_SET_ITEM(__pyx_t_14, 0, __pyx_v_NOMBRE_ARCHIVO);
+          __pyx_t_1 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 160, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_index, Py_False) < 0) __PYX_ERR(0, 160, __pyx_L6_error)
+          __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_6, __pyx_t_14, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 160, __pyx_L6_error)
+          __Pyx_GOTREF(__pyx_t_2);
+          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+          __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
+          __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+          __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":130
+ *             print(NOMBRE_ARCHIVO +  ' YA EXISTE')
+ *         else:
+ *             try:             # <<<<<<<<<<<<<<
+ * 
+ *                 VARIABLE = NAM12_GRIB.select(name= VAR_NAME)
+ */
         }
-        __pyx_t_2 = (__pyx_t_10) ? __Pyx_PyObject_Call2Args(__pyx_t_11, __pyx_t_10, __pyx_kp_s_) : __Pyx_PyObject_CallOneArg(__pyx_t_11, __pyx_kp_s_);
+        __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
+        __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
         __Pyx_XDECREF(__pyx_t_10); __pyx_t_10 = 0;
-        if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 131, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_2);
-        __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-        __pyx_t_11 = __Pyx_GetItemInt(__pyx_t_2, -3L, long, 1, __Pyx_PyInt_From_long, 0, 1, 1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 131, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_11);
-        __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-        __pyx_t_2 = PyObject_RichCompare(__pyx_t_11, __pyx_v_VAR_LEVEL, Py_EQ); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 131, __pyx_L1_error)
-        __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-        __pyx_t_7 = __Pyx_PyObject_IsTrue(__pyx_t_2); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 131, __pyx_L1_error)
-        __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-        if (__pyx_t_7) {
-          if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_v_item))) __PYX_ERR(0, 131, __pyx_L1_error)
+        goto __pyx_L13_try_end;
+        __pyx_L6_error:;
+        __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+        __Pyx_XDECREF(__pyx_t_13); __pyx_t_13 = 0;
+        __Pyx_XDECREF(__pyx_t_14); __pyx_t_14 = 0;
+        __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
+        __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+
+        /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":161
+ *                 print('GUARDANDO CSV en ' + NOMBRE_ARCHIVO)
+ *                 TABLA_CUT.to_csv(NOMBRE_ARCHIVO, index = False)
+ *             except:             # <<<<<<<<<<<<<<
+ *                 print(NAM12_FILE_NAME + ' NO ENCONTRADO ' + VAR_NAME)
+ * 
+ */
+        /*except:*/ {
+          __Pyx_AddTraceback("EXTRACT_NAM12_GRIBS_CYTHON.EXTRACT_CSV_INFO_NAM12", __pyx_clineno, __pyx_lineno, __pyx_filename);
+          if (__Pyx_GetException(&__pyx_t_2, &__pyx_t_1, &__pyx_t_14) < 0) __PYX_ERR(0, 161, __pyx_L8_except_error)
+          __Pyx_GOTREF(__pyx_t_2);
+          __Pyx_GOTREF(__pyx_t_1);
+          __Pyx_GOTREF(__pyx_t_14);
+
+          /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":162
+ *                 TABLA_CUT.to_csv(NOMBRE_ARCHIVO, index = False)
+ *             except:
+ *                 print(NAM12_FILE_NAME + ' NO ENCONTRADO ' + VAR_NAME)             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+          __pyx_t_6 = PyNumber_Add(__pyx_v_NAM12_FILE_NAME, __pyx_kp_s_NO_ENCONTRADO); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 162, __pyx_L8_except_error)
+          __Pyx_GOTREF(__pyx_t_6);
+          __pyx_t_13 = PyNumber_Add(__pyx_t_6, __pyx_v_VAR_NAME); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 162, __pyx_L8_except_error)
+          __Pyx_GOTREF(__pyx_t_13);
+          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+          if (__Pyx_PrintOne(0, __pyx_t_13) < 0) __PYX_ERR(0, 162, __pyx_L8_except_error)
+          __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+          __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
+          __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+          __Pyx_XDECREF(__pyx_t_14); __pyx_t_14 = 0;
+          goto __pyx_L7_exception_handled;
         }
+        __pyx_L8_except_error:;
+
+        /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":130
+ *             print(NOMBRE_ARCHIVO +  ' YA EXISTE')
+ *         else:
+ *             try:             # <<<<<<<<<<<<<<
+ * 
+ *                 VARIABLE = NAM12_GRIB.select(name= VAR_NAME)
+ */
+        __Pyx_XGIVEREF(__pyx_t_8);
+        __Pyx_XGIVEREF(__pyx_t_9);
+        __Pyx_XGIVEREF(__pyx_t_10);
+        __Pyx_ExceptionReset(__pyx_t_8, __pyx_t_9, __pyx_t_10);
+        goto __pyx_L1_error;
+        __pyx_L7_exception_handled:;
+        __Pyx_XGIVEREF(__pyx_t_8);
+        __Pyx_XGIVEREF(__pyx_t_9);
+        __Pyx_XGIVEREF(__pyx_t_10);
+        __Pyx_ExceptionReset(__pyx_t_8, __pyx_t_9, __pyx_t_10);
+        __pyx_L13_try_end:;
       }
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __Pyx_XDECREF_SET(__pyx_v_VARIABLE_ITEM, ((PyObject*)__pyx_t_1));
-      __pyx_t_1 = 0;
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":141
- * 
- *             '''
- *             VARIABLE_VALUES = VARIABLE_ITEM[0].values             # <<<<<<<<<<<<<<
- *             LATS , LONS = VARIABLE_ITEM[0].latlons()
- *             DATE = VARIABLE_ITEM[0].validDate
- */
-      __pyx_t_1 = __Pyx_GetItemInt_List(__pyx_v_VARIABLE_ITEM, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 141, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_values); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 141, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __Pyx_XDECREF_SET(__pyx_v_VARIABLE_VALUES, __pyx_t_6);
-      __pyx_t_6 = 0;
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":142
- *             '''
- *             VARIABLE_VALUES = VARIABLE_ITEM[0].values
- *             LATS , LONS = VARIABLE_ITEM[0].latlons()             # <<<<<<<<<<<<<<
- *             DATE = VARIABLE_ITEM[0].validDate
- * 
- */
-      __pyx_t_1 = __Pyx_GetItemInt_List(__pyx_v_VARIABLE_ITEM, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 142, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_latlons); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 142, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __pyx_t_1 = NULL;
-      if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
-        __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_2);
-        if (likely(__pyx_t_1)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-          __Pyx_INCREF(__pyx_t_1);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_2, function);
-        }
-      }
-      __pyx_t_6 = (__pyx_t_1) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_1) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
-      __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
-      if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 142, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      if ((likely(PyTuple_CheckExact(__pyx_t_6))) || (PyList_CheckExact(__pyx_t_6))) {
-        PyObject* sequence = __pyx_t_6;
-        Py_ssize_t size = __Pyx_PySequence_SIZE(sequence);
-        if (unlikely(size != 2)) {
-          if (size > 2) __Pyx_RaiseTooManyValuesError(2);
-          else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-          __PYX_ERR(0, 142, __pyx_L1_error)
-        }
-        #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        if (likely(PyTuple_CheckExact(sequence))) {
-          __pyx_t_2 = PyTuple_GET_ITEM(sequence, 0); 
-          __pyx_t_1 = PyTuple_GET_ITEM(sequence, 1); 
-        } else {
-          __pyx_t_2 = PyList_GET_ITEM(sequence, 0); 
-          __pyx_t_1 = PyList_GET_ITEM(sequence, 1); 
-        }
-        __Pyx_INCREF(__pyx_t_2);
-        __Pyx_INCREF(__pyx_t_1);
-        #else
-        __pyx_t_2 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 142, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_2);
-        __pyx_t_1 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 142, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_1);
-        #endif
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      } else {
-        Py_ssize_t index = -1;
-        __pyx_t_11 = PyObject_GetIter(__pyx_t_6); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 142, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_11);
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        __pyx_t_12 = Py_TYPE(__pyx_t_11)->tp_iternext;
-        index = 0; __pyx_t_2 = __pyx_t_12(__pyx_t_11); if (unlikely(!__pyx_t_2)) goto __pyx_L9_unpacking_failed;
-        __Pyx_GOTREF(__pyx_t_2);
-        index = 1; __pyx_t_1 = __pyx_t_12(__pyx_t_11); if (unlikely(!__pyx_t_1)) goto __pyx_L9_unpacking_failed;
-        __Pyx_GOTREF(__pyx_t_1);
-        if (__Pyx_IternextUnpackEndCheck(__pyx_t_12(__pyx_t_11), 2) < 0) __PYX_ERR(0, 142, __pyx_L1_error)
-        __pyx_t_12 = NULL;
-        __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-        goto __pyx_L10_unpacking_done;
-        __pyx_L9_unpacking_failed:;
-        __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-        __pyx_t_12 = NULL;
-        if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-        __PYX_ERR(0, 142, __pyx_L1_error)
-        __pyx_L10_unpacking_done:;
-      }
-      __Pyx_XDECREF_SET(__pyx_v_LATS, __pyx_t_2);
-      __pyx_t_2 = 0;
-      __Pyx_XDECREF_SET(__pyx_v_LONS, __pyx_t_1);
-      __pyx_t_1 = 0;
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":143
- *             VARIABLE_VALUES = VARIABLE_ITEM[0].values
- *             LATS , LONS = VARIABLE_ITEM[0].latlons()
- *             DATE = VARIABLE_ITEM[0].validDate             # <<<<<<<<<<<<<<
- * 
- *             print('CREANDO TABLA')
- */
-      __pyx_t_6 = __Pyx_GetItemInt_List(__pyx_v_VARIABLE_ITEM, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 143, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_validDate); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 143, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __Pyx_XDECREF_SET(__pyx_v_DATE, __pyx_t_1);
-      __pyx_t_1 = 0;
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":145
- *             DATE = VARIABLE_ITEM[0].validDate
- * 
- *             print('CREANDO TABLA')             # <<<<<<<<<<<<<<
- *             dfObj = pd.DataFrame()
- *             dfObj['VALUES']= VARIABLE_VALUES.ravel()
- */
-      if (__Pyx_PrintOne(0, __pyx_kp_s_CREANDO_TABLA) < 0) __PYX_ERR(0, 145, __pyx_L1_error)
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":146
- * 
- *             print('CREANDO TABLA')
- *             dfObj = pd.DataFrame()             # <<<<<<<<<<<<<<
- *             dfObj['VALUES']= VARIABLE_VALUES.ravel()
- *             dfObj['LON']= LONS.ravel()
- */
-      __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_pd); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 146, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_DataFrame); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 146, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __pyx_t_6 = NULL;
-      if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
-        __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_2);
-        if (likely(__pyx_t_6)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-          __Pyx_INCREF(__pyx_t_6);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_2, function);
-        }
-      }
-      __pyx_t_1 = (__pyx_t_6) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_6) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
-      __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-      if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 146, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __Pyx_XDECREF_SET(__pyx_v_dfObj, __pyx_t_1);
-      __pyx_t_1 = 0;
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":147
- *             print('CREANDO TABLA')
- *             dfObj = pd.DataFrame()
- *             dfObj['VALUES']= VARIABLE_VALUES.ravel()             # <<<<<<<<<<<<<<
- *             dfObj['LON']= LONS.ravel()
- *             dfObj['LAT']= LATS.ravel()
- */
-      __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_VARIABLE_VALUES, __pyx_n_s_ravel); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 147, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_6 = NULL;
-      if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
-        __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_2);
-        if (likely(__pyx_t_6)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-          __Pyx_INCREF(__pyx_t_6);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_2, function);
-        }
-      }
-      __pyx_t_1 = (__pyx_t_6) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_6) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
-      __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-      if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 147, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      if (unlikely(PyObject_SetItem(__pyx_v_dfObj, __pyx_n_s_VALUES, __pyx_t_1) < 0)) __PYX_ERR(0, 147, __pyx_L1_error)
-      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":148
- *             dfObj = pd.DataFrame()
- *             dfObj['VALUES']= VARIABLE_VALUES.ravel()
- *             dfObj['LON']= LONS.ravel()             # <<<<<<<<<<<<<<
- *             dfObj['LAT']= LATS.ravel()
- *             dfObj['DATE'] = DATE
- */
-      __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_LONS, __pyx_n_s_ravel); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 148, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_6 = NULL;
-      if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
-        __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_2);
-        if (likely(__pyx_t_6)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-          __Pyx_INCREF(__pyx_t_6);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_2, function);
-        }
-      }
-      __pyx_t_1 = (__pyx_t_6) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_6) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
-      __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-      if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 148, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      if (unlikely(PyObject_SetItem(__pyx_v_dfObj, __pyx_n_s_LON, __pyx_t_1) < 0)) __PYX_ERR(0, 148, __pyx_L1_error)
-      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":149
- *             dfObj['VALUES']= VARIABLE_VALUES.ravel()
- *             dfObj['LON']= LONS.ravel()
- *             dfObj['LAT']= LATS.ravel()             # <<<<<<<<<<<<<<
- *             dfObj['DATE'] = DATE
- * 
- */
-      __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_LATS, __pyx_n_s_ravel); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 149, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_6 = NULL;
-      if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
-        __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_2);
-        if (likely(__pyx_t_6)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-          __Pyx_INCREF(__pyx_t_6);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_2, function);
-        }
-      }
-      __pyx_t_1 = (__pyx_t_6) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_6) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
-      __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-      if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 149, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      if (unlikely(PyObject_SetItem(__pyx_v_dfObj, __pyx_n_s_LAT, __pyx_t_1) < 0)) __PYX_ERR(0, 149, __pyx_L1_error)
-      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":150
- *             dfObj['LON']= LONS.ravel()
- *             dfObj['LAT']= LATS.ravel()
- *             dfObj['DATE'] = DATE             # <<<<<<<<<<<<<<
- * 
- *             if CUT_DATA:
- */
-      if (unlikely(PyObject_SetItem(__pyx_v_dfObj, __pyx_n_s_DATE, __pyx_v_DATE) < 0)) __PYX_ERR(0, 150, __pyx_L1_error)
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":152
- *             dfObj['DATE'] = DATE
- * 
- *             if CUT_DATA:             # <<<<<<<<<<<<<<
- *                 TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]
- *             else:
- */
-      __pyx_t_7 = __Pyx_PyObject_IsTrue(__pyx_v_CUT_DATA); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 152, __pyx_L1_error)
-      if (__pyx_t_7) {
-
-        /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":153
- * 
- *             if CUT_DATA:
- *                 TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]             # <<<<<<<<<<<<<<
- *             else:
- *                 TABLA_CUT= dfObj
- */
-        __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_dfObj, __pyx_n_s_LON); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 153, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_2);
-        __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_isin); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 153, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_6);
-        __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-        __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_NEAREST_POINTS, __pyx_n_s_LON); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 153, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_2);
-        __pyx_t_11 = NULL;
-        if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_6))) {
-          __pyx_t_11 = PyMethod_GET_SELF(__pyx_t_6);
-          if (likely(__pyx_t_11)) {
-            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_6);
-            __Pyx_INCREF(__pyx_t_11);
-            __Pyx_INCREF(function);
-            __Pyx_DECREF_SET(__pyx_t_6, function);
-          }
-        }
-        __pyx_t_1 = (__pyx_t_11) ? __Pyx_PyObject_Call2Args(__pyx_t_6, __pyx_t_11, __pyx_t_2) : __Pyx_PyObject_CallOneArg(__pyx_t_6, __pyx_t_2);
-        __Pyx_XDECREF(__pyx_t_11); __pyx_t_11 = 0;
-        __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-        if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 153, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_1);
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_dfObj, __pyx_n_s_LAT); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 153, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_2);
-        __pyx_t_11 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_isin); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 153, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_11);
-        __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-        __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_NEAREST_POINTS, __pyx_n_s_LAT); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 153, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_2);
-        __pyx_t_10 = NULL;
-        if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_11))) {
-          __pyx_t_10 = PyMethod_GET_SELF(__pyx_t_11);
-          if (likely(__pyx_t_10)) {
-            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_11);
-            __Pyx_INCREF(__pyx_t_10);
-            __Pyx_INCREF(function);
-            __Pyx_DECREF_SET(__pyx_t_11, function);
-          }
-        }
-        __pyx_t_6 = (__pyx_t_10) ? __Pyx_PyObject_Call2Args(__pyx_t_11, __pyx_t_10, __pyx_t_2) : __Pyx_PyObject_CallOneArg(__pyx_t_11, __pyx_t_2);
-        __Pyx_XDECREF(__pyx_t_10); __pyx_t_10 = 0;
-        __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-        if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 153, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_6);
-        __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-        __pyx_t_11 = PyNumber_And(__pyx_t_1, __pyx_t_6); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 153, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_11);
-        __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        __pyx_t_6 = __Pyx_PyObject_GetItem(__pyx_v_dfObj, __pyx_t_11); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 153, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_6);
-        __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-        __Pyx_XDECREF_SET(__pyx_v_TABLA_CUT, __pyx_t_6);
-        __pyx_t_6 = 0;
-
-        /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":152
- *             dfObj['DATE'] = DATE
- * 
- *             if CUT_DATA:             # <<<<<<<<<<<<<<
- *                 TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]
- *             else:
- */
-        goto __pyx_L11;
-      }
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":155
- *                 TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]
- *             else:
- *                 TABLA_CUT= dfObj             # <<<<<<<<<<<<<<
- * 
- *             print('GUARDANDO CSV en ' + NOMBRE_ARCHIVO)
- */
-      /*else*/ {
-        __Pyx_INCREF(__pyx_v_dfObj);
-        __Pyx_XDECREF_SET(__pyx_v_TABLA_CUT, __pyx_v_dfObj);
-      }
-      __pyx_L11:;
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":157
- *                 TABLA_CUT= dfObj
- * 
- *             print('GUARDANDO CSV en ' + NOMBRE_ARCHIVO)             # <<<<<<<<<<<<<<
- *             TABLA_CUT.to_csv(NOMBRE_ARCHIVO, index = False)
- * 
- */
-      __pyx_t_6 = PyNumber_Add(__pyx_kp_s_GUARDANDO_CSV_en, __pyx_v_NOMBRE_ARCHIVO); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 157, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      if (__Pyx_PrintOne(0, __pyx_t_6) < 0) __PYX_ERR(0, 157, __pyx_L1_error)
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-
-      /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":158
- * 
- *             print('GUARDANDO CSV en ' + NOMBRE_ARCHIVO)
- *             TABLA_CUT.to_csv(NOMBRE_ARCHIVO, index = False)             # <<<<<<<<<<<<<<
- * 
- * 
- */
-      __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_TABLA_CUT, __pyx_n_s_to_csv); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 158, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_11 = PyTuple_New(1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 158, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_11);
-      __Pyx_INCREF(__pyx_v_NOMBRE_ARCHIVO);
-      __Pyx_GIVEREF(__pyx_v_NOMBRE_ARCHIVO);
-      PyTuple_SET_ITEM(__pyx_t_11, 0, __pyx_v_NOMBRE_ARCHIVO);
-      __pyx_t_1 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 158, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_index, Py_False) < 0) __PYX_ERR(0, 158, __pyx_L1_error)
-      __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_6, __pyx_t_11, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 158, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     }
     __pyx_L5:;
 
     /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":120
- *     HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)
+ *     NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)
  * 
  *     for i in range(SELECTED_VARIABLES.shape[0]):             # <<<<<<<<<<<<<<
  * 
@@ -3786,7 +3899,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CY
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":113
  * 
  * 
- * def EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES,             # <<<<<<<<<<<<<<
+ * def EXTRACT_CSV_INFO_NAM12(SELECTED_VARIABLES,             # <<<<<<<<<<<<<<
  *                           NEAREST_POINTS,
  *                           CUT_DATA,
  */
@@ -3799,12 +3912,12 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CY
   __Pyx_XDECREF(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_3);
   __Pyx_XDECREF(__pyx_t_6);
-  __Pyx_XDECREF(__pyx_t_10);
-  __Pyx_XDECREF(__pyx_t_11);
-  __Pyx_AddTraceback("EXTRACT_NAM12_GRIBS_CYTHON.EXTRACT_CSV_INFO_HRRR", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_XDECREF(__pyx_t_13);
+  __Pyx_XDECREF(__pyx_t_14);
+  __Pyx_AddTraceback("EXTRACT_NAM12_GRIBS_CYTHON.EXTRACT_CSV_INFO_NAM12", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
-  __Pyx_XDECREF(__pyx_v_HRRR_GRIB);
+  __Pyx_XDECREF(__pyx_v_NAM12_GRIB);
   __Pyx_XDECREF(__pyx_v_i);
   __Pyx_XDECREF(__pyx_v_VAR_LEVEL);
   __Pyx_XDECREF(__pyx_v_VAR_NAME);
@@ -3823,12 +3936,12 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_4EXTRACT_CSV_INFO_HRRR(CY
   return __pyx_r;
 }
 
-/* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":162
+/* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":167
  * 
  * 
  * def MAIN():             # <<<<<<<<<<<<<<
- *     HRRR_PATH= '/media/oscar/Elements/HRRR_from_UofU/'
- *     HRRR_FILES= os.listdir(HRRR_PATH)
+ *     NAM12_PATH= '/media/meteobit/Elements/NAM12/'
+ *     NAM12_FILES= os.listdir(NAM12_PATH)
  */
 
 /* Python wrapper */
@@ -3846,19 +3959,18 @@ static PyObject *__pyx_pw_26EXTRACT_NAM12_GRIBS_CYTHON_7MAIN(PyObject *__pyx_sel
 }
 
 static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_6MAIN(CYTHON_UNUSED PyObject *__pyx_self) {
-  PyObject *__pyx_v_HRRR_PATH = NULL;
-  PyObject *__pyx_v_HRRR_FILES = NULL;
-  CYTHON_UNUSED PyObject *__pyx_v_HRRR_prs = NULL;
-  PyObject *__pyx_v_HRRR_sfc = NULL;
-  PyObject *__pyx_v_PATTERN_HOURS = NULL;
+  PyObject *__pyx_v_NAM12_PATH = NULL;
+  PyObject *__pyx_v_NAM12_FILES = NULL;
+  PyObject *__pyx_v_NAM12_sfc = NULL;
   PyObject *__pyx_v_CUSTOM_WORD = NULL;
-  PyObject *__pyx_v_HRRR_FILE_NAME = NULL;
+  PyObject *__pyx_v_NAM12_FILE_NAME = NULL;
+  int __pyx_v_MAKE_VARIABLE_AND_NEAREST_POINTS;
   PyObject *__pyx_v_TABLA_VARIABLES = NULL;
   PyObject *__pyx_v_SELECTED_VARIABLES = NULL;
   PyObject *__pyx_v_SELECTED_VARIABLES_LEVEL = NULL;
   PyObject *__pyx_v_VAR_LEVEL = NULL;
   PyObject *__pyx_v_VAR_NAME = NULL;
-  PyObject *__pyx_v_HRRR_GRIB = NULL;
+  PyObject *__pyx_v_NAM12_GRIB = NULL;
   PyObject *__pyx_v_VARIABLE = NULL;
   PyObject *__pyx_v_VARIABLE_ITEM = NULL;
   PyObject *__pyx_v_LATS = NULL;
@@ -3866,7 +3978,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_6MAIN(CYTHON_UNUSED PyObj
   double __pyx_v_LON_TATANKA;
   double __pyx_v_LAT_TATANKA;
   PyObject *__pyx_v_NEAREST_POINTS = NULL;
-  PyObject *__pyx_v_HRRR_FILES_PATH = NULL;
+  PyObject *__pyx_v_NAM12_FILES_PATH = NULL;
   PyObject *__pyx_v_file = NULL;
   PyObject *__pyx_v_item = NULL;
   PyObject *__pyx_v_s = NULL;
@@ -3879,34 +3991,34 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_6MAIN(CYTHON_UNUSED PyObj
   PyObject *(*__pyx_t_5)(PyObject *);
   int __pyx_t_6;
   int __pyx_t_7;
-  PyObject *__pyx_t_8 = NULL;
+  int __pyx_t_8;
   PyObject *__pyx_t_9 = NULL;
-  int __pyx_t_10;
+  PyObject *__pyx_t_10 = NULL;
   PyObject *__pyx_t_11 = NULL;
   PyObject *__pyx_t_12 = NULL;
   PyObject *(*__pyx_t_13)(PyObject *);
   __Pyx_RefNannySetupContext("MAIN", 0);
 
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":163
+  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":168
  * 
  * def MAIN():
- *     HRRR_PATH= '/media/oscar/Elements/HRRR_from_UofU/'             # <<<<<<<<<<<<<<
- *     HRRR_FILES= os.listdir(HRRR_PATH)
+ *     NAM12_PATH= '/media/meteobit/Elements/NAM12/'             # <<<<<<<<<<<<<<
+ *     NAM12_FILES= os.listdir(NAM12_PATH)
  * 
  */
-  __Pyx_INCREF(__pyx_kp_s_media_oscar_Elements_HRRR_from);
-  __pyx_v_HRRR_PATH = __pyx_kp_s_media_oscar_Elements_HRRR_from;
+  __Pyx_INCREF(__pyx_kp_s_media_meteobit_Elements_NAM12);
+  __pyx_v_NAM12_PATH = __pyx_kp_s_media_meteobit_Elements_NAM12;
 
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":164
+  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":169
  * def MAIN():
- *     HRRR_PATH= '/media/oscar/Elements/HRRR_from_UofU/'
- *     HRRR_FILES= os.listdir(HRRR_PATH)             # <<<<<<<<<<<<<<
+ *     NAM12_PATH= '/media/meteobit/Elements/NAM12/'
+ *     NAM12_FILES= os.listdir(NAM12_PATH)             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_os); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 164, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_os); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 169, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_listdir); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 164, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_listdir); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 169, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_2 = NULL;
@@ -3919,47 +4031,47 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_6MAIN(CYTHON_UNUSED PyObj
       __Pyx_DECREF_SET(__pyx_t_3, function);
     }
   }
-  __pyx_t_1 = (__pyx_t_2) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_2, __pyx_v_HRRR_PATH) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_v_HRRR_PATH);
+  __pyx_t_1 = (__pyx_t_2) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_2, __pyx_v_NAM12_PATH) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_v_NAM12_PATH);
   __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 164, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 169, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_v_HRRR_FILES = __pyx_t_1;
+  __pyx_v_NAM12_FILES = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":171
- *     '''
+  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":177
  * 
- *     HRRR_prs= [item for item in HRRR_FILES if 'wrfprs' in item]             # <<<<<<<<<<<<<<
- *     HRRR_sfc = [item for item in HRRR_FILES if 'wrfsfc' in item]
- *     HRRR_sfc = [item for item in HRRR_sfc if 'csv' not in item]
+ * 
+ *     NAM12_sfc = [item for item in NAM12_FILES if 'csv' not in item]             # <<<<<<<<<<<<<<
+ * 
+ *     CUSTOM_WORD =    'wind'
  */
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 171, __pyx_L1_error)
+  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 177, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (likely(PyList_CheckExact(__pyx_v_HRRR_FILES)) || PyTuple_CheckExact(__pyx_v_HRRR_FILES)) {
-    __pyx_t_3 = __pyx_v_HRRR_FILES; __Pyx_INCREF(__pyx_t_3); __pyx_t_4 = 0;
+  if (likely(PyList_CheckExact(__pyx_v_NAM12_FILES)) || PyTuple_CheckExact(__pyx_v_NAM12_FILES)) {
+    __pyx_t_3 = __pyx_v_NAM12_FILES; __Pyx_INCREF(__pyx_t_3); __pyx_t_4 = 0;
     __pyx_t_5 = NULL;
   } else {
-    __pyx_t_4 = -1; __pyx_t_3 = PyObject_GetIter(__pyx_v_HRRR_FILES); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 171, __pyx_L1_error)
+    __pyx_t_4 = -1; __pyx_t_3 = PyObject_GetIter(__pyx_v_NAM12_FILES); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 177, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_5 = Py_TYPE(__pyx_t_3)->tp_iternext; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 171, __pyx_L1_error)
+    __pyx_t_5 = Py_TYPE(__pyx_t_3)->tp_iternext; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 177, __pyx_L1_error)
   }
   for (;;) {
     if (likely(!__pyx_t_5)) {
       if (likely(PyList_CheckExact(__pyx_t_3))) {
         if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_3)) break;
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_2 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_2); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 171, __pyx_L1_error)
+        __pyx_t_2 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_2); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 177, __pyx_L1_error)
         #else
-        __pyx_t_2 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 171, __pyx_L1_error)
+        __pyx_t_2 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 177, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_2);
         #endif
       } else {
         if (__pyx_t_4 >= PyTuple_GET_SIZE(__pyx_t_3)) break;
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_2 = PyTuple_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_2); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 171, __pyx_L1_error)
+        __pyx_t_2 = PyTuple_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_2); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 177, __pyx_L1_error)
         #else
-        __pyx_t_2 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 171, __pyx_L1_error)
+        __pyx_t_2 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 177, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_2);
         #endif
       }
@@ -3969,7 +4081,7 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_6MAIN(CYTHON_UNUSED PyObj
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
           if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else __PYX_ERR(0, 171, __pyx_L1_error)
+          else __PYX_ERR(0, 177, __pyx_L1_error)
         }
         break;
       }
@@ -3977,221 +4089,21 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_6MAIN(CYTHON_UNUSED PyObj
     }
     __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_2);
     __pyx_t_2 = 0;
-    __pyx_t_6 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_wrfprs, __pyx_v_item, Py_EQ)); if (unlikely(__pyx_t_6 < 0)) __PYX_ERR(0, 171, __pyx_L1_error)
+    __pyx_t_6 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_csv_2, __pyx_v_item, Py_NE)); if (unlikely(__pyx_t_6 < 0)) __PYX_ERR(0, 177, __pyx_L1_error)
     __pyx_t_7 = (__pyx_t_6 != 0);
     if (__pyx_t_7) {
-      if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_v_item))) __PYX_ERR(0, 171, __pyx_L1_error)
+      if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_v_item))) __PYX_ERR(0, 177, __pyx_L1_error)
     }
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_v_HRRR_prs = ((PyObject*)__pyx_t_1);
-  __pyx_t_1 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":172
- * 
- *     HRRR_prs= [item for item in HRRR_FILES if 'wrfprs' in item]
- *     HRRR_sfc = [item for item in HRRR_FILES if 'wrfsfc' in item]             # <<<<<<<<<<<<<<
- *     HRRR_sfc = [item for item in HRRR_sfc if 'csv' not in item]
- * 
- */
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 172, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  if (likely(PyList_CheckExact(__pyx_v_HRRR_FILES)) || PyTuple_CheckExact(__pyx_v_HRRR_FILES)) {
-    __pyx_t_3 = __pyx_v_HRRR_FILES; __Pyx_INCREF(__pyx_t_3); __pyx_t_4 = 0;
-    __pyx_t_5 = NULL;
-  } else {
-    __pyx_t_4 = -1; __pyx_t_3 = PyObject_GetIter(__pyx_v_HRRR_FILES); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 172, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_5 = Py_TYPE(__pyx_t_3)->tp_iternext; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 172, __pyx_L1_error)
-  }
-  for (;;) {
-    if (likely(!__pyx_t_5)) {
-      if (likely(PyList_CheckExact(__pyx_t_3))) {
-        if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_3)) break;
-        #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_2 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_2); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 172, __pyx_L1_error)
-        #else
-        __pyx_t_2 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 172, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_2);
-        #endif
-      } else {
-        if (__pyx_t_4 >= PyTuple_GET_SIZE(__pyx_t_3)) break;
-        #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_2 = PyTuple_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_2); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 172, __pyx_L1_error)
-        #else
-        __pyx_t_2 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 172, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_2);
-        #endif
-      }
-    } else {
-      __pyx_t_2 = __pyx_t_5(__pyx_t_3);
-      if (unlikely(!__pyx_t_2)) {
-        PyObject* exc_type = PyErr_Occurred();
-        if (exc_type) {
-          if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else __PYX_ERR(0, 172, __pyx_L1_error)
-        }
-        break;
-      }
-      __Pyx_GOTREF(__pyx_t_2);
-    }
-    __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_2);
-    __pyx_t_2 = 0;
-    __pyx_t_7 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_wrfsfc, __pyx_v_item, Py_EQ)); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 172, __pyx_L1_error)
-    __pyx_t_6 = (__pyx_t_7 != 0);
-    if (__pyx_t_6) {
-      if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_v_item))) __PYX_ERR(0, 172, __pyx_L1_error)
-    }
-  }
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_v_HRRR_sfc = ((PyObject*)__pyx_t_1);
-  __pyx_t_1 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":173
- *     HRRR_prs= [item for item in HRRR_FILES if 'wrfprs' in item]
- *     HRRR_sfc = [item for item in HRRR_FILES if 'wrfsfc' in item]
- *     HRRR_sfc = [item for item in HRRR_sfc if 'csv' not in item]             # <<<<<<<<<<<<<<
- * 
- *     PATTERN_HOURS= re.compile(r't(06|00|12|18)')
- */
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 173, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = __pyx_v_HRRR_sfc; __Pyx_INCREF(__pyx_t_3); __pyx_t_4 = 0;
-  for (;;) {
-    if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_3)) break;
-    #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    __pyx_t_2 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_2); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 173, __pyx_L1_error)
-    #else
-    __pyx_t_2 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 173, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_2);
-    #endif
-    __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_2);
-    __pyx_t_2 = 0;
-    __pyx_t_6 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_csv_2, __pyx_v_item, Py_NE)); if (unlikely(__pyx_t_6 < 0)) __PYX_ERR(0, 173, __pyx_L1_error)
-    __pyx_t_7 = (__pyx_t_6 != 0);
-    if (__pyx_t_7) {
-      if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_v_item))) __PYX_ERR(0, 173, __pyx_L1_error)
-    }
-  }
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __Pyx_DECREF_SET(__pyx_v_HRRR_sfc, ((PyObject*)__pyx_t_1));
-  __pyx_t_1 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":175
- *     HRRR_sfc = [item for item in HRRR_sfc if 'csv' not in item]
- * 
- *     PATTERN_HOURS= re.compile(r't(06|00|12|18)')             # <<<<<<<<<<<<<<
- *     HRRR_sfc = [item for item in HRRR_sfc if re.search(PATTERN_HOURS, item)]
- * 
- */
-  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_re); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 175, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_compile); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 175, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = NULL;
-  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
-    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_2);
-    if (likely(__pyx_t_3)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-      __Pyx_INCREF(__pyx_t_3);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_2, function);
-    }
-  }
-  __pyx_t_1 = (__pyx_t_3) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_3, __pyx_kp_s_t_06_00_12_18) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_kp_s_t_06_00_12_18);
-  __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 175, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_PATTERN_HOURS = __pyx_t_1;
-  __pyx_t_1 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":176
- * 
- *     PATTERN_HOURS= re.compile(r't(06|00|12|18)')
- *     HRRR_sfc = [item for item in HRRR_sfc if re.search(PATTERN_HOURS, item)]             # <<<<<<<<<<<<<<
- * 
- * 
- */
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 176, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __pyx_v_HRRR_sfc; __Pyx_INCREF(__pyx_t_2); __pyx_t_4 = 0;
-  for (;;) {
-    if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_2)) break;
-    #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    __pyx_t_3 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_4); __Pyx_INCREF(__pyx_t_3); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 176, __pyx_L1_error)
-    #else
-    __pyx_t_3 = PySequence_ITEM(__pyx_t_2, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 176, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_3);
-    #endif
-    __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_3);
-    __pyx_t_3 = 0;
-    __Pyx_GetModuleGlobalName(__pyx_t_8, __pyx_n_s_re); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 176, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_8);
-    __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_8, __pyx_n_s_search); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 176, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_9);
-    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-    __pyx_t_8 = NULL;
-    __pyx_t_10 = 0;
-    if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_9))) {
-      __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_9);
-      if (likely(__pyx_t_8)) {
-        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_9);
-        __Pyx_INCREF(__pyx_t_8);
-        __Pyx_INCREF(function);
-        __Pyx_DECREF_SET(__pyx_t_9, function);
-        __pyx_t_10 = 1;
-      }
-    }
-    #if CYTHON_FAST_PYCALL
-    if (PyFunction_Check(__pyx_t_9)) {
-      PyObject *__pyx_temp[3] = {__pyx_t_8, __pyx_v_PATTERN_HOURS, __pyx_v_item};
-      __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_9, __pyx_temp+1-__pyx_t_10, 2+__pyx_t_10); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 176, __pyx_L1_error)
-      __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
-      __Pyx_GOTREF(__pyx_t_3);
-    } else
-    #endif
-    #if CYTHON_FAST_PYCCALL
-    if (__Pyx_PyFastCFunction_Check(__pyx_t_9)) {
-      PyObject *__pyx_temp[3] = {__pyx_t_8, __pyx_v_PATTERN_HOURS, __pyx_v_item};
-      __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_9, __pyx_temp+1-__pyx_t_10, 2+__pyx_t_10); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 176, __pyx_L1_error)
-      __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
-      __Pyx_GOTREF(__pyx_t_3);
-    } else
-    #endif
-    {
-      __pyx_t_11 = PyTuple_New(2+__pyx_t_10); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 176, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_11);
-      if (__pyx_t_8) {
-        __Pyx_GIVEREF(__pyx_t_8); PyTuple_SET_ITEM(__pyx_t_11, 0, __pyx_t_8); __pyx_t_8 = NULL;
-      }
-      __Pyx_INCREF(__pyx_v_PATTERN_HOURS);
-      __Pyx_GIVEREF(__pyx_v_PATTERN_HOURS);
-      PyTuple_SET_ITEM(__pyx_t_11, 0+__pyx_t_10, __pyx_v_PATTERN_HOURS);
-      __Pyx_INCREF(__pyx_v_item);
-      __Pyx_GIVEREF(__pyx_v_item);
-      PyTuple_SET_ITEM(__pyx_t_11, 1+__pyx_t_10, __pyx_v_item);
-      __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_9, __pyx_t_11, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 176, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_3);
-      __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-    }
-    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-    __pyx_t_7 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 176, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (__pyx_t_7) {
-      if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_v_item))) __PYX_ERR(0, 176, __pyx_L1_error)
-    }
-  }
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __Pyx_DECREF_SET(__pyx_v_HRRR_sfc, ((PyObject*)__pyx_t_1));
+  __pyx_v_NAM12_sfc = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":179
- * 
+ *     NAM12_sfc = [item for item in NAM12_FILES if 'csv' not in item]
  * 
  *     CUSTOM_WORD =    'wind'             # <<<<<<<<<<<<<<
- *     HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]
+ *     NAM12_FILE_NAME = NAM12_PATH + NAM12_sfc[0]
  * 
  */
   __Pyx_INCREF(__pyx_n_s_wind);
@@ -4200,675 +4112,738 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_6MAIN(CYTHON_UNUSED PyObj
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":180
  * 
  *     CUSTOM_WORD =    'wind'
- *     HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]             # <<<<<<<<<<<<<<
+ *     NAM12_FILE_NAME = NAM12_PATH + NAM12_sfc[0]             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  __pyx_t_1 = __Pyx_GetItemInt_List(__pyx_v_HRRR_sfc, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 180, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_GetItemInt_List(__pyx_v_NAM12_sfc, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 180, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = PyNumber_Add(__pyx_v_HRRR_PATH, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 180, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_v_HRRR_FILE_NAME = __pyx_t_2;
-  __pyx_t_2 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":185
- * 
- * 
- *     TABLA_VARIABLES = EXTRACT_VARIABLES_FROM_GRIB(HRRR_FILE_NAME, CUSTOM_WORD)             # <<<<<<<<<<<<<<
- * 
- * 
- */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_EXTRACT_VARIABLES_FROM_GRIB); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 185, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = NULL;
-  __pyx_t_10 = 0;
-  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_1))) {
-    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_1);
-    if (likely(__pyx_t_3)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_1);
-      __Pyx_INCREF(__pyx_t_3);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_1, function);
-      __pyx_t_10 = 1;
-    }
-  }
-  #if CYTHON_FAST_PYCALL
-  if (PyFunction_Check(__pyx_t_1)) {
-    PyObject *__pyx_temp[3] = {__pyx_t_3, __pyx_v_HRRR_FILE_NAME, __pyx_v_CUSTOM_WORD};
-    __pyx_t_2 = __Pyx_PyFunction_FastCall(__pyx_t_1, __pyx_temp+1-__pyx_t_10, 2+__pyx_t_10); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 185, __pyx_L1_error)
-    __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __Pyx_GOTREF(__pyx_t_2);
-  } else
-  #endif
-  #if CYTHON_FAST_PYCCALL
-  if (__Pyx_PyFastCFunction_Check(__pyx_t_1)) {
-    PyObject *__pyx_temp[3] = {__pyx_t_3, __pyx_v_HRRR_FILE_NAME, __pyx_v_CUSTOM_WORD};
-    __pyx_t_2 = __Pyx_PyCFunction_FastCall(__pyx_t_1, __pyx_temp+1-__pyx_t_10, 2+__pyx_t_10); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 185, __pyx_L1_error)
-    __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __Pyx_GOTREF(__pyx_t_2);
-  } else
-  #endif
-  {
-    __pyx_t_9 = PyTuple_New(2+__pyx_t_10); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 185, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_9);
-    if (__pyx_t_3) {
-      __Pyx_GIVEREF(__pyx_t_3); PyTuple_SET_ITEM(__pyx_t_9, 0, __pyx_t_3); __pyx_t_3 = NULL;
-    }
-    __Pyx_INCREF(__pyx_v_HRRR_FILE_NAME);
-    __Pyx_GIVEREF(__pyx_v_HRRR_FILE_NAME);
-    PyTuple_SET_ITEM(__pyx_t_9, 0+__pyx_t_10, __pyx_v_HRRR_FILE_NAME);
-    __Pyx_INCREF(__pyx_v_CUSTOM_WORD);
-    __Pyx_GIVEREF(__pyx_v_CUSTOM_WORD);
-    PyTuple_SET_ITEM(__pyx_t_9, 1+__pyx_t_10, __pyx_v_CUSTOM_WORD);
-    __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_t_9, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 185, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_2);
-    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-  }
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_v_TABLA_VARIABLES = __pyx_t_2;
-  __pyx_t_2 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":188
- * 
- * 
- *     SELECTED_VARIABLES = TABLA_VARIABLES[TABLA_VARIABLES.NAME.isin(set([item for item in list(TABLA_VARIABLES['NAME']) if 'wind' in item.lower()]))]             # <<<<<<<<<<<<<<
- *     SELECTED_VARIABLES_LEVEL= SELECTED_VARIABLES[SELECTED_VARIABLES['LEVEL_Pa'].isin(['level 80 m', 'level 10 m'])]
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_TABLA_VARIABLES, __pyx_n_s_NAME); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 188, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_isin); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 188, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_9);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 188, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = __Pyx_PyObject_Dict_GetItem(__pyx_v_TABLA_VARIABLES, __pyx_n_s_NAME); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 188, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_11 = PySequence_List(__pyx_t_3); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 188, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_11);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __pyx_t_11; __Pyx_INCREF(__pyx_t_3); __pyx_t_4 = 0;
-  __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-  for (;;) {
-    if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_3)) break;
-    #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    __pyx_t_11 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_11); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 188, __pyx_L1_error)
-    #else
-    __pyx_t_11 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 188, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_11);
-    #endif
-    __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_11);
-    __pyx_t_11 = 0;
-    __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_v_item, __pyx_n_s_lower); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 188, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_8);
-    __pyx_t_12 = NULL;
-    if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_8))) {
-      __pyx_t_12 = PyMethod_GET_SELF(__pyx_t_8);
-      if (likely(__pyx_t_12)) {
-        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_8);
-        __Pyx_INCREF(__pyx_t_12);
-        __Pyx_INCREF(function);
-        __Pyx_DECREF_SET(__pyx_t_8, function);
-      }
-    }
-    __pyx_t_11 = (__pyx_t_12) ? __Pyx_PyObject_CallOneArg(__pyx_t_8, __pyx_t_12) : __Pyx_PyObject_CallNoArg(__pyx_t_8);
-    __Pyx_XDECREF(__pyx_t_12); __pyx_t_12 = 0;
-    if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 188, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_11);
-    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-    __pyx_t_7 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_wind, __pyx_t_11, Py_EQ)); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 188, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-    __pyx_t_6 = (__pyx_t_7 != 0);
-    if (__pyx_t_6) {
-      if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_v_item))) __PYX_ERR(0, 188, __pyx_L1_error)
-    }
-  }
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = PySet_New(__pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 188, __pyx_L1_error)
+  __pyx_t_3 = PyNumber_Add(__pyx_v_NAM12_PATH, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 180, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = NULL;
-  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_9))) {
-    __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_9);
-    if (likely(__pyx_t_1)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_9);
-      __Pyx_INCREF(__pyx_t_1);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_9, function);
-    }
-  }
-  __pyx_t_2 = (__pyx_t_1) ? __Pyx_PyObject_Call2Args(__pyx_t_9, __pyx_t_1, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_9, __pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 188, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-  __pyx_t_9 = __Pyx_PyObject_GetItem(__pyx_v_TABLA_VARIABLES, __pyx_t_2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 188, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_9);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_SELECTED_VARIABLES = __pyx_t_9;
-  __pyx_t_9 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":189
- * 
- *     SELECTED_VARIABLES = TABLA_VARIABLES[TABLA_VARIABLES.NAME.isin(set([item for item in list(TABLA_VARIABLES['NAME']) if 'wind' in item.lower()]))]
- *     SELECTED_VARIABLES_LEVEL= SELECTED_VARIABLES[SELECTED_VARIABLES['LEVEL_Pa'].isin(['level 80 m', 'level 10 m'])]             # <<<<<<<<<<<<<<
- * 
- *     VAR_LEVEL= SELECTED_VARIABLES_LEVEL['LEVEL_Pa'].iloc[1]
- */
-  __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_SELECTED_VARIABLES, __pyx_n_s_LEVEL_Pa); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 189, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_isin); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 189, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = PyList_New(2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 189, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_INCREF(__pyx_kp_s_level_80_m);
-  __Pyx_GIVEREF(__pyx_kp_s_level_80_m);
-  PyList_SET_ITEM(__pyx_t_2, 0, __pyx_kp_s_level_80_m);
-  __Pyx_INCREF(__pyx_kp_s_level_10_m);
-  __Pyx_GIVEREF(__pyx_kp_s_level_10_m);
-  PyList_SET_ITEM(__pyx_t_2, 1, __pyx_kp_s_level_10_m);
-  __pyx_t_1 = NULL;
-  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
-    __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_3);
-    if (likely(__pyx_t_1)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
-      __Pyx_INCREF(__pyx_t_1);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_3, function);
-    }
-  }
-  __pyx_t_9 = (__pyx_t_1) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_1, __pyx_t_2) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 189, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_9);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_PyObject_GetItem(__pyx_v_SELECTED_VARIABLES, __pyx_t_9); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 189, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-  __pyx_v_SELECTED_VARIABLES_LEVEL = __pyx_t_3;
+  __pyx_v_NAM12_FILE_NAME = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":191
- *     SELECTED_VARIABLES_LEVEL= SELECTED_VARIABLES[SELECTED_VARIABLES['LEVEL_Pa'].isin(['level 80 m', 'level 10 m'])]
+  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":184
  * 
- *     VAR_LEVEL= SELECTED_VARIABLES_LEVEL['LEVEL_Pa'].iloc[1]             # <<<<<<<<<<<<<<
- *     VAR_NAME= SELECTED_VARIABLES_LEVEL['NAME'].iloc[1]
  * 
+ *     MAKE_VARIABLE_AND_NEAREST_POINTS= False             # <<<<<<<<<<<<<<
+ * 
+ *     if MAKE_VARIABLE_AND_NEAREST_POINTS:
  */
-  __pyx_t_3 = __Pyx_PyObject_Dict_GetItem(__pyx_v_SELECTED_VARIABLES_LEVEL, __pyx_n_s_LEVEL_Pa); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 191, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_iloc); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 191, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_9);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_GetItemInt(__pyx_t_9, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 191, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-  __pyx_v_VAR_LEVEL = __pyx_t_3;
-  __pyx_t_3 = 0;
+  __pyx_v_MAKE_VARIABLE_AND_NEAREST_POINTS = 0;
 
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":192
+  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":186
+ *     MAKE_VARIABLE_AND_NEAREST_POINTS= False
  * 
- *     VAR_LEVEL= SELECTED_VARIABLES_LEVEL['LEVEL_Pa'].iloc[1]
- *     VAR_NAME= SELECTED_VARIABLES_LEVEL['NAME'].iloc[1]             # <<<<<<<<<<<<<<
+ *     if MAKE_VARIABLE_AND_NEAREST_POINTS:             # <<<<<<<<<<<<<<
+ *         TABLA_VARIABLES = EXTRACT_VARIABLES_FROM_GRIB(NAM12_FILE_NAME, CUSTOM_WORD)
  * 
- *     HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]
  */
-  __pyx_t_3 = __Pyx_PyObject_Dict_GetItem(__pyx_v_SELECTED_VARIABLES_LEVEL, __pyx_n_s_NAME); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 192, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_iloc); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 192, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_9);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_GetItemInt(__pyx_t_9, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 192, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-  __pyx_v_VAR_NAME = __pyx_t_3;
-  __pyx_t_3 = 0;
+  __pyx_t_7 = (__pyx_v_MAKE_VARIABLE_AND_NEAREST_POINTS != 0);
+  if (__pyx_t_7) {
 
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":194
- *     VAR_NAME= SELECTED_VARIABLES_LEVEL['NAME'].iloc[1]
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":187
  * 
- *     HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]             # <<<<<<<<<<<<<<
- *     HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)
- *     VARIABLE = HRRR_GRIB.select(name= VAR_NAME)
- */
-  __pyx_t_3 = __Pyx_GetItemInt_List(__pyx_v_HRRR_sfc, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 194, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_9 = PyNumber_Add(__pyx_v_HRRR_PATH, __pyx_t_3); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 194, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_9);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __Pyx_DECREF_SET(__pyx_v_HRRR_FILE_NAME, __pyx_t_9);
-  __pyx_t_9 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":195
+ *     if MAKE_VARIABLE_AND_NEAREST_POINTS:
+ *         TABLA_VARIABLES = EXTRACT_VARIABLES_FROM_GRIB(NAM12_FILE_NAME, CUSTOM_WORD)             # <<<<<<<<<<<<<<
  * 
- *     HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]
- *     HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)             # <<<<<<<<<<<<<<
- *     VARIABLE = HRRR_GRIB.select(name= VAR_NAME)
  * 
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_pygrib); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 195, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_open); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 195, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = NULL;
-  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
-    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_2);
-    if (likely(__pyx_t_3)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-      __Pyx_INCREF(__pyx_t_3);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_2, function);
-    }
-  }
-  __pyx_t_9 = (__pyx_t_3) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_3, __pyx_v_HRRR_FILE_NAME) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_v_HRRR_FILE_NAME);
-  __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 195, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_9);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_HRRR_GRIB = __pyx_t_9;
-  __pyx_t_9 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":196
- *     HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]
- *     HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)
- *     VARIABLE = HRRR_GRIB.select(name= VAR_NAME)             # <<<<<<<<<<<<<<
- * 
- *     VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
- */
-  __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_v_HRRR_GRIB, __pyx_n_s_select); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 196, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_9);
-  __pyx_t_2 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 196, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_name, __pyx_v_VAR_NAME) < 0) __PYX_ERR(0, 196, __pyx_L1_error)
-  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_9, __pyx_empty_tuple, __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 196, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_VARIABLE = __pyx_t_3;
-  __pyx_t_3 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":198
- *     VARIABLE = HRRR_GRIB.select(name= VAR_NAME)
- * 
- *     VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]             # <<<<<<<<<<<<<<
- *     LATS , LONS = VARIABLE_ITEM[0].latlons()
- * 
- */
-  __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 198, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (likely(PyList_CheckExact(__pyx_v_VARIABLE)) || PyTuple_CheckExact(__pyx_v_VARIABLE)) {
-    __pyx_t_2 = __pyx_v_VARIABLE; __Pyx_INCREF(__pyx_t_2); __pyx_t_4 = 0;
-    __pyx_t_5 = NULL;
-  } else {
-    __pyx_t_4 = -1; __pyx_t_2 = PyObject_GetIter(__pyx_v_VARIABLE); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 198, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_5 = Py_TYPE(__pyx_t_2)->tp_iternext; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 198, __pyx_L1_error)
-  }
-  for (;;) {
-    if (likely(!__pyx_t_5)) {
-      if (likely(PyList_CheckExact(__pyx_t_2))) {
-        if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_2)) break;
-        #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_9 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_4); __Pyx_INCREF(__pyx_t_9); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 198, __pyx_L1_error)
-        #else
-        __pyx_t_9 = PySequence_ITEM(__pyx_t_2, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 198, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_9);
-        #endif
-      } else {
-        if (__pyx_t_4 >= PyTuple_GET_SIZE(__pyx_t_2)) break;
-        #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_9 = PyTuple_GET_ITEM(__pyx_t_2, __pyx_t_4); __Pyx_INCREF(__pyx_t_9); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 198, __pyx_L1_error)
-        #else
-        __pyx_t_9 = PySequence_ITEM(__pyx_t_2, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 198, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_9);
-        #endif
-      }
-    } else {
-      __pyx_t_9 = __pyx_t_5(__pyx_t_2);
-      if (unlikely(!__pyx_t_9)) {
-        PyObject* exc_type = PyErr_Occurred();
-        if (exc_type) {
-          if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else __PYX_ERR(0, 198, __pyx_L1_error)
-        }
-        break;
-      }
-      __Pyx_GOTREF(__pyx_t_9);
-    }
-    __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_9);
-    __pyx_t_9 = 0;
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyString_Type)), __pyx_v_item); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 198, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_EXTRACT_VARIABLES_FROM_GRIB); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 187, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_11 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_split); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 198, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_11);
+    __pyx_t_2 = NULL;
+    __pyx_t_8 = 0;
+    if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_1))) {
+      __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_1);
+      if (likely(__pyx_t_2)) {
+        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_1);
+        __Pyx_INCREF(__pyx_t_2);
+        __Pyx_INCREF(function);
+        __Pyx_DECREF_SET(__pyx_t_1, function);
+        __pyx_t_8 = 1;
+      }
+    }
+    #if CYTHON_FAST_PYCALL
+    if (PyFunction_Check(__pyx_t_1)) {
+      PyObject *__pyx_temp[3] = {__pyx_t_2, __pyx_v_NAM12_FILE_NAME, __pyx_v_CUSTOM_WORD};
+      __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_1, __pyx_temp+1-__pyx_t_8, 2+__pyx_t_8); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 187, __pyx_L1_error)
+      __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
+      __Pyx_GOTREF(__pyx_t_3);
+    } else
+    #endif
+    #if CYTHON_FAST_PYCCALL
+    if (__Pyx_PyFastCFunction_Check(__pyx_t_1)) {
+      PyObject *__pyx_temp[3] = {__pyx_t_2, __pyx_v_NAM12_FILE_NAME, __pyx_v_CUSTOM_WORD};
+      __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_1, __pyx_temp+1-__pyx_t_8, 2+__pyx_t_8); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 187, __pyx_L1_error)
+      __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
+      __Pyx_GOTREF(__pyx_t_3);
+    } else
+    #endif
+    {
+      __pyx_t_9 = PyTuple_New(2+__pyx_t_8); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 187, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_9);
+      if (__pyx_t_2) {
+        __Pyx_GIVEREF(__pyx_t_2); PyTuple_SET_ITEM(__pyx_t_9, 0, __pyx_t_2); __pyx_t_2 = NULL;
+      }
+      __Pyx_INCREF(__pyx_v_NAM12_FILE_NAME);
+      __Pyx_GIVEREF(__pyx_v_NAM12_FILE_NAME);
+      PyTuple_SET_ITEM(__pyx_t_9, 0+__pyx_t_8, __pyx_v_NAM12_FILE_NAME);
+      __Pyx_INCREF(__pyx_v_CUSTOM_WORD);
+      __Pyx_GIVEREF(__pyx_v_CUSTOM_WORD);
+      PyTuple_SET_ITEM(__pyx_t_9, 1+__pyx_t_8, __pyx_v_CUSTOM_WORD);
+      __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_t_9, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 187, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_3);
+      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+    }
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __pyx_v_TABLA_VARIABLES = __pyx_t_3;
+    __pyx_t_3 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":190
+ * 
+ * 
+ *         SELECTED_VARIABLES = TABLA_VARIABLES[TABLA_VARIABLES.NAME.isin(set([item for item in list(TABLA_VARIABLES['NAME']) if 'wind' in item.lower()]))]             # <<<<<<<<<<<<<<
+ *         SELECTED_VARIABLES_LEVEL= SELECTED_VARIABLES[SELECTED_VARIABLES['LEVEL_Pa'].isin(['level 80 m', 'level 10 m'])]
+ * 
+ */
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_TABLA_VARIABLES, __pyx_n_s_NAME); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 190, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_1);
+    __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_isin); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 190, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_9);
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 190, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_1);
+    __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_TABLA_VARIABLES, __pyx_n_s_NAME); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 190, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_10 = PySequence_List(__pyx_t_2); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 190, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_10);
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_2 = __pyx_t_10; __Pyx_INCREF(__pyx_t_2); __pyx_t_4 = 0;
+    __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+    for (;;) {
+      if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_2)) break;
+      #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+      __pyx_t_10 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_4); __Pyx_INCREF(__pyx_t_10); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 190, __pyx_L1_error)
+      #else
+      __pyx_t_10 = PySequence_ITEM(__pyx_t_2, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 190, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_10);
+      #endif
+      __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_10);
+      __pyx_t_10 = 0;
+      __pyx_t_11 = __Pyx_PyObject_GetAttrStr(__pyx_v_item, __pyx_n_s_lower); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 190, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_11);
+      __pyx_t_12 = NULL;
+      if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_11))) {
+        __pyx_t_12 = PyMethod_GET_SELF(__pyx_t_11);
+        if (likely(__pyx_t_12)) {
+          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_11);
+          __Pyx_INCREF(__pyx_t_12);
+          __Pyx_INCREF(function);
+          __Pyx_DECREF_SET(__pyx_t_11, function);
+        }
+      }
+      __pyx_t_10 = (__pyx_t_12) ? __Pyx_PyObject_CallOneArg(__pyx_t_11, __pyx_t_12) : __Pyx_PyObject_CallNoArg(__pyx_t_11);
+      __Pyx_XDECREF(__pyx_t_12); __pyx_t_12 = 0;
+      if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 190, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_10);
+      __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
+      __pyx_t_7 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_wind, __pyx_t_10, Py_EQ)); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 190, __pyx_L1_error)
+      __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+      __pyx_t_6 = (__pyx_t_7 != 0);
+      if (__pyx_t_6) {
+        if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_v_item))) __PYX_ERR(0, 190, __pyx_L1_error)
+      }
+    }
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_2 = PySet_New(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 190, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __pyx_t_1 = NULL;
-    if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_11))) {
-      __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_11);
+    if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_9))) {
+      __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_9);
       if (likely(__pyx_t_1)) {
-        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_11);
+        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_9);
         __Pyx_INCREF(__pyx_t_1);
+        __Pyx_INCREF(function);
+        __Pyx_DECREF_SET(__pyx_t_9, function);
+      }
+    }
+    __pyx_t_3 = (__pyx_t_1) ? __Pyx_PyObject_Call2Args(__pyx_t_9, __pyx_t_1, __pyx_t_2) : __Pyx_PyObject_CallOneArg(__pyx_t_9, __pyx_t_2);
+    __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 190, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+    __pyx_t_9 = __Pyx_PyObject_GetItem(__pyx_v_TABLA_VARIABLES, __pyx_t_3); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 190, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_9);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __pyx_v_SELECTED_VARIABLES = __pyx_t_9;
+    __pyx_t_9 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":191
+ * 
+ *         SELECTED_VARIABLES = TABLA_VARIABLES[TABLA_VARIABLES.NAME.isin(set([item for item in list(TABLA_VARIABLES['NAME']) if 'wind' in item.lower()]))]
+ *         SELECTED_VARIABLES_LEVEL= SELECTED_VARIABLES[SELECTED_VARIABLES['LEVEL_Pa'].isin(['level 80 m', 'level 10 m'])]             # <<<<<<<<<<<<<<
+ * 
+ *         VAR_LEVEL= SELECTED_VARIABLES_LEVEL['LEVEL_Pa'].iloc[1]
+ */
+    __pyx_t_3 = __Pyx_PyObject_Dict_GetItem(__pyx_v_SELECTED_VARIABLES, __pyx_n_s_LEVEL_Pa); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 191, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_isin); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 191, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __pyx_t_3 = PyList_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 191, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    __Pyx_INCREF(__pyx_kp_s_level_80_m);
+    __Pyx_GIVEREF(__pyx_kp_s_level_80_m);
+    PyList_SET_ITEM(__pyx_t_3, 0, __pyx_kp_s_level_80_m);
+    __Pyx_INCREF(__pyx_kp_s_level_10_m);
+    __Pyx_GIVEREF(__pyx_kp_s_level_10_m);
+    PyList_SET_ITEM(__pyx_t_3, 1, __pyx_kp_s_level_10_m);
+    __pyx_t_1 = NULL;
+    if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
+      __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_2);
+      if (likely(__pyx_t_1)) {
+        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+        __Pyx_INCREF(__pyx_t_1);
+        __Pyx_INCREF(function);
+        __Pyx_DECREF_SET(__pyx_t_2, function);
+      }
+    }
+    __pyx_t_9 = (__pyx_t_1) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_1, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
+    __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 191, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_9);
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_2 = __Pyx_PyObject_GetItem(__pyx_v_SELECTED_VARIABLES, __pyx_t_9); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 191, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+    __pyx_v_SELECTED_VARIABLES_LEVEL = __pyx_t_2;
+    __pyx_t_2 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":193
+ *         SELECTED_VARIABLES_LEVEL= SELECTED_VARIABLES[SELECTED_VARIABLES['LEVEL_Pa'].isin(['level 80 m', 'level 10 m'])]
+ * 
+ *         VAR_LEVEL= SELECTED_VARIABLES_LEVEL['LEVEL_Pa'].iloc[1]             # <<<<<<<<<<<<<<
+ *         VAR_NAME= SELECTED_VARIABLES_LEVEL['NAME'].iloc[1]
+ * 
+ */
+    __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_SELECTED_VARIABLES_LEVEL, __pyx_n_s_LEVEL_Pa); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 193, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_iloc); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 193, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_9);
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_2 = __Pyx_GetItemInt(__pyx_t_9, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 193, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+    __pyx_v_VAR_LEVEL = __pyx_t_2;
+    __pyx_t_2 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":194
+ * 
+ *         VAR_LEVEL= SELECTED_VARIABLES_LEVEL['LEVEL_Pa'].iloc[1]
+ *         VAR_NAME= SELECTED_VARIABLES_LEVEL['NAME'].iloc[1]             # <<<<<<<<<<<<<<
+ * 
+ *         NAM12_FILE_NAME = NAM12_PATH + NAM12_sfc[0]
+ */
+    __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_SELECTED_VARIABLES_LEVEL, __pyx_n_s_NAME); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 194, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_iloc); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 194, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_9);
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_2 = __Pyx_GetItemInt(__pyx_t_9, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 194, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+    __pyx_v_VAR_NAME = __pyx_t_2;
+    __pyx_t_2 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":196
+ *         VAR_NAME= SELECTED_VARIABLES_LEVEL['NAME'].iloc[1]
+ * 
+ *         NAM12_FILE_NAME = NAM12_PATH + NAM12_sfc[0]             # <<<<<<<<<<<<<<
+ *         NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)
+ *         VARIABLE = NAM12_GRIB.select(name= VAR_NAME)
+ */
+    __pyx_t_2 = __Pyx_GetItemInt_List(__pyx_v_NAM12_sfc, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 196, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_9 = PyNumber_Add(__pyx_v_NAM12_PATH, __pyx_t_2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 196, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_9);
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __Pyx_DECREF_SET(__pyx_v_NAM12_FILE_NAME, __pyx_t_9);
+    __pyx_t_9 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":197
+ * 
+ *         NAM12_FILE_NAME = NAM12_PATH + NAM12_sfc[0]
+ *         NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)             # <<<<<<<<<<<<<<
+ *         VARIABLE = NAM12_GRIB.select(name= VAR_NAME)
+ * 
+ */
+    __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_pygrib); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 197, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_open); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 197, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_2 = NULL;
+    if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_3))) {
+      __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_3);
+      if (likely(__pyx_t_2)) {
+        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
+        __Pyx_INCREF(__pyx_t_2);
+        __Pyx_INCREF(function);
+        __Pyx_DECREF_SET(__pyx_t_3, function);
+      }
+    }
+    __pyx_t_9 = (__pyx_t_2) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_2, __pyx_v_NAM12_FILE_NAME) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_v_NAM12_FILE_NAME);
+    __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
+    if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 197, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_9);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __pyx_v_NAM12_GRIB = __pyx_t_9;
+    __pyx_t_9 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":198
+ *         NAM12_FILE_NAME = NAM12_PATH + NAM12_sfc[0]
+ *         NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)
+ *         VARIABLE = NAM12_GRIB.select(name= VAR_NAME)             # <<<<<<<<<<<<<<
+ * 
+ *         VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
+ */
+    __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_v_NAM12_GRIB, __pyx_n_s_select); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 198, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_9);
+    __pyx_t_3 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 198, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_name, __pyx_v_VAR_NAME) < 0) __PYX_ERR(0, 198, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_9, __pyx_empty_tuple, __pyx_t_3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 198, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __pyx_v_VARIABLE = __pyx_t_2;
+    __pyx_t_2 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":200
+ *         VARIABLE = NAM12_GRIB.select(name= VAR_NAME)
+ * 
+ *         VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]             # <<<<<<<<<<<<<<
+ *         LATS , LONS = VARIABLE_ITEM[0].latlons()
+ * 
+ */
+    __pyx_t_2 = PyList_New(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 200, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    if (likely(PyList_CheckExact(__pyx_v_VARIABLE)) || PyTuple_CheckExact(__pyx_v_VARIABLE)) {
+      __pyx_t_3 = __pyx_v_VARIABLE; __Pyx_INCREF(__pyx_t_3); __pyx_t_4 = 0;
+      __pyx_t_5 = NULL;
+    } else {
+      __pyx_t_4 = -1; __pyx_t_3 = PyObject_GetIter(__pyx_v_VARIABLE); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 200, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_3);
+      __pyx_t_5 = Py_TYPE(__pyx_t_3)->tp_iternext; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 200, __pyx_L1_error)
+    }
+    for (;;) {
+      if (likely(!__pyx_t_5)) {
+        if (likely(PyList_CheckExact(__pyx_t_3))) {
+          if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_3)) break;
+          #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+          __pyx_t_9 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_9); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 200, __pyx_L1_error)
+          #else
+          __pyx_t_9 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 200, __pyx_L1_error)
+          __Pyx_GOTREF(__pyx_t_9);
+          #endif
+        } else {
+          if (__pyx_t_4 >= PyTuple_GET_SIZE(__pyx_t_3)) break;
+          #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+          __pyx_t_9 = PyTuple_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_9); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 200, __pyx_L1_error)
+          #else
+          __pyx_t_9 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 200, __pyx_L1_error)
+          __Pyx_GOTREF(__pyx_t_9);
+          #endif
+        }
+      } else {
+        __pyx_t_9 = __pyx_t_5(__pyx_t_3);
+        if (unlikely(!__pyx_t_9)) {
+          PyObject* exc_type = PyErr_Occurred();
+          if (exc_type) {
+            if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
+            else __PYX_ERR(0, 200, __pyx_L1_error)
+          }
+          break;
+        }
+        __Pyx_GOTREF(__pyx_t_9);
+      }
+      __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_9);
+      __pyx_t_9 = 0;
+      __pyx_t_1 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyString_Type)), __pyx_v_item); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 200, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_1);
+      __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_split); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 200, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_10);
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+      __pyx_t_1 = NULL;
+      if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_10))) {
+        __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_10);
+        if (likely(__pyx_t_1)) {
+          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_10);
+          __Pyx_INCREF(__pyx_t_1);
+          __Pyx_INCREF(function);
+          __Pyx_DECREF_SET(__pyx_t_10, function);
+        }
+      }
+      __pyx_t_9 = (__pyx_t_1) ? __Pyx_PyObject_Call2Args(__pyx_t_10, __pyx_t_1, __pyx_kp_s_) : __Pyx_PyObject_CallOneArg(__pyx_t_10, __pyx_kp_s_);
+      __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+      if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 200, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_9);
+      __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+      __pyx_t_10 = __Pyx_GetItemInt(__pyx_t_9, -3L, long, 1, __Pyx_PyInt_From_long, 0, 1, 1); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 200, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_10);
+      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+      __pyx_t_9 = PyObject_RichCompare(__pyx_t_10, __pyx_v_VAR_LEVEL, Py_EQ); __Pyx_XGOTREF(__pyx_t_9); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 200, __pyx_L1_error)
+      __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+      __pyx_t_6 = __Pyx_PyObject_IsTrue(__pyx_t_9); if (unlikely(__pyx_t_6 < 0)) __PYX_ERR(0, 200, __pyx_L1_error)
+      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+      if (__pyx_t_6) {
+        if (unlikely(__Pyx_ListComp_Append(__pyx_t_2, (PyObject*)__pyx_v_item))) __PYX_ERR(0, 200, __pyx_L1_error)
+      }
+    }
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __pyx_v_VARIABLE_ITEM = ((PyObject*)__pyx_t_2);
+    __pyx_t_2 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":201
+ * 
+ *         VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
+ *         LATS , LONS = VARIABLE_ITEM[0].latlons()             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+    __pyx_t_3 = __Pyx_GetItemInt_List(__pyx_v_VARIABLE_ITEM, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 201, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_latlons); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 201, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_9);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __pyx_t_3 = NULL;
+    if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_9))) {
+      __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_9);
+      if (likely(__pyx_t_3)) {
+        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_9);
+        __Pyx_INCREF(__pyx_t_3);
+        __Pyx_INCREF(function);
+        __Pyx_DECREF_SET(__pyx_t_9, function);
+      }
+    }
+    __pyx_t_2 = (__pyx_t_3) ? __Pyx_PyObject_CallOneArg(__pyx_t_9, __pyx_t_3) : __Pyx_PyObject_CallNoArg(__pyx_t_9);
+    __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
+    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 201, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+    if ((likely(PyTuple_CheckExact(__pyx_t_2))) || (PyList_CheckExact(__pyx_t_2))) {
+      PyObject* sequence = __pyx_t_2;
+      Py_ssize_t size = __Pyx_PySequence_SIZE(sequence);
+      if (unlikely(size != 2)) {
+        if (size > 2) __Pyx_RaiseTooManyValuesError(2);
+        else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
+        __PYX_ERR(0, 201, __pyx_L1_error)
+      }
+      #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+      if (likely(PyTuple_CheckExact(sequence))) {
+        __pyx_t_9 = PyTuple_GET_ITEM(sequence, 0); 
+        __pyx_t_3 = PyTuple_GET_ITEM(sequence, 1); 
+      } else {
+        __pyx_t_9 = PyList_GET_ITEM(sequence, 0); 
+        __pyx_t_3 = PyList_GET_ITEM(sequence, 1); 
+      }
+      __Pyx_INCREF(__pyx_t_9);
+      __Pyx_INCREF(__pyx_t_3);
+      #else
+      __pyx_t_9 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 201, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_9);
+      __pyx_t_3 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 201, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_3);
+      #endif
+      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    } else {
+      Py_ssize_t index = -1;
+      __pyx_t_10 = PyObject_GetIter(__pyx_t_2); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 201, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_10);
+      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+      __pyx_t_13 = Py_TYPE(__pyx_t_10)->tp_iternext;
+      index = 0; __pyx_t_9 = __pyx_t_13(__pyx_t_10); if (unlikely(!__pyx_t_9)) goto __pyx_L13_unpacking_failed;
+      __Pyx_GOTREF(__pyx_t_9);
+      index = 1; __pyx_t_3 = __pyx_t_13(__pyx_t_10); if (unlikely(!__pyx_t_3)) goto __pyx_L13_unpacking_failed;
+      __Pyx_GOTREF(__pyx_t_3);
+      if (__Pyx_IternextUnpackEndCheck(__pyx_t_13(__pyx_t_10), 2) < 0) __PYX_ERR(0, 201, __pyx_L1_error)
+      __pyx_t_13 = NULL;
+      __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+      goto __pyx_L14_unpacking_done;
+      __pyx_L13_unpacking_failed:;
+      __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+      __pyx_t_13 = NULL;
+      if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
+      __PYX_ERR(0, 201, __pyx_L1_error)
+      __pyx_L14_unpacking_done:;
+    }
+    __pyx_v_LATS = __pyx_t_9;
+    __pyx_t_9 = 0;
+    __pyx_v_LONS = __pyx_t_3;
+    __pyx_t_3 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":204
+ * 
+ * 
+ *         LON_TATANKA= -98.955699             # <<<<<<<<<<<<<<
+ *         LAT_TATANKA= 45.95685
+ * 
+ */
+    __pyx_v_LON_TATANKA = -98.955699;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":205
+ * 
+ *         LON_TATANKA= -98.955699
+ *         LAT_TATANKA= 45.95685             # <<<<<<<<<<<<<<
+ * 
+ *         NEAREST_POINTS = OBTAIN_50_NEAREST_POINTS(LONS, LATS, LON_TATANKA, LAT_TATANKA)
+ */
+    __pyx_v_LAT_TATANKA = 45.95685;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":207
+ *         LAT_TATANKA= 45.95685
+ * 
+ *         NEAREST_POINTS = OBTAIN_50_NEAREST_POINTS(LONS, LATS, LON_TATANKA, LAT_TATANKA)             # <<<<<<<<<<<<<<
+ *     else:
+ *         NEAREST_POINTS = pd.DataFrame()
+ */
+    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_OBTAIN_50_NEAREST_POINTS); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 207, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    __pyx_t_9 = PyFloat_FromDouble(__pyx_v_LON_TATANKA); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 207, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_9);
+    __pyx_t_10 = PyFloat_FromDouble(__pyx_v_LAT_TATANKA); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 207, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_10);
+    __pyx_t_1 = NULL;
+    __pyx_t_8 = 0;
+    if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_3))) {
+      __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_3);
+      if (likely(__pyx_t_1)) {
+        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
+        __Pyx_INCREF(__pyx_t_1);
+        __Pyx_INCREF(function);
+        __Pyx_DECREF_SET(__pyx_t_3, function);
+        __pyx_t_8 = 1;
+      }
+    }
+    #if CYTHON_FAST_PYCALL
+    if (PyFunction_Check(__pyx_t_3)) {
+      PyObject *__pyx_temp[5] = {__pyx_t_1, __pyx_v_LONS, __pyx_v_LATS, __pyx_t_9, __pyx_t_10};
+      __pyx_t_2 = __Pyx_PyFunction_FastCall(__pyx_t_3, __pyx_temp+1-__pyx_t_8, 4+__pyx_t_8); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 207, __pyx_L1_error)
+      __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+      __Pyx_GOTREF(__pyx_t_2);
+      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+      __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+    } else
+    #endif
+    #if CYTHON_FAST_PYCCALL
+    if (__Pyx_PyFastCFunction_Check(__pyx_t_3)) {
+      PyObject *__pyx_temp[5] = {__pyx_t_1, __pyx_v_LONS, __pyx_v_LATS, __pyx_t_9, __pyx_t_10};
+      __pyx_t_2 = __Pyx_PyCFunction_FastCall(__pyx_t_3, __pyx_temp+1-__pyx_t_8, 4+__pyx_t_8); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 207, __pyx_L1_error)
+      __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+      __Pyx_GOTREF(__pyx_t_2);
+      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+      __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+    } else
+    #endif
+    {
+      __pyx_t_11 = PyTuple_New(4+__pyx_t_8); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 207, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_11);
+      if (__pyx_t_1) {
+        __Pyx_GIVEREF(__pyx_t_1); PyTuple_SET_ITEM(__pyx_t_11, 0, __pyx_t_1); __pyx_t_1 = NULL;
+      }
+      __Pyx_INCREF(__pyx_v_LONS);
+      __Pyx_GIVEREF(__pyx_v_LONS);
+      PyTuple_SET_ITEM(__pyx_t_11, 0+__pyx_t_8, __pyx_v_LONS);
+      __Pyx_INCREF(__pyx_v_LATS);
+      __Pyx_GIVEREF(__pyx_v_LATS);
+      PyTuple_SET_ITEM(__pyx_t_11, 1+__pyx_t_8, __pyx_v_LATS);
+      __Pyx_GIVEREF(__pyx_t_9);
+      PyTuple_SET_ITEM(__pyx_t_11, 2+__pyx_t_8, __pyx_t_9);
+      __Pyx_GIVEREF(__pyx_t_10);
+      PyTuple_SET_ITEM(__pyx_t_11, 3+__pyx_t_8, __pyx_t_10);
+      __pyx_t_9 = 0;
+      __pyx_t_10 = 0;
+      __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_11, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 207, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_2);
+      __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
+    }
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __pyx_v_NEAREST_POINTS = __pyx_t_2;
+    __pyx_t_2 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":186
+ *     MAKE_VARIABLE_AND_NEAREST_POINTS= False
+ * 
+ *     if MAKE_VARIABLE_AND_NEAREST_POINTS:             # <<<<<<<<<<<<<<
+ *         TABLA_VARIABLES = EXTRACT_VARIABLES_FROM_GRIB(NAM12_FILE_NAME, CUSTOM_WORD)
+ * 
+ */
+    goto __pyx_L6;
+  }
+
+  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":209
+ *         NEAREST_POINTS = OBTAIN_50_NEAREST_POINTS(LONS, LATS, LON_TATANKA, LAT_TATANKA)
+ *     else:
+ *         NEAREST_POINTS = pd.DataFrame()             # <<<<<<<<<<<<<<
+ * 
+ *     NAM12_FILES_PATH = [NAM12_PATH + s for s in NAM12_sfc]
+ */
+  /*else*/ {
+    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_pd); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 209, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    __pyx_t_11 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_DataFrame); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 209, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_11);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __pyx_t_3 = NULL;
+    if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_11))) {
+      __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_11);
+      if (likely(__pyx_t_3)) {
+        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_11);
+        __Pyx_INCREF(__pyx_t_3);
         __Pyx_INCREF(function);
         __Pyx_DECREF_SET(__pyx_t_11, function);
       }
     }
-    __pyx_t_9 = (__pyx_t_1) ? __Pyx_PyObject_Call2Args(__pyx_t_11, __pyx_t_1, __pyx_kp_s_) : __Pyx_PyObject_CallOneArg(__pyx_t_11, __pyx_kp_s_);
-    __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
-    if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 198, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_9);
+    __pyx_t_2 = (__pyx_t_3) ? __Pyx_PyObject_CallOneArg(__pyx_t_11, __pyx_t_3) : __Pyx_PyObject_CallNoArg(__pyx_t_11);
+    __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
+    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 209, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-    __pyx_t_11 = __Pyx_GetItemInt(__pyx_t_9, -3L, long, 1, __Pyx_PyInt_From_long, 0, 1, 1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 198, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_11);
-    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-    __pyx_t_9 = PyObject_RichCompare(__pyx_t_11, __pyx_v_VAR_LEVEL, Py_EQ); __Pyx_XGOTREF(__pyx_t_9); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 198, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-    __pyx_t_6 = __Pyx_PyObject_IsTrue(__pyx_t_9); if (unlikely(__pyx_t_6 < 0)) __PYX_ERR(0, 198, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-    if (__pyx_t_6) {
-      if (unlikely(__Pyx_ListComp_Append(__pyx_t_3, (PyObject*)__pyx_v_item))) __PYX_ERR(0, 198, __pyx_L1_error)
-    }
+    __pyx_v_NEAREST_POINTS = __pyx_t_2;
+    __pyx_t_2 = 0;
   }
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_VARIABLE_ITEM = ((PyObject*)__pyx_t_3);
-  __pyx_t_3 = 0;
+  __pyx_L6:;
 
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":199
+  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":211
+ *         NEAREST_POINTS = pd.DataFrame()
  * 
- *     VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
- *     LATS , LONS = VARIABLE_ITEM[0].latlons()             # <<<<<<<<<<<<<<
+ *     NAM12_FILES_PATH = [NAM12_PATH + s for s in NAM12_sfc]             # <<<<<<<<<<<<<<
  * 
- * 
+ *     for file in NAM12_FILES_PATH:
  */
-  __pyx_t_2 = __Pyx_GetItemInt_List(__pyx_v_VARIABLE_ITEM, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 199, __pyx_L1_error)
+  __pyx_t_2 = PyList_New(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 211, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_latlons); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 199, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_9);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = NULL;
-  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_9))) {
-    __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_9);
-    if (likely(__pyx_t_2)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_9);
-      __Pyx_INCREF(__pyx_t_2);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_9, function);
-    }
-  }
-  __pyx_t_3 = (__pyx_t_2) ? __Pyx_PyObject_CallOneArg(__pyx_t_9, __pyx_t_2) : __Pyx_PyObject_CallNoArg(__pyx_t_9);
-  __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 199, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-  if ((likely(PyTuple_CheckExact(__pyx_t_3))) || (PyList_CheckExact(__pyx_t_3))) {
-    PyObject* sequence = __pyx_t_3;
-    Py_ssize_t size = __Pyx_PySequence_SIZE(sequence);
-    if (unlikely(size != 2)) {
-      if (size > 2) __Pyx_RaiseTooManyValuesError(2);
-      else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-      __PYX_ERR(0, 199, __pyx_L1_error)
-    }
+  __pyx_t_11 = __pyx_v_NAM12_sfc; __Pyx_INCREF(__pyx_t_11); __pyx_t_4 = 0;
+  for (;;) {
+    if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_11)) break;
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    if (likely(PyTuple_CheckExact(sequence))) {
-      __pyx_t_9 = PyTuple_GET_ITEM(sequence, 0); 
-      __pyx_t_2 = PyTuple_GET_ITEM(sequence, 1); 
-    } else {
-      __pyx_t_9 = PyList_GET_ITEM(sequence, 0); 
-      __pyx_t_2 = PyList_GET_ITEM(sequence, 1); 
-    }
-    __Pyx_INCREF(__pyx_t_9);
-    __Pyx_INCREF(__pyx_t_2);
+    __pyx_t_3 = PyList_GET_ITEM(__pyx_t_11, __pyx_t_4); __Pyx_INCREF(__pyx_t_3); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 211, __pyx_L1_error)
     #else
-    __pyx_t_9 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 199, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_9);
-    __pyx_t_2 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 199, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_3 = PySequence_ITEM(__pyx_t_11, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 211, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
     #endif
+    __Pyx_XDECREF_SET(__pyx_v_s, __pyx_t_3);
+    __pyx_t_3 = 0;
+    __pyx_t_3 = PyNumber_Add(__pyx_v_NAM12_PATH, __pyx_v_s); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 211, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    if (unlikely(__Pyx_ListComp_Append(__pyx_t_2, (PyObject*)__pyx_t_3))) __PYX_ERR(0, 211, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  } else {
-    Py_ssize_t index = -1;
-    __pyx_t_11 = PyObject_GetIter(__pyx_t_3); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 199, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_11);
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_13 = Py_TYPE(__pyx_t_11)->tp_iternext;
-    index = 0; __pyx_t_9 = __pyx_t_13(__pyx_t_11); if (unlikely(!__pyx_t_9)) goto __pyx_L21_unpacking_failed;
-    __Pyx_GOTREF(__pyx_t_9);
-    index = 1; __pyx_t_2 = __pyx_t_13(__pyx_t_11); if (unlikely(!__pyx_t_2)) goto __pyx_L21_unpacking_failed;
-    __Pyx_GOTREF(__pyx_t_2);
-    if (__Pyx_IternextUnpackEndCheck(__pyx_t_13(__pyx_t_11), 2) < 0) __PYX_ERR(0, 199, __pyx_L1_error)
-    __pyx_t_13 = NULL;
-    __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-    goto __pyx_L22_unpacking_done;
-    __pyx_L21_unpacking_failed:;
-    __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-    __pyx_t_13 = NULL;
-    if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-    __PYX_ERR(0, 199, __pyx_L1_error)
-    __pyx_L22_unpacking_done:;
   }
-  __pyx_v_LATS = __pyx_t_9;
-  __pyx_t_9 = 0;
-  __pyx_v_LONS = __pyx_t_2;
+  __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
+  __pyx_v_NAM12_FILES_PATH = ((PyObject*)__pyx_t_2);
   __pyx_t_2 = 0;
 
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":202
+  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":213
+ *     NAM12_FILES_PATH = [NAM12_PATH + s for s in NAM12_sfc]
  * 
- * 
- *     LON_TATANKA= -98.955699             # <<<<<<<<<<<<<<
- *     LAT_TATANKA= 45.95685
- * 
- */
-  __pyx_v_LON_TATANKA = -98.955699;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":203
- * 
- *     LON_TATANKA= -98.955699
- *     LAT_TATANKA= 45.95685             # <<<<<<<<<<<<<<
- * 
- *     NEAREST_POINTS = OBTAIN_50_NEAREST_POINTS(LONS, LATS, LON_TATANKA, LAT_TATANKA)
- */
-  __pyx_v_LAT_TATANKA = 45.95685;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":205
- *     LAT_TATANKA= 45.95685
- * 
- *     NEAREST_POINTS = OBTAIN_50_NEAREST_POINTS(LONS, LATS, LON_TATANKA, LAT_TATANKA)             # <<<<<<<<<<<<<<
- * 
+ *     for file in NAM12_FILES_PATH:             # <<<<<<<<<<<<<<
+ *         EXTRACT_CSV_INFO_NAM12(SELECTED_VARIABLES_LEVEL,NEAREST_POINTS,False, file)
  * 
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_OBTAIN_50_NEAREST_POINTS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 205, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_9 = PyFloat_FromDouble(__pyx_v_LON_TATANKA); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 205, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_9);
-  __pyx_t_11 = PyFloat_FromDouble(__pyx_v_LAT_TATANKA); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 205, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_11);
-  __pyx_t_1 = NULL;
-  __pyx_t_10 = 0;
-  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
-    __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_2);
-    if (likely(__pyx_t_1)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-      __Pyx_INCREF(__pyx_t_1);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_2, function);
-      __pyx_t_10 = 1;
-    }
-  }
-  #if CYTHON_FAST_PYCALL
-  if (PyFunction_Check(__pyx_t_2)) {
-    PyObject *__pyx_temp[5] = {__pyx_t_1, __pyx_v_LONS, __pyx_v_LATS, __pyx_t_9, __pyx_t_11};
-    __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_2, __pyx_temp+1-__pyx_t_10, 4+__pyx_t_10); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 205, __pyx_L1_error)
-    __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __Pyx_GOTREF(__pyx_t_3);
-    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-    __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-  } else
-  #endif
-  #if CYTHON_FAST_PYCCALL
-  if (__Pyx_PyFastCFunction_Check(__pyx_t_2)) {
-    PyObject *__pyx_temp[5] = {__pyx_t_1, __pyx_v_LONS, __pyx_v_LATS, __pyx_t_9, __pyx_t_11};
-    __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_2, __pyx_temp+1-__pyx_t_10, 4+__pyx_t_10); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 205, __pyx_L1_error)
-    __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __Pyx_GOTREF(__pyx_t_3);
-    __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-    __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-  } else
-  #endif
-  {
-    __pyx_t_8 = PyTuple_New(4+__pyx_t_10); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 205, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_8);
-    if (__pyx_t_1) {
-      __Pyx_GIVEREF(__pyx_t_1); PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_1); __pyx_t_1 = NULL;
-    }
-    __Pyx_INCREF(__pyx_v_LONS);
-    __Pyx_GIVEREF(__pyx_v_LONS);
-    PyTuple_SET_ITEM(__pyx_t_8, 0+__pyx_t_10, __pyx_v_LONS);
-    __Pyx_INCREF(__pyx_v_LATS);
-    __Pyx_GIVEREF(__pyx_v_LATS);
-    PyTuple_SET_ITEM(__pyx_t_8, 1+__pyx_t_10, __pyx_v_LATS);
-    __Pyx_GIVEREF(__pyx_t_9);
-    PyTuple_SET_ITEM(__pyx_t_8, 2+__pyx_t_10, __pyx_t_9);
-    __Pyx_GIVEREF(__pyx_t_11);
-    PyTuple_SET_ITEM(__pyx_t_8, 3+__pyx_t_10, __pyx_t_11);
-    __pyx_t_9 = 0;
-    __pyx_t_11 = 0;
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_8, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 205, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_3);
-    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-  }
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_NEAREST_POINTS = __pyx_t_3;
-  __pyx_t_3 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":208
- * 
- * 
- *     HRRR_FILES_PATH = [HRRR_PATH + s for s in HRRR_sfc]             # <<<<<<<<<<<<<<
- * 
- *     for file in HRRR_FILES_PATH:
- */
-  __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 208, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_2 = __pyx_v_HRRR_sfc; __Pyx_INCREF(__pyx_t_2); __pyx_t_4 = 0;
+  __pyx_t_2 = __pyx_v_NAM12_FILES_PATH; __Pyx_INCREF(__pyx_t_2); __pyx_t_4 = 0;
   for (;;) {
     if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_2)) break;
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    __pyx_t_8 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_4); __Pyx_INCREF(__pyx_t_8); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 208, __pyx_L1_error)
+    __pyx_t_11 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_4); __Pyx_INCREF(__pyx_t_11); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 213, __pyx_L1_error)
     #else
-    __pyx_t_8 = PySequence_ITEM(__pyx_t_2, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 208, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_8);
+    __pyx_t_11 = PySequence_ITEM(__pyx_t_2, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 213, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_11);
     #endif
-    __Pyx_XDECREF_SET(__pyx_v_s, __pyx_t_8);
+    __Pyx_XDECREF_SET(__pyx_v_file, __pyx_t_11);
+    __pyx_t_11 = 0;
+
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":214
+ * 
+ *     for file in NAM12_FILES_PATH:
+ *         EXTRACT_CSV_INFO_NAM12(SELECTED_VARIABLES_LEVEL,NEAREST_POINTS,False, file)             # <<<<<<<<<<<<<<
+ * 
+ */
+    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_EXTRACT_CSV_INFO_NAM12); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 214, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    if (unlikely(!__pyx_v_SELECTED_VARIABLES_LEVEL)) { __Pyx_RaiseUnboundLocalError("SELECTED_VARIABLES_LEVEL"); __PYX_ERR(0, 214, __pyx_L1_error) }
+    __pyx_t_10 = NULL;
     __pyx_t_8 = 0;
-    __pyx_t_8 = PyNumber_Add(__pyx_v_HRRR_PATH, __pyx_v_s); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 208, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_8);
-    if (unlikely(__Pyx_ListComp_Append(__pyx_t_3, (PyObject*)__pyx_t_8))) __PYX_ERR(0, 208, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-  }
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_HRRR_FILES_PATH = ((PyObject*)__pyx_t_3);
-  __pyx_t_3 = 0;
-
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":210
- *     HRRR_FILES_PATH = [HRRR_PATH + s for s in HRRR_sfc]
- * 
- *     for file in HRRR_FILES_PATH:             # <<<<<<<<<<<<<<
- *         EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES_LEVEL,NEAREST_POINTS,False, file)
- * 
- */
-  __pyx_t_3 = __pyx_v_HRRR_FILES_PATH; __Pyx_INCREF(__pyx_t_3); __pyx_t_4 = 0;
-  for (;;) {
-    if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_3)) break;
-    #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    __pyx_t_2 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_2); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 210, __pyx_L1_error)
-    #else
-    __pyx_t_2 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 210, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_2);
-    #endif
-    __Pyx_XDECREF_SET(__pyx_v_file, __pyx_t_2);
-    __pyx_t_2 = 0;
-
-    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":211
- * 
- *     for file in HRRR_FILES_PATH:
- *         EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES_LEVEL,NEAREST_POINTS,False, file)             # <<<<<<<<<<<<<<
- * 
- */
-    __Pyx_GetModuleGlobalName(__pyx_t_8, __pyx_n_s_EXTRACT_CSV_INFO_HRRR); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 211, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_8);
-    __pyx_t_11 = NULL;
-    __pyx_t_10 = 0;
-    if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_8))) {
-      __pyx_t_11 = PyMethod_GET_SELF(__pyx_t_8);
-      if (likely(__pyx_t_11)) {
-        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_8);
-        __Pyx_INCREF(__pyx_t_11);
+    if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_3))) {
+      __pyx_t_10 = PyMethod_GET_SELF(__pyx_t_3);
+      if (likely(__pyx_t_10)) {
+        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
+        __Pyx_INCREF(__pyx_t_10);
         __Pyx_INCREF(function);
-        __Pyx_DECREF_SET(__pyx_t_8, function);
-        __pyx_t_10 = 1;
+        __Pyx_DECREF_SET(__pyx_t_3, function);
+        __pyx_t_8 = 1;
       }
     }
     #if CYTHON_FAST_PYCALL
-    if (PyFunction_Check(__pyx_t_8)) {
-      PyObject *__pyx_temp[5] = {__pyx_t_11, __pyx_v_SELECTED_VARIABLES_LEVEL, __pyx_v_NEAREST_POINTS, Py_False, __pyx_v_file};
-      __pyx_t_2 = __Pyx_PyFunction_FastCall(__pyx_t_8, __pyx_temp+1-__pyx_t_10, 4+__pyx_t_10); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 211, __pyx_L1_error)
-      __Pyx_XDECREF(__pyx_t_11); __pyx_t_11 = 0;
-      __Pyx_GOTREF(__pyx_t_2);
+    if (PyFunction_Check(__pyx_t_3)) {
+      PyObject *__pyx_temp[5] = {__pyx_t_10, __pyx_v_SELECTED_VARIABLES_LEVEL, __pyx_v_NEAREST_POINTS, Py_False, __pyx_v_file};
+      __pyx_t_11 = __Pyx_PyFunction_FastCall(__pyx_t_3, __pyx_temp+1-__pyx_t_8, 4+__pyx_t_8); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 214, __pyx_L1_error)
+      __Pyx_XDECREF(__pyx_t_10); __pyx_t_10 = 0;
+      __Pyx_GOTREF(__pyx_t_11);
     } else
     #endif
     #if CYTHON_FAST_PYCCALL
-    if (__Pyx_PyFastCFunction_Check(__pyx_t_8)) {
-      PyObject *__pyx_temp[5] = {__pyx_t_11, __pyx_v_SELECTED_VARIABLES_LEVEL, __pyx_v_NEAREST_POINTS, Py_False, __pyx_v_file};
-      __pyx_t_2 = __Pyx_PyCFunction_FastCall(__pyx_t_8, __pyx_temp+1-__pyx_t_10, 4+__pyx_t_10); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 211, __pyx_L1_error)
-      __Pyx_XDECREF(__pyx_t_11); __pyx_t_11 = 0;
-      __Pyx_GOTREF(__pyx_t_2);
+    if (__Pyx_PyFastCFunction_Check(__pyx_t_3)) {
+      PyObject *__pyx_temp[5] = {__pyx_t_10, __pyx_v_SELECTED_VARIABLES_LEVEL, __pyx_v_NEAREST_POINTS, Py_False, __pyx_v_file};
+      __pyx_t_11 = __Pyx_PyCFunction_FastCall(__pyx_t_3, __pyx_temp+1-__pyx_t_8, 4+__pyx_t_8); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 214, __pyx_L1_error)
+      __Pyx_XDECREF(__pyx_t_10); __pyx_t_10 = 0;
+      __Pyx_GOTREF(__pyx_t_11);
     } else
     #endif
     {
-      __pyx_t_9 = PyTuple_New(4+__pyx_t_10); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 211, __pyx_L1_error)
+      __pyx_t_9 = PyTuple_New(4+__pyx_t_8); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 214, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_9);
-      if (__pyx_t_11) {
-        __Pyx_GIVEREF(__pyx_t_11); PyTuple_SET_ITEM(__pyx_t_9, 0, __pyx_t_11); __pyx_t_11 = NULL;
+      if (__pyx_t_10) {
+        __Pyx_GIVEREF(__pyx_t_10); PyTuple_SET_ITEM(__pyx_t_9, 0, __pyx_t_10); __pyx_t_10 = NULL;
       }
       __Pyx_INCREF(__pyx_v_SELECTED_VARIABLES_LEVEL);
       __Pyx_GIVEREF(__pyx_v_SELECTED_VARIABLES_LEVEL);
-      PyTuple_SET_ITEM(__pyx_t_9, 0+__pyx_t_10, __pyx_v_SELECTED_VARIABLES_LEVEL);
+      PyTuple_SET_ITEM(__pyx_t_9, 0+__pyx_t_8, __pyx_v_SELECTED_VARIABLES_LEVEL);
       __Pyx_INCREF(__pyx_v_NEAREST_POINTS);
       __Pyx_GIVEREF(__pyx_v_NEAREST_POINTS);
-      PyTuple_SET_ITEM(__pyx_t_9, 1+__pyx_t_10, __pyx_v_NEAREST_POINTS);
+      PyTuple_SET_ITEM(__pyx_t_9, 1+__pyx_t_8, __pyx_v_NEAREST_POINTS);
       __Pyx_INCREF(Py_False);
       __Pyx_GIVEREF(Py_False);
-      PyTuple_SET_ITEM(__pyx_t_9, 2+__pyx_t_10, Py_False);
+      PyTuple_SET_ITEM(__pyx_t_9, 2+__pyx_t_8, Py_False);
       __Pyx_INCREF(__pyx_v_file);
       __Pyx_GIVEREF(__pyx_v_file);
-      PyTuple_SET_ITEM(__pyx_t_9, 3+__pyx_t_10, __pyx_v_file);
-      __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_8, __pyx_t_9, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 211, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
+      PyTuple_SET_ITEM(__pyx_t_9, 3+__pyx_t_8, __pyx_v_file);
+      __pyx_t_11 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_9, NULL); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 214, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_11);
       __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
     }
-    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
 
-    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":210
- *     HRRR_FILES_PATH = [HRRR_PATH + s for s in HRRR_sfc]
+    /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":213
+ *     NAM12_FILES_PATH = [NAM12_PATH + s for s in NAM12_sfc]
  * 
- *     for file in HRRR_FILES_PATH:             # <<<<<<<<<<<<<<
- *         EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES_LEVEL,NEAREST_POINTS,False, file)
+ *     for file in NAM12_FILES_PATH:             # <<<<<<<<<<<<<<
+ *         EXTRACT_CSV_INFO_NAM12(SELECTED_VARIABLES_LEVEL,NEAREST_POINTS,False, file)
  * 
  */
   }
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":162
+  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":167
  * 
  * 
  * def MAIN():             # <<<<<<<<<<<<<<
- *     HRRR_PATH= '/media/oscar/Elements/HRRR_from_UofU/'
- *     HRRR_FILES= os.listdir(HRRR_PATH)
+ *     NAM12_PATH= '/media/meteobit/Elements/NAM12/'
+ *     NAM12_FILES= os.listdir(NAM12_PATH)
  */
 
   /* function exit code */
@@ -4878,32 +4853,30 @@ static PyObject *__pyx_pf_26EXTRACT_NAM12_GRIBS_CYTHON_6MAIN(CYTHON_UNUSED PyObj
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_8);
   __Pyx_XDECREF(__pyx_t_9);
+  __Pyx_XDECREF(__pyx_t_10);
   __Pyx_XDECREF(__pyx_t_11);
   __Pyx_XDECREF(__pyx_t_12);
   __Pyx_AddTraceback("EXTRACT_NAM12_GRIBS_CYTHON.MAIN", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
-  __Pyx_XDECREF(__pyx_v_HRRR_PATH);
-  __Pyx_XDECREF(__pyx_v_HRRR_FILES);
-  __Pyx_XDECREF(__pyx_v_HRRR_prs);
-  __Pyx_XDECREF(__pyx_v_HRRR_sfc);
-  __Pyx_XDECREF(__pyx_v_PATTERN_HOURS);
+  __Pyx_XDECREF(__pyx_v_NAM12_PATH);
+  __Pyx_XDECREF(__pyx_v_NAM12_FILES);
+  __Pyx_XDECREF(__pyx_v_NAM12_sfc);
   __Pyx_XDECREF(__pyx_v_CUSTOM_WORD);
-  __Pyx_XDECREF(__pyx_v_HRRR_FILE_NAME);
+  __Pyx_XDECREF(__pyx_v_NAM12_FILE_NAME);
   __Pyx_XDECREF(__pyx_v_TABLA_VARIABLES);
   __Pyx_XDECREF(__pyx_v_SELECTED_VARIABLES);
   __Pyx_XDECREF(__pyx_v_SELECTED_VARIABLES_LEVEL);
   __Pyx_XDECREF(__pyx_v_VAR_LEVEL);
   __Pyx_XDECREF(__pyx_v_VAR_NAME);
-  __Pyx_XDECREF(__pyx_v_HRRR_GRIB);
+  __Pyx_XDECREF(__pyx_v_NAM12_GRIB);
   __Pyx_XDECREF(__pyx_v_VARIABLE);
   __Pyx_XDECREF(__pyx_v_VARIABLE_ITEM);
   __Pyx_XDECREF(__pyx_v_LATS);
   __Pyx_XDECREF(__pyx_v_LONS);
   __Pyx_XDECREF(__pyx_v_NEAREST_POINTS);
-  __Pyx_XDECREF(__pyx_v_HRRR_FILES_PATH);
+  __Pyx_XDECREF(__pyx_v_NAM12_FILES_PATH);
   __Pyx_XDECREF(__pyx_v_file);
   __Pyx_XDECREF(__pyx_v_item);
   __Pyx_XDECREF(__pyx_v_s);
@@ -4967,18 +4940,11 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_DIST, __pyx_k_DIST, sizeof(__pyx_k_DIST), 0, 0, 1, 1},
   {&__pyx_n_s_DISTANCIA, __pyx_k_DISTANCIA, sizeof(__pyx_k_DISTANCIA), 0, 0, 1, 1},
   {&__pyx_n_s_DataFrame, __pyx_k_DataFrame, sizeof(__pyx_k_DataFrame), 0, 0, 1, 1},
-  {&__pyx_n_s_EXTRACT_CSV_INFO_HRRR, __pyx_k_EXTRACT_CSV_INFO_HRRR, sizeof(__pyx_k_EXTRACT_CSV_INFO_HRRR), 0, 0, 1, 1},
+  {&__pyx_n_s_EXTRACT_CSV_INFO_NAM12, __pyx_k_EXTRACT_CSV_INFO_NAM12, sizeof(__pyx_k_EXTRACT_CSV_INFO_NAM12), 0, 0, 1, 1},
   {&__pyx_n_s_EXTRACT_NAM12_GRIBS_CYTHON, __pyx_k_EXTRACT_NAM12_GRIBS_CYTHON, sizeof(__pyx_k_EXTRACT_NAM12_GRIBS_CYTHON), 0, 0, 1, 1},
   {&__pyx_kp_s_EXTRACT_NAM12_GRIBS_CYTHON_pyx, __pyx_k_EXTRACT_NAM12_GRIBS_CYTHON_pyx, sizeof(__pyx_k_EXTRACT_NAM12_GRIBS_CYTHON_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_EXTRACT_VARIABLES_FROM_GRIB, __pyx_k_EXTRACT_VARIABLES_FROM_GRIB, sizeof(__pyx_k_EXTRACT_VARIABLES_FROM_GRIB), 0, 0, 1, 1},
   {&__pyx_kp_s_GUARDANDO_CSV_en, __pyx_k_GUARDANDO_CSV_en, sizeof(__pyx_k_GUARDANDO_CSV_en), 0, 0, 1, 0},
-  {&__pyx_n_s_HRRR_FILES, __pyx_k_HRRR_FILES, sizeof(__pyx_k_HRRR_FILES), 0, 0, 1, 1},
-  {&__pyx_n_s_HRRR_FILES_PATH, __pyx_k_HRRR_FILES_PATH, sizeof(__pyx_k_HRRR_FILES_PATH), 0, 0, 1, 1},
-  {&__pyx_n_s_HRRR_FILE_NAME, __pyx_k_HRRR_FILE_NAME, sizeof(__pyx_k_HRRR_FILE_NAME), 0, 0, 1, 1},
-  {&__pyx_n_s_HRRR_GRIB, __pyx_k_HRRR_GRIB, sizeof(__pyx_k_HRRR_GRIB), 0, 0, 1, 1},
-  {&__pyx_n_s_HRRR_PATH, __pyx_k_HRRR_PATH, sizeof(__pyx_k_HRRR_PATH), 0, 0, 1, 1},
-  {&__pyx_n_s_HRRR_prs, __pyx_k_HRRR_prs, sizeof(__pyx_k_HRRR_prs), 0, 0, 1, 1},
-  {&__pyx_n_s_HRRR_sfc, __pyx_k_HRRR_sfc, sizeof(__pyx_k_HRRR_sfc), 0, 0, 1, 1},
   {&__pyx_n_s_LAT, __pyx_k_LAT, sizeof(__pyx_k_LAT), 0, 0, 1, 1},
   {&__pyx_n_s_LATS, __pyx_k_LATS, sizeof(__pyx_k_LATS), 0, 0, 1, 1},
   {&__pyx_n_s_LAT_NP, __pyx_k_LAT_NP, sizeof(__pyx_k_LAT_NP), 0, 0, 1, 1},
@@ -4989,12 +4955,19 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_LONS, __pyx_k_LONS, sizeof(__pyx_k_LONS), 0, 0, 1, 1},
   {&__pyx_n_s_LON_TATANKA, __pyx_k_LON_TATANKA, sizeof(__pyx_k_LON_TATANKA), 0, 0, 1, 1},
   {&__pyx_n_s_MAIN, __pyx_k_MAIN, sizeof(__pyx_k_MAIN), 0, 0, 1, 1},
+  {&__pyx_n_s_MAKE_VARIABLE_AND_NEAREST_POINTS, __pyx_k_MAKE_VARIABLE_AND_NEAREST_POINTS, sizeof(__pyx_k_MAKE_VARIABLE_AND_NEAREST_POINTS), 0, 0, 1, 1},
+  {&__pyx_n_s_NAM12_FILES, __pyx_k_NAM12_FILES, sizeof(__pyx_k_NAM12_FILES), 0, 0, 1, 1},
+  {&__pyx_n_s_NAM12_FILES_PATH, __pyx_k_NAM12_FILES_PATH, sizeof(__pyx_k_NAM12_FILES_PATH), 0, 0, 1, 1},
+  {&__pyx_n_s_NAM12_FILE_NAME, __pyx_k_NAM12_FILE_NAME, sizeof(__pyx_k_NAM12_FILE_NAME), 0, 0, 1, 1},
+  {&__pyx_n_s_NAM12_GRIB, __pyx_k_NAM12_GRIB, sizeof(__pyx_k_NAM12_GRIB), 0, 0, 1, 1},
+  {&__pyx_n_s_NAM12_PATH, __pyx_k_NAM12_PATH, sizeof(__pyx_k_NAM12_PATH), 0, 0, 1, 1},
+  {&__pyx_n_s_NAM12_sfc, __pyx_k_NAM12_sfc, sizeof(__pyx_k_NAM12_sfc), 0, 0, 1, 1},
   {&__pyx_n_s_NAME, __pyx_k_NAME, sizeof(__pyx_k_NAME), 0, 0, 1, 1},
   {&__pyx_n_s_NEAREST_POINTS, __pyx_k_NEAREST_POINTS, sizeof(__pyx_k_NEAREST_POINTS), 0, 0, 1, 1},
   {&__pyx_n_s_NOMBRE_ARCHIVO, __pyx_k_NOMBRE_ARCHIVO, sizeof(__pyx_k_NOMBRE_ARCHIVO), 0, 0, 1, 1},
+  {&__pyx_kp_s_NO_ENCONTRADO, __pyx_k_NO_ENCONTRADO, sizeof(__pyx_k_NO_ENCONTRADO), 0, 0, 1, 0},
   {&__pyx_n_s_OBTAIN_50_NEAREST_POINTS, __pyx_k_OBTAIN_50_NEAREST_POINTS, sizeof(__pyx_k_OBTAIN_50_NEAREST_POINTS), 0, 0, 1, 1},
   {&__pyx_n_s_PATH_SAVE, __pyx_k_PATH_SAVE, sizeof(__pyx_k_PATH_SAVE), 0, 0, 1, 1},
-  {&__pyx_n_s_PATTERN_HOURS, __pyx_k_PATTERN_HOURS, sizeof(__pyx_k_PATTERN_HOURS), 0, 0, 1, 1},
   {&__pyx_n_s_PROJ, __pyx_k_PROJ, sizeof(__pyx_k_PROJ), 0, 0, 1, 1},
   {&__pyx_n_s_R, __pyx_k_R, sizeof(__pyx_k_R), 0, 0, 1, 1},
   {&__pyx_n_s_SELECTED_VARIABLES, __pyx_k_SELECTED_VARIABLES, sizeof(__pyx_k_SELECTED_VARIABLES), 0, 0, 1, 1},
@@ -5035,7 +5008,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_colnames, __pyx_k_colnames, sizeof(__pyx_k_colnames), 0, 0, 1, 1},
   {&__pyx_n_s_column, __pyx_k_column, sizeof(__pyx_k_column), 0, 0, 1, 1},
   {&__pyx_n_s_columns, __pyx_k_columns, sizeof(__pyx_k_columns), 0, 0, 1, 1},
-  {&__pyx_n_s_compile, __pyx_k_compile, sizeof(__pyx_k_compile), 0, 0, 1, 1},
   {&__pyx_n_s_cos, __pyx_k_cos, sizeof(__pyx_k_cos), 0, 0, 1, 1},
   {&__pyx_kp_s_csv, __pyx_k_csv, sizeof(__pyx_k_csv), 0, 0, 1, 0},
   {&__pyx_n_s_csv_2, __pyx_k_csv_2, sizeof(__pyx_k_csv_2), 0, 0, 1, 1},
@@ -5059,7 +5031,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_isin, __pyx_k_isin, sizeof(__pyx_k_isin), 0, 0, 1, 1},
   {&__pyx_n_s_item, __pyx_k_item, sizeof(__pyx_k_item), 0, 0, 1, 1},
   {&__pyx_n_s_k, __pyx_k_k, sizeof(__pyx_k_k), 0, 0, 1, 1},
-  {&__pyx_n_s_lat, __pyx_k_lat, sizeof(__pyx_k_lat), 0, 0, 1, 1},
   {&__pyx_n_s_lat1, __pyx_k_lat1, sizeof(__pyx_k_lat1), 0, 0, 1, 1},
   {&__pyx_n_s_lat2, __pyx_k_lat2, sizeof(__pyx_k_lat2), 0, 0, 1, 1},
   {&__pyx_n_s_latlons, __pyx_k_latlons, sizeof(__pyx_k_latlons), 0, 0, 1, 1},
@@ -5073,7 +5044,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
   {&__pyx_n_s_makedirs, __pyx_k_makedirs, sizeof(__pyx_k_makedirs), 0, 0, 1, 1},
   {&__pyx_n_s_math, __pyx_k_math, sizeof(__pyx_k_math), 0, 0, 1, 1},
-  {&__pyx_kp_s_media_oscar_Elements_HRRR_from, __pyx_k_media_oscar_Elements_HRRR_from, sizeof(__pyx_k_media_oscar_Elements_HRRR_from), 0, 0, 1, 0},
+  {&__pyx_kp_s_media_meteobit_Elements_NAM12, __pyx_k_media_meteobit_Elements_NAM12, sizeof(__pyx_k_media_meteobit_Elements_NAM12), 0, 0, 1, 0},
   {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
   {&__pyx_n_s_name_2, __pyx_k_name_2, sizeof(__pyx_k_name_2), 0, 0, 1, 1},
   {&__pyx_n_s_np, __pyx_k_np, sizeof(__pyx_k_np), 0, 0, 1, 1},
@@ -5091,7 +5062,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_re, __pyx_k_re, sizeof(__pyx_k_re), 0, 0, 1, 1},
   {&__pyx_n_s_replace, __pyx_k_replace, sizeof(__pyx_k_replace), 0, 0, 1, 1},
   {&__pyx_n_s_s, __pyx_k_s, sizeof(__pyx_k_s), 0, 0, 1, 1},
-  {&__pyx_n_s_search, __pyx_k_search, sizeof(__pyx_k_search), 0, 0, 1, 1},
   {&__pyx_n_s_seek, __pyx_k_seek, sizeof(__pyx_k_seek), 0, 0, 1, 1},
   {&__pyx_n_s_select, __pyx_k_select, sizeof(__pyx_k_select), 0, 0, 1, 1},
   {&__pyx_n_s_sep, __pyx_k_sep, sizeof(__pyx_k_sep), 0, 0, 1, 1},
@@ -5101,15 +5071,12 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_sort_values, __pyx_k_sort_values, sizeof(__pyx_k_sort_values), 0, 0, 1, 1},
   {&__pyx_n_s_split, __pyx_k_split, sizeof(__pyx_k_split), 0, 0, 1, 1},
   {&__pyx_n_s_sqrt, __pyx_k_sqrt, sizeof(__pyx_k_sqrt), 0, 0, 1, 1},
-  {&__pyx_kp_s_t_06_00_12_18, __pyx_k_t_06_00_12_18, sizeof(__pyx_k_t_06_00_12_18), 0, 0, 1, 0},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
   {&__pyx_n_s_to_csv, __pyx_k_to_csv, sizeof(__pyx_k_to_csv), 0, 0, 1, 1},
   {&__pyx_n_s_validDate, __pyx_k_validDate, sizeof(__pyx_k_validDate), 0, 0, 1, 1},
   {&__pyx_n_s_value, __pyx_k_value, sizeof(__pyx_k_value), 0, 0, 1, 1},
   {&__pyx_n_s_values, __pyx_k_values, sizeof(__pyx_k_values), 0, 0, 1, 1},
   {&__pyx_n_s_wind, __pyx_k_wind, sizeof(__pyx_k_wind), 0, 0, 1, 1},
-  {&__pyx_n_s_wrfprs, __pyx_k_wrfprs, sizeof(__pyx_k_wrfprs), 0, 0, 1, 1},
-  {&__pyx_n_s_wrfsfc, __pyx_k_wrfsfc, sizeof(__pyx_k_wrfsfc), 0, 0, 1, 1},
   {0, 0, 0, 0, 0, 0, 0}
 };
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
@@ -5126,7 +5093,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":49
  *     TABLA_CUSTOM = TABLA_VAR[TABLA_VAR.NAME.isin(set([item for item in list(TABLA_VAR['NAME']) if CUSTOM_WORD in item.lower()]))]
  * 
- *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +HRRR_GRIB.name.split('/')[-1].replace('.','') + '/'             # <<<<<<<<<<<<<<
+ *     PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +NAM12_GRIB.name.split('/')[-1].replace('.','') + '/'             # <<<<<<<<<<<<<<
  *     if not os.path.isdir(PATH_SAVE):
  *         os.makedirs(PATH_SAVE, exist_ok=True)
  */
@@ -5162,7 +5129,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":125
  *         VAR_NAME= SELECTED_VARIABLES['NAME'].iloc[i]
  * 
- *         NOMBRE_ARCHIVO = HRRR_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'             # <<<<<<<<<<<<<<
+ *         NOMBRE_ARCHIVO = NAM12_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'             # <<<<<<<<<<<<<<
  * 
  *         if os.path.isfile(NOMBRE_ARCHIVO):
  */
@@ -5198,11 +5165,11 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":24
  * 
  * 
- * def EXTRACT_VARIABLES_FROM_GRIB(HRRR_FILE_NAME, CUSTOM_WORD):             # <<<<<<<<<<<<<<
+ * def EXTRACT_VARIABLES_FROM_GRIB(NAM12_FILE_NAME, CUSTOM_WORD):             # <<<<<<<<<<<<<<
  *     '''
  *     FUNCION QUE NOS DEVUELVE LA TABLA DE VARIABLES CONTENIDA EN EL GRIB... Y LA GUARDA A UN CSV
  */
-  __pyx_tuple__16 = PyTuple_Pack(11, __pyx_n_s_HRRR_FILE_NAME, __pyx_n_s_CUSTOM_WORD, __pyx_n_s_HRRR_GRIB, __pyx_n_s_VARIABLE_NAMES, __pyx_n_s_k, __pyx_n_s_i, __pyx_n_s_colnames, __pyx_n_s_TABLA_VAR, __pyx_n_s_TABLA_CUSTOM, __pyx_n_s_PATH_SAVE, __pyx_n_s_item); if (unlikely(!__pyx_tuple__16)) __PYX_ERR(0, 24, __pyx_L1_error)
+  __pyx_tuple__16 = PyTuple_Pack(11, __pyx_n_s_NAM12_FILE_NAME, __pyx_n_s_CUSTOM_WORD, __pyx_n_s_NAM12_GRIB, __pyx_n_s_VARIABLE_NAMES, __pyx_n_s_k, __pyx_n_s_i, __pyx_n_s_colnames, __pyx_n_s_TABLA_VAR, __pyx_n_s_TABLA_CUSTOM, __pyx_n_s_PATH_SAVE, __pyx_n_s_item); if (unlikely(!__pyx_tuple__16)) __PYX_ERR(0, 24, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__16);
   __Pyx_GIVEREF(__pyx_tuple__16);
   __pyx_codeobj__17 = (PyObject*)__Pyx_PyCode_New(2, 0, 11, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__16, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_EXTRACT_NAM12_GRIBS_CYTHON_pyx, __pyx_n_s_EXTRACT_VARIABLES_FROM_GRIB, 24, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__17)) __PYX_ERR(0, 24, __pyx_L1_error)
@@ -5214,34 +5181,34 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *     '''
  *     FUNCION PARA OBTENER LOS 50 PUNTOS MAS CERCANOS A LA ZONA A ESTUDIAR...
  */
-  __pyx_tuple__18 = PyTuple_Pack(18, __pyx_n_s_LONG_NP, __pyx_n_s_LAT_NP, __pyx_n_s_LON, __pyx_n_s_LAT, __pyx_n_s_R, __pyx_n_s_c, __pyx_n_s_a, __pyx_n_s_lon1, __pyx_n_s_lat1, __pyx_n_s_lon2, __pyx_n_s_lat2, __pyx_n_s_dlon, __pyx_n_s_lat, __pyx_n_s_TABLA_LONLAT, __pyx_n_s_DISTANCIA, __pyx_n_s_i, __pyx_n_s_dlat, __pyx_n_s_TABLA_ORD_DIST); if (unlikely(!__pyx_tuple__18)) __PYX_ERR(0, 62, __pyx_L1_error)
+  __pyx_tuple__18 = PyTuple_Pack(17, __pyx_n_s_LONG_NP, __pyx_n_s_LAT_NP, __pyx_n_s_LON, __pyx_n_s_LAT, __pyx_n_s_TABLA_LONLAT, __pyx_n_s_R, __pyx_n_s_DISTANCIA, __pyx_n_s_i, __pyx_n_s_lat1, __pyx_n_s_lon1, __pyx_n_s_lat2, __pyx_n_s_lon2, __pyx_n_s_dlon, __pyx_n_s_dlat, __pyx_n_s_a, __pyx_n_s_c, __pyx_n_s_TABLA_ORD_DIST); if (unlikely(!__pyx_tuple__18)) __PYX_ERR(0, 62, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__18);
   __Pyx_GIVEREF(__pyx_tuple__18);
-  __pyx_codeobj__19 = (PyObject*)__Pyx_PyCode_New(4, 0, 18, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__18, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_EXTRACT_NAM12_GRIBS_CYTHON_pyx, __pyx_n_s_OBTAIN_50_NEAREST_POINTS, 62, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__19)) __PYX_ERR(0, 62, __pyx_L1_error)
+  __pyx_codeobj__19 = (PyObject*)__Pyx_PyCode_New(4, 0, 17, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__18, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_EXTRACT_NAM12_GRIBS_CYTHON_pyx, __pyx_n_s_OBTAIN_50_NEAREST_POINTS, 62, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__19)) __PYX_ERR(0, 62, __pyx_L1_error)
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":113
  * 
  * 
- * def EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES,             # <<<<<<<<<<<<<<
+ * def EXTRACT_CSV_INFO_NAM12(SELECTED_VARIABLES,             # <<<<<<<<<<<<<<
  *                           NEAREST_POINTS,
  *                           CUT_DATA,
  */
-  __pyx_tuple__20 = PyTuple_Pack(18, __pyx_n_s_SELECTED_VARIABLES, __pyx_n_s_NEAREST_POINTS, __pyx_n_s_CUT_DATA, __pyx_n_s_HRRR_FILE_NAME, __pyx_n_s_HRRR_GRIB, __pyx_n_s_i, __pyx_n_s_VAR_LEVEL, __pyx_n_s_VAR_NAME, __pyx_n_s_NOMBRE_ARCHIVO, __pyx_n_s_VARIABLE, __pyx_n_s_VARIABLE_ITEM, __pyx_n_s_VARIABLE_VALUES, __pyx_n_s_LATS, __pyx_n_s_LONS, __pyx_n_s_DATE, __pyx_n_s_dfObj, __pyx_n_s_TABLA_CUT, __pyx_n_s_item); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 113, __pyx_L1_error)
+  __pyx_tuple__20 = PyTuple_Pack(18, __pyx_n_s_SELECTED_VARIABLES, __pyx_n_s_NEAREST_POINTS, __pyx_n_s_CUT_DATA, __pyx_n_s_NAM12_FILE_NAME, __pyx_n_s_NAM12_GRIB, __pyx_n_s_i, __pyx_n_s_VAR_LEVEL, __pyx_n_s_VAR_NAME, __pyx_n_s_NOMBRE_ARCHIVO, __pyx_n_s_VARIABLE, __pyx_n_s_VARIABLE_ITEM, __pyx_n_s_VARIABLE_VALUES, __pyx_n_s_LATS, __pyx_n_s_LONS, __pyx_n_s_DATE, __pyx_n_s_dfObj, __pyx_n_s_TABLA_CUT, __pyx_n_s_item); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 113, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__20);
   __Pyx_GIVEREF(__pyx_tuple__20);
-  __pyx_codeobj__21 = (PyObject*)__Pyx_PyCode_New(4, 0, 18, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_EXTRACT_NAM12_GRIBS_CYTHON_pyx, __pyx_n_s_EXTRACT_CSV_INFO_HRRR, 113, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 113, __pyx_L1_error)
+  __pyx_codeobj__21 = (PyObject*)__Pyx_PyCode_New(4, 0, 18, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_EXTRACT_NAM12_GRIBS_CYTHON_pyx, __pyx_n_s_EXTRACT_CSV_INFO_NAM12, 113, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 113, __pyx_L1_error)
 
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":162
+  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":167
  * 
  * 
  * def MAIN():             # <<<<<<<<<<<<<<
- *     HRRR_PATH= '/media/oscar/Elements/HRRR_from_UofU/'
- *     HRRR_FILES= os.listdir(HRRR_PATH)
+ *     NAM12_PATH= '/media/meteobit/Elements/NAM12/'
+ *     NAM12_FILES= os.listdir(NAM12_PATH)
  */
-  __pyx_tuple__22 = PyTuple_Pack(24, __pyx_n_s_HRRR_PATH, __pyx_n_s_HRRR_FILES, __pyx_n_s_HRRR_prs, __pyx_n_s_HRRR_sfc, __pyx_n_s_PATTERN_HOURS, __pyx_n_s_CUSTOM_WORD, __pyx_n_s_HRRR_FILE_NAME, __pyx_n_s_TABLA_VARIABLES, __pyx_n_s_SELECTED_VARIABLES, __pyx_n_s_SELECTED_VARIABLES_LEVEL, __pyx_n_s_VAR_LEVEL, __pyx_n_s_VAR_NAME, __pyx_n_s_HRRR_GRIB, __pyx_n_s_VARIABLE, __pyx_n_s_VARIABLE_ITEM, __pyx_n_s_LATS, __pyx_n_s_LONS, __pyx_n_s_LON_TATANKA, __pyx_n_s_LAT_TATANKA, __pyx_n_s_NEAREST_POINTS, __pyx_n_s_HRRR_FILES_PATH, __pyx_n_s_file, __pyx_n_s_item, __pyx_n_s_s); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 162, __pyx_L1_error)
+  __pyx_tuple__22 = PyTuple_Pack(23, __pyx_n_s_NAM12_PATH, __pyx_n_s_NAM12_FILES, __pyx_n_s_NAM12_sfc, __pyx_n_s_CUSTOM_WORD, __pyx_n_s_NAM12_FILE_NAME, __pyx_n_s_MAKE_VARIABLE_AND_NEAREST_POINTS, __pyx_n_s_TABLA_VARIABLES, __pyx_n_s_SELECTED_VARIABLES, __pyx_n_s_SELECTED_VARIABLES_LEVEL, __pyx_n_s_VAR_LEVEL, __pyx_n_s_VAR_NAME, __pyx_n_s_NAM12_GRIB, __pyx_n_s_VARIABLE, __pyx_n_s_VARIABLE_ITEM, __pyx_n_s_LATS, __pyx_n_s_LONS, __pyx_n_s_LON_TATANKA, __pyx_n_s_LAT_TATANKA, __pyx_n_s_NEAREST_POINTS, __pyx_n_s_NAM12_FILES_PATH, __pyx_n_s_file, __pyx_n_s_item, __pyx_n_s_s); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 167, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__22);
   __Pyx_GIVEREF(__pyx_tuple__22);
-  __pyx_codeobj__23 = (PyObject*)__Pyx_PyCode_New(0, 0, 24, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__22, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_EXTRACT_NAM12_GRIBS_CYTHON_pyx, __pyx_n_s_MAIN, 162, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__23)) __PYX_ERR(0, 162, __pyx_L1_error)
+  __pyx_codeobj__23 = (PyObject*)__Pyx_PyCode_New(0, 0, 23, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__22, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_EXTRACT_NAM12_GRIBS_CYTHON_pyx, __pyx_n_s_MAIN, 167, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__23)) __PYX_ERR(0, 167, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -5671,7 +5638,7 @@ if (!__Pyx_RefNanny) {
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":24
  * 
  * 
- * def EXTRACT_VARIABLES_FROM_GRIB(HRRR_FILE_NAME, CUSTOM_WORD):             # <<<<<<<<<<<<<<
+ * def EXTRACT_VARIABLES_FROM_GRIB(NAM12_FILE_NAME, CUSTOM_WORD):             # <<<<<<<<<<<<<<
  *     '''
  *     FUNCION QUE NOS DEVUELVE LA TABLA DE VARIABLES CONTENIDA EN EL GRIB... Y LA GUARDA A UN CSV
  */
@@ -5695,25 +5662,25 @@ if (!__Pyx_RefNanny) {
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":113
  * 
  * 
- * def EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES,             # <<<<<<<<<<<<<<
+ * def EXTRACT_CSV_INFO_NAM12(SELECTED_VARIABLES,             # <<<<<<<<<<<<<<
  *                           NEAREST_POINTS,
  *                           CUT_DATA,
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_HRRR, NULL, __pyx_n_s_EXTRACT_NAM12_GRIBS_CYTHON); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 113, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_26EXTRACT_NAM12_GRIBS_CYTHON_5EXTRACT_CSV_INFO_NAM12, NULL, __pyx_n_s_EXTRACT_NAM12_GRIBS_CYTHON); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 113, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_EXTRACT_CSV_INFO_HRRR, __pyx_t_2) < 0) __PYX_ERR(0, 113, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_EXTRACT_CSV_INFO_NAM12, __pyx_t_2) < 0) __PYX_ERR(0, 113, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":162
+  /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":167
  * 
  * 
  * def MAIN():             # <<<<<<<<<<<<<<
- *     HRRR_PATH= '/media/oscar/Elements/HRRR_from_UofU/'
- *     HRRR_FILES= os.listdir(HRRR_PATH)
+ *     NAM12_PATH= '/media/meteobit/Elements/NAM12/'
+ *     NAM12_FILES= os.listdir(NAM12_PATH)
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_26EXTRACT_NAM12_GRIBS_CYTHON_7MAIN, NULL, __pyx_n_s_EXTRACT_NAM12_GRIBS_CYTHON); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 162, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_26EXTRACT_NAM12_GRIBS_CYTHON_7MAIN, NULL, __pyx_n_s_EXTRACT_NAM12_GRIBS_CYTHON); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 167, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_MAIN, __pyx_t_2) < 0) __PYX_ERR(0, 162, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_MAIN, __pyx_t_2) < 0) __PYX_ERR(0, 167, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "EXTRACT_NAM12_GRIBS_CYTHON.pyx":1
@@ -6537,6 +6504,130 @@ static PyObject *__Pyx_PyObject_GetItem(PyObject *obj, PyObject* key) {
 }
 #endif
 
+/* PyIntBinop */
+#if !CYTHON_COMPILING_IN_PYPY
+static PyObject* __Pyx_PyInt_SubtractCObj(PyObject *op1, PyObject *op2, CYTHON_UNUSED long intval, int inplace, int zerodivision_check) {
+    (void)inplace;
+    (void)zerodivision_check;
+    #if PY_MAJOR_VERSION < 3
+    if (likely(PyInt_CheckExact(op2))) {
+        const long a = intval;
+        long x;
+        long b = PyInt_AS_LONG(op2);
+            x = (long)((unsigned long)a - b);
+            if (likely((x^a) >= 0 || (x^~b) >= 0))
+                return PyInt_FromLong(x);
+            return PyLong_Type.tp_as_number->nb_subtract(op1, op2);
+    }
+    #endif
+    #if CYTHON_USE_PYLONG_INTERNALS
+    if (likely(PyLong_CheckExact(op2))) {
+        const long a = intval;
+        long b, x;
+#ifdef HAVE_LONG_LONG
+        const PY_LONG_LONG lla = intval;
+        PY_LONG_LONG llb, llx;
+#endif
+        const digit* digits = ((PyLongObject*)op2)->ob_digit;
+        const Py_ssize_t size = Py_SIZE(op2);
+        if (likely(__Pyx_sst_abs(size) <= 1)) {
+            b = likely(size) ? digits[0] : 0;
+            if (size == -1) b = -b;
+        } else {
+            switch (size) {
+                case -2:
+                    if (8 * sizeof(long) - 1 > 2 * PyLong_SHIFT) {
+                        b = -(long) (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+#ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 2 * PyLong_SHIFT) {
+                        llb = -(PY_LONG_LONG) (((((unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+#endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                case 2:
+                    if (8 * sizeof(long) - 1 > 2 * PyLong_SHIFT) {
+                        b = (long) (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+#ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 2 * PyLong_SHIFT) {
+                        llb = (PY_LONG_LONG) (((((unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+#endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                case -3:
+                    if (8 * sizeof(long) - 1 > 3 * PyLong_SHIFT) {
+                        b = -(long) (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+#ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 3 * PyLong_SHIFT) {
+                        llb = -(PY_LONG_LONG) (((((((unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+#endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                case 3:
+                    if (8 * sizeof(long) - 1 > 3 * PyLong_SHIFT) {
+                        b = (long) (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+#ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 3 * PyLong_SHIFT) {
+                        llb = (PY_LONG_LONG) (((((((unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+#endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                case -4:
+                    if (8 * sizeof(long) - 1 > 4 * PyLong_SHIFT) {
+                        b = -(long) (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+#ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 4 * PyLong_SHIFT) {
+                        llb = -(PY_LONG_LONG) (((((((((unsigned PY_LONG_LONG)digits[3]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+#endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                case 4:
+                    if (8 * sizeof(long) - 1 > 4 * PyLong_SHIFT) {
+                        b = (long) (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
+                        break;
+#ifdef HAVE_LONG_LONG
+                    } else if (8 * sizeof(PY_LONG_LONG) - 1 > 4 * PyLong_SHIFT) {
+                        llb = (PY_LONG_LONG) (((((((((unsigned PY_LONG_LONG)digits[3]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[2]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[1]) << PyLong_SHIFT) | (unsigned PY_LONG_LONG)digits[0]));
+                        goto long_long;
+#endif
+                    }
+                    CYTHON_FALLTHROUGH;
+                default: return PyLong_Type.tp_as_number->nb_subtract(op1, op2);
+            }
+        }
+                x = a - b;
+            return PyLong_FromLong(x);
+#ifdef HAVE_LONG_LONG
+        long_long:
+                llx = lla - llb;
+            return PyLong_FromLongLong(llx);
+#endif
+        
+        
+    }
+    #endif
+    if (PyFloat_CheckExact(op2)) {
+        const long a = intval;
+        double b = PyFloat_AS_DOUBLE(op2);
+            double result;
+            PyFPE_START_PROTECT("subtract", return NULL)
+            result = ((double)a) - (double)b;
+            PyFPE_END_PROTECT(result)
+            return PyFloat_FromDouble(result);
+    }
+    return (inplace ? PyNumber_InPlaceSubtract : PyNumber_Subtract)(op1, op2);
+}
+#endif
+
 /* SliceObject */
 static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSlice(PyObject* obj,
         Py_ssize_t cstart, Py_ssize_t cstop,
@@ -6692,6 +6783,141 @@ static int __Pyx_IternextUnpackEndCheck(PyObject *retval, Py_ssize_t expected) {
         return __Pyx_IterFinish();
     }
     return 0;
+}
+
+/* GetTopmostException */
+#if CYTHON_USE_EXC_INFO_STACK
+static _PyErr_StackItem *
+__Pyx_PyErr_GetTopmostException(PyThreadState *tstate)
+{
+    _PyErr_StackItem *exc_info = tstate->exc_info;
+    while ((exc_info->exc_type == NULL || exc_info->exc_type == Py_None) &&
+           exc_info->previous_item != NULL)
+    {
+        exc_info = exc_info->previous_item;
+    }
+    return exc_info;
+}
+#endif
+
+/* SaveResetException */
+#if CYTHON_FAST_THREAD_STATE
+static CYTHON_INLINE void __Pyx__ExceptionSave(PyThreadState *tstate, PyObject **type, PyObject **value, PyObject **tb) {
+    #if CYTHON_USE_EXC_INFO_STACK
+    _PyErr_StackItem *exc_info = __Pyx_PyErr_GetTopmostException(tstate);
+    *type = exc_info->exc_type;
+    *value = exc_info->exc_value;
+    *tb = exc_info->exc_traceback;
+    #else
+    *type = tstate->exc_type;
+    *value = tstate->exc_value;
+    *tb = tstate->exc_traceback;
+    #endif
+    Py_XINCREF(*type);
+    Py_XINCREF(*value);
+    Py_XINCREF(*tb);
+}
+static CYTHON_INLINE void __Pyx__ExceptionReset(PyThreadState *tstate, PyObject *type, PyObject *value, PyObject *tb) {
+    PyObject *tmp_type, *tmp_value, *tmp_tb;
+    #if CYTHON_USE_EXC_INFO_STACK
+    _PyErr_StackItem *exc_info = tstate->exc_info;
+    tmp_type = exc_info->exc_type;
+    tmp_value = exc_info->exc_value;
+    tmp_tb = exc_info->exc_traceback;
+    exc_info->exc_type = type;
+    exc_info->exc_value = value;
+    exc_info->exc_traceback = tb;
+    #else
+    tmp_type = tstate->exc_type;
+    tmp_value = tstate->exc_value;
+    tmp_tb = tstate->exc_traceback;
+    tstate->exc_type = type;
+    tstate->exc_value = value;
+    tstate->exc_traceback = tb;
+    #endif
+    Py_XDECREF(tmp_type);
+    Py_XDECREF(tmp_value);
+    Py_XDECREF(tmp_tb);
+}
+#endif
+
+/* GetException */
+#if CYTHON_FAST_THREAD_STATE
+static int __Pyx__GetException(PyThreadState *tstate, PyObject **type, PyObject **value, PyObject **tb)
+#else
+static int __Pyx_GetException(PyObject **type, PyObject **value, PyObject **tb)
+#endif
+{
+    PyObject *local_type, *local_value, *local_tb;
+#if CYTHON_FAST_THREAD_STATE
+    PyObject *tmp_type, *tmp_value, *tmp_tb;
+    local_type = tstate->curexc_type;
+    local_value = tstate->curexc_value;
+    local_tb = tstate->curexc_traceback;
+    tstate->curexc_type = 0;
+    tstate->curexc_value = 0;
+    tstate->curexc_traceback = 0;
+#else
+    PyErr_Fetch(&local_type, &local_value, &local_tb);
+#endif
+    PyErr_NormalizeException(&local_type, &local_value, &local_tb);
+#if CYTHON_FAST_THREAD_STATE
+    if (unlikely(tstate->curexc_type))
+#else
+    if (unlikely(PyErr_Occurred()))
+#endif
+        goto bad;
+    #if PY_MAJOR_VERSION >= 3
+    if (local_tb) {
+        if (unlikely(PyException_SetTraceback(local_value, local_tb) < 0))
+            goto bad;
+    }
+    #endif
+    Py_XINCREF(local_tb);
+    Py_XINCREF(local_type);
+    Py_XINCREF(local_value);
+    *type = local_type;
+    *value = local_value;
+    *tb = local_tb;
+#if CYTHON_FAST_THREAD_STATE
+    #if CYTHON_USE_EXC_INFO_STACK
+    {
+        _PyErr_StackItem *exc_info = tstate->exc_info;
+        tmp_type = exc_info->exc_type;
+        tmp_value = exc_info->exc_value;
+        tmp_tb = exc_info->exc_traceback;
+        exc_info->exc_type = local_type;
+        exc_info->exc_value = local_value;
+        exc_info->exc_traceback = local_tb;
+    }
+    #else
+    tmp_type = tstate->exc_type;
+    tmp_value = tstate->exc_value;
+    tmp_tb = tstate->exc_traceback;
+    tstate->exc_type = local_type;
+    tstate->exc_value = local_value;
+    tstate->exc_traceback = local_tb;
+    #endif
+    Py_XDECREF(tmp_type);
+    Py_XDECREF(tmp_value);
+    Py_XDECREF(tmp_tb);
+#else
+    PyErr_SetExcInfo(local_type, local_value, local_tb);
+#endif
+    return 0;
+bad:
+    *type = 0;
+    *value = 0;
+    *tb = 0;
+    Py_XDECREF(local_type);
+    Py_XDECREF(local_value);
+    Py_XDECREF(local_tb);
+    return -1;
+}
+
+/* None */
+static CYTHON_INLINE void __Pyx_RaiseUnboundLocalError(const char *varname) {
+    PyErr_Format(PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", varname);
 }
 
 /* Import */

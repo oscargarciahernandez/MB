@@ -21,19 +21,19 @@ pd.set_option('display.max_rows', 30)
 
 
 
-def EXTRACT_VARIABLES_FROM_GRIB(HRRR_FILE_NAME, CUSTOM_WORD):
+def EXTRACT_VARIABLES_FROM_GRIB(NAM12_FILE_NAME, CUSTOM_WORD):
     '''
     FUNCION QUE NOS DEVUELVE LA TABLA DE VARIABLES CONTENIDA EN EL GRIB... Y LA GUARDA A UN CSV
     ADEMAS PODEMOS DECIRLE QUE NOS DE UNA TABLADE VARIABLES PERSONALIZADA... INTRODUCIONDO UNA 
     PALABRA QUE BUSCARA ENTRE LOS NOMBRES DE LAS VARIABLES
     
     '''
-    HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)
+    NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)
     
     VARIABLE_NAMES=[]
     k=1
-    HRRR_GRIB.seek(0)
-    for i in HRRR_GRIB:
+    NAM12_GRIB.seek(0)
+    for i in NAM12_GRIB:
         VARIABLE_NAMES.append(str(i).split(':'))
         k=k+1
     
@@ -46,7 +46,7 @@ def EXTRACT_VARIABLES_FROM_GRIB(HRRR_FILE_NAME, CUSTOM_WORD):
     '''
     TABLA_CUSTOM = TABLA_VAR[TABLA_VAR.NAME.isin(set([item for item in list(TABLA_VAR['NAME']) if CUSTOM_WORD in item.lower()]))]
     
-    PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +HRRR_GRIB.name.split('/')[-1].replace('.','') + '/'
+    PATH_SAVE= os.getcwd() + '/CSV_VARIABLES/' +NAM12_GRIB.name.split('/')[-1].replace('.','') + '/'
     if not os.path.isdir(PATH_SAVE):
         os.makedirs(PATH_SAVE, exist_ok=True)
     
@@ -64,7 +64,7 @@ def OBTAIN_50_NEAREST_POINTS(LONG_NP, LAT_NP, LON, LAT):
     FUNCION PARA OBTENER LOS 50 PUNTOS MAS CERCANOS A LA ZONA A ESTUDIAR...
     SACAR INFORMACION DE TODOS LOS PUNTOS ES MUY EXIGENTE PARA ESTE SCRIPT
     '''
-    cdef float R, c, a, lon1,lat1, lon2,lat2, dlon,lat
+    #cdef float R, c, a, lon1,lat1, lon2,lat2, dlon,lat
     
     TABLA_LONLAT=pd.DataFrame(columns=['LON', 'LAT'])
     TABLA_LONLAT['LON']= LONG_NP[:, :].ravel()
@@ -110,103 +110,108 @@ def OBTAIN_50_NEAREST_POINTS(LONG_NP, LAT_NP, LON, LAT):
     return TABLA_ORD_DIST[0:50]
 
 
-def EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES,
+def EXTRACT_CSV_INFO_NAM12(SELECTED_VARIABLES,
                           NEAREST_POINTS,
                           CUT_DATA,
-                          HRRR_FILE_NAME):
+                          NAM12_FILE_NAME):
     
-    HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)
+    NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)
 
     for i in range(SELECTED_VARIABLES.shape[0]):
         
         VAR_LEVEL= SELECTED_VARIABLES['LEVEL_Pa'].iloc[i]
         VAR_NAME= SELECTED_VARIABLES['NAME'].iloc[i]
         
-        NOMBRE_ARCHIVO = HRRR_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'
+        NOMBRE_ARCHIVO = NAM12_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'
         
         if os.path.isfile(NOMBRE_ARCHIVO):
             print(NOMBRE_ARCHIVO +  ' YA EXISTE')
-        else:        
-            VARIABLE = HRRR_GRIB.select(name= VAR_NAME)
-            VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
-            
-            
-            
-            '''
-            SACAMOS ARRAY DE VALORES, LONGITUD, LATITUD Y DATE
-            AUNQUE HAY MUCHAS MAS VARIABLES CONTENIDAS EN EL FICHERO.
-            TODAS ESTAS VARIABLES SE PUEDEN VER EJECUTANDO X.keys()
-            
-            '''
-            VARIABLE_VALUES = VARIABLE_ITEM[0].values
-            LATS , LONS = VARIABLE_ITEM[0].latlons()
-            DATE = VARIABLE_ITEM[0].validDate            
-          
-            print('CREANDO TABLA')  
-            dfObj = pd.DataFrame()
-            dfObj['VALUES']= VARIABLE_VALUES.ravel()
-            dfObj['LON']= LONS.ravel()
-            dfObj['LAT']= LATS.ravel()
-            dfObj['DATE'] = DATE
-            
-            if CUT_DATA:
-                TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]
-            else:
-                TABLA_CUT= dfObj
+        else:
+            try:
                 
-            print('GUARDANDO CSV en ' + NOMBRE_ARCHIVO)
-            TABLA_CUT.to_csv(NOMBRE_ARCHIVO, index = False)
+                VARIABLE = NAM12_GRIB.select(name= VAR_NAME)
+                VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
+            
+            
+            
+                '''
+                SACAMOS ARRAY DE VALORES, LONGITUD, LATITUD Y DATE
+                AUNQUE HAY MUCHAS MAS VARIABLES CONTENIDAS EN EL FICHERO.
+                TODAS ESTAS VARIABLES SE PUEDEN VER EJECUTANDO X.keys()
+                
+                '''
+                VARIABLE_VALUES = VARIABLE_ITEM[0].values
+                LATS , LONS = VARIABLE_ITEM[0].latlons()
+                DATE = VARIABLE_ITEM[0].validDate            
+              
+                print('CREANDO TABLA')  
+                dfObj = pd.DataFrame()
+                dfObj['VALUES']= VARIABLE_VALUES.ravel()
+                dfObj['LON']= LONS.ravel()
+                dfObj['LAT']= LATS.ravel()
+                dfObj['DATE'] = DATE
+                
+                if CUT_DATA:
+                    TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]
+                else:
+                    TABLA_CUT= dfObj
+                    
+                print('GUARDANDO CSV en ' + NOMBRE_ARCHIVO)
+                TABLA_CUT.to_csv(NOMBRE_ARCHIVO, index = False)
+            except:
+                print(NAM12_FILE_NAME + ' NO ENCONTRADO ' + VAR_NAME)
+
 
 
 
 def MAIN():
-    HRRR_PATH= '/media/oscar/Elements/HRRR_from_UofU/'
-    HRRR_FILES= os.listdir(HRRR_PATH)
+    NAM12_PATH= '/media/meteobit/Elements/NAM12/'
+    NAM12_FILES= os.listdir(NAM12_PATH)
     
     
     '''
     LOS ARCHIVOS SE DIVIDEN POR NIVELES O POR SUPERFICIE
     '''
     
-    HRRR_prs= [item for item in HRRR_FILES if 'wrfprs' in item]
-    HRRR_sfc = [item for item in HRRR_FILES if 'wrfsfc' in item]
-    HRRR_sfc = [item for item in HRRR_sfc if 'csv' not in item]
     
-    PATTERN_HOURS= re.compile(r't(06|00|12|18)')
-    HRRR_sfc = [item for item in HRRR_sfc if re.search(PATTERN_HOURS, item)]
-    
-                    
+    NAM12_sfc = [item for item in NAM12_FILES if 'csv' not in item]
+             
     CUSTOM_WORD =    'wind' 
-    HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]
+    NAM12_FILE_NAME = NAM12_PATH + NAM12_sfc[0]
     
     
     
+    MAKE_VARIABLE_AND_NEAREST_POINTS= False
     
-    TABLA_VARIABLES = EXTRACT_VARIABLES_FROM_GRIB(HRRR_FILE_NAME, CUSTOM_WORD)
+    TABLA_VARIABLES = EXTRACT_VARIABLES_FROM_GRIB(NAM12_FILE_NAME, CUSTOM_WORD)
     
     
     SELECTED_VARIABLES = TABLA_VARIABLES[TABLA_VARIABLES.NAME.isin(set([item for item in list(TABLA_VARIABLES['NAME']) if 'wind' in item.lower()]))]
     SELECTED_VARIABLES_LEVEL= SELECTED_VARIABLES[SELECTED_VARIABLES['LEVEL_Pa'].isin(['level 80 m', 'level 10 m'])]
+        
+    if MAKE_VARIABLE_AND_NEAREST_POINTS:
+        
+        VAR_LEVEL= SELECTED_VARIABLES_LEVEL['LEVEL_Pa'].iloc[1]
+        VAR_NAME= SELECTED_VARIABLES_LEVEL['NAME'].iloc[1]
+        
+        NAM12_FILE_NAME = NAM12_PATH + NAM12_sfc[0]
+        NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)
+        VARIABLE = NAM12_GRIB.select(name= VAR_NAME)
+        
+        VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
+        LATS , LONS = VARIABLE_ITEM[0].latlons()
+        
+        
+        LON_TATANKA= -98.955699 	
+        LAT_TATANKA= 45.95685
+        
+        NEAREST_POINTS = OBTAIN_50_NEAREST_POINTS(LONS, LATS, LON_TATANKA, LAT_TATANKA)
+    else:
+        NEAREST_POINTS = pd.DataFrame()
     
-    VAR_LEVEL= SELECTED_VARIABLES_LEVEL['LEVEL_Pa'].iloc[1]
-    VAR_NAME= SELECTED_VARIABLES_LEVEL['NAME'].iloc[1]
+    NAM12_FILES_PATH = [NAM12_PATH + s for s in NAM12_sfc]
     
-    HRRR_FILE_NAME = HRRR_PATH + HRRR_sfc[0]
-    HRRR_GRIB= pygrib.open(HRRR_FILE_NAME)
-    VARIABLE = HRRR_GRIB.select(name= VAR_NAME)
-    
-    VARIABLE_ITEM = [item for item in VARIABLE if str(item).split(':')[-3]==VAR_LEVEL]
-    LATS , LONS = VARIABLE_ITEM[0].latlons()
-    
-    
-    LON_TATANKA= -98.955699 	
-    LAT_TATANKA= 45.95685
-    
-    NEAREST_POINTS = OBTAIN_50_NEAREST_POINTS(LONS, LATS, LON_TATANKA, LAT_TATANKA)
-    
-    
-    HRRR_FILES_PATH = [HRRR_PATH + s for s in HRRR_sfc]
-    
-    for file in HRRR_FILES_PATH:
-        EXTRACT_CSV_INFO_HRRR(SELECTED_VARIABLES_LEVEL,NEAREST_POINTS,False, file)
-   
+    for file in NAM12_FILES_PATH:
+        EXTRACT_CSV_INFO_NAM12(SELECTED_VARIABLES_LEVEL,NEAREST_POINTS,False, file)
+
+MAIN()  
