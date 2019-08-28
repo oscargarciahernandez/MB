@@ -210,27 +210,27 @@ SALTERAS_VIENTO<-  SALTERAS_calmet %>% lapply(., function(x){
   wind_dir_deg1 <-  wind_dir_rad * 180/pi 
   wind_dir_deg2 <-  wind_dir_deg1+ 180 
   
-  y$Dir<-  ifelse(y$Wind=="North",0,
-         ifelse(y$Wind=="NNE", 22.5,
-                ifelse(y$Wind=="NE", 45,
-                       ifelse(y$Wind=="ENE", 67.5,
-                              ifelse(y$Wind=="East", 90,
-                                     ifelse(y$Wind=="ESE", 112.5,
-                                            ifelse(y$Wind=="SE", 135,
-                                                   ifelse(y$Wind=="SSE", 157,
-                                                          ifelse(y$Wind=="South",180,
-                                                                 ifelse(y$Wind=="SSW", 202.5,
-                                                                        ifelse(y$Wind=="SW", 225.0,
-                                                                               ifelse(y$Wind=="WSW", 247.5,
-                                                                                      ifelse(y$Wind=="West", 270,
-                                                                                             ifelse(y$Wind=="WNW", 292.5,
-                                                                                                    ifelse(y$Wind=="NW", 315,
-                                                                                                           ifelse(y$Wind=="NNW", 337.5,NA))))))))))))))))
+  y$Dir<-  ifelse(y=="North",0,
+         ifelse(y=="NNE", 22.5,
+                ifelse(y=="NE", 45,
+                       ifelse(y=="ENE", 67.5,
+                              ifelse(y=="East", 90,
+                                     ifelse(y=="ESE", 112.5,
+                                            ifelse(y=="SE", 135,
+                                                   ifelse(y=="SSE", 157,
+                                                          ifelse(y=="South",180,
+                                                                 ifelse(y=="SSW", 202.5,
+                                                                        ifelse(y=="SW", 225.0,
+                                                                               ifelse(y=="WSW", 247.5,
+                                                                                      ifelse(y=="West", 270,
+                                                                                             ifelse(y=="WNW", 292.5,
+                                                                                                    ifelse(y=="NW", 315,
+                                                                                                           ifelse(y=="NNW", 337.5,NA))))))))))))))))
   
   
 
 
-  y$wind_calmet<- wind_abs
+  y_calmet<- wind_abs
   y$dir_calmet<- cut(wind_dir_deg2, 
                      breaks = c(0,seq(11.5,360,22.5), 361),
                      labels = seq(0,360,22.5))%>% 
@@ -335,4 +335,48 @@ pollutionRose(SALTERAS_N_NO %>% mutate(WS_un=1, WS_dos=2),
 ```
 
 
+
+
+
+```{r}
+library(readxl)
+LAT_ESTACION_SEVILLA <- 37.514444
+LON_ESTACION_SEVILLA<- -6.064167
+DATOS_SEVILLA<- read_xlsx(here::here('Data/Parques/Salteras/SEVILLA.xlsx'))
+
+DATOS_SEVILLA$HORA<- sprintf('%04d', DATOS_SEVILLA$HORAMIN) %>% sapply(function(x){paste(substr(x,1,2),
+                                                                                         substr(x,3,4), 
+                                                                                         sep = ':')})
+
+DATOS_SEVILLA$FECHA_HORA<- dmy_hm(paste(DATOS_SEVILLA$FECHA, DATOS_SEVILLA$HORA))
+
+TABLA_VIENTO<- DATOS_SEVILLA[,c("IDESTACION", "IDPROVINCIA", "FECHA_HORA", "VELVIENTO", "DIRVIENTO")]
+
+TABLA_SALTERAS_WEB<- readRDS("/home/oscar/MB/Data/Parques/Salteras/WEB/Salteras_web_data_2019-08-27_16:52:03.RDS")
+
+y<- TABLA_SALTERAS_WEB$Wind
+TABLA_SALTERAS_WEB$WDir<-ifelse(y=="North",0,
+         ifelse(y=="NNE", 22.5,
+                ifelse(y=="NE", 45,
+                       ifelse(y=="ENE", 67.5,
+                              ifelse(y=="East", 90,
+                                     ifelse(y=="ESE", 112.5,
+                                            ifelse(y=="SE", 135,
+                                                   ifelse(y=="SSE", 157,
+                                                          ifelse(y=="South",180,
+                                                                 ifelse(y=="SSW", 202.5,
+                                                                        ifelse(y=="SW", 225.0,
+                                                                               ifelse(y=="WSW", 247.5,
+                                                                                      ifelse(y=="West", 270,
+                                                                                             ifelse(y=="WNW", 292.5,
+                                                                                                    ifelse(y=="NW", 315,
+                                                                                                           ifelse(y=="NNW", 337.5,NA))))))))))))))))
+  
+  
+windRose(TABLA_SALTERAS_WEB, ws = 'Speed', wd= 'WDir', paddle = FALSE)
+
+windRose(TABLA_VIENTO, ws = 'VELVIENTO', wd= 'DIRVIENTO', paddle = FALSE)
+
+
+```
 

@@ -281,16 +281,23 @@ saveRDS(data_frame_salteras, paste0(here::here('Data/Parques/Salteras/WEB/Salter
 # DATA CALMET -------------------------------------------------------------
 #DOWNLOAD CALMET
 #http://troposfera.es/datos/sevilla/calmet_20190522.nc
+library(RNetCDF)
 
+PATH_TO_CALMET = here::here('Data/Parques/Salteras/CALMET/')
 
-#print.nc()  para informacion aunque ya la he guardado como CALMET_VARIABLES EN MB/
-list.files(here::here(), recursive = T) %>% .[str_detect(.,"nc")] %>% .[2] %>% open.nc() %>% print.nc()
+CALMET_NC<- list.files(PATH_TO_CALMET, recursive = T, full.names = T) %>% .[str_detect(.,"nc")] 
+sapply(CALMET_NC, function(x){
+  if(file.size(x) < 200){
+    file.remove(x)
+  }
+})
 
-
+CALMET_NC<- list.files(PATH_TO_CALMET, recursive = T, full.names = T) %>% .[str_detect(.,"nc")] 
+CALMET_NC %>% .[2] %>% open.nc() %>% print.nc()
 
 Lista_Total<- list()
-for (netcdf in 1:6) {
-  CALMET_netcdf<- list.files(here::here(), recursive = T) %>% .[str_detect(.,"nc")] %>% .[netcdf] %>% open.nc() %>% 
+for (netcdf in 1:length(CALMET_NC)) {
+  CALMET_netcdf<- CALMET_NC[netcdf] %>%  open.nc() %>% 
     read.nc(unpack = T)
   
   FECHAS_CALMET<- CALMET_netcdf$TFLAG[1,2,] %>% paste(str_sub(.,start = 1, end = 4),
@@ -328,7 +335,7 @@ for (netcdf in 1:6) {
 
 
 if(!dir.exists(here::here('Data/Parques/Salteras/CALMET'))){dir.create(here::here('Data/Parques/Salteras/CALMET'))}
-saveRDS(Lista_Total, file = here::here('Data/Parques/Salteras/CALMET/Lista_13_21.RDS'))
+saveRDS(Lista_Total, file = here::here('Data/Parques/Salteras/CALMET/Lista_20190828.RDS'))
 
 
 
@@ -341,12 +348,12 @@ saveRDS(Lista_Total, file = here::here('Data/Parques/Salteras/CALMET/Lista_13_21
 ######SOLUCIONAMOS MIERDA FECHAS
 #ESTO ME PARECE UNA MUY BUENA IDEA PARA RELLENAR LAS HORAS EN LAS FECHAS
 #CARGAMOS LOS DATOS
-salteras_infor<- readRDS( here::here('Data/Parques/Salteras/CALMET/Lista_13_21.RDS'))
+salteras_infor<- readRDS( here::here('Data/Parques/Salteras/CALMET/Lista_20190828.RDS'))
 
 #ARREGLAMOS FORMATO FECHAS... AÑADIENDO LAS HORAS
 hours_ch<- as.character(seq(0,23)) %>% ifelse(nchar(.)==1, paste0(0,.), .) %>% rep(.,2)
 
-salteras_infor<- salteras_infor %>% .[1:6] %>% lapply(., function(x){
+salteras_infor<- salteras_infor  %>% lapply(., function(x){
   lapply(x, function(y){
     y$Date<- ymd_h(paste(as.character(y$Date), hours_ch[1:length(y$Date)] ))
     return(y)
@@ -370,7 +377,7 @@ lista_merged_clean<- lapply(lista_merged, function(x){
   x[complete.cases(x), ]
   x[!duplicated(x$Date),]
 })
-
+rm(salteras_infor)
 
 View(lista_merged_clean)
 

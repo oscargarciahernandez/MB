@@ -11,7 +11,44 @@ if(!dir.exists(here::here('Data/Parques/Salteras/WEB'))){dir.create(here::here('
 
 #EL FORMATO ES EL SIGUIENTE YYYY-MM-D 2019-01-2
 FIRST_DAY<- ymd("2018/12/20")
+HOY<- now() %>% as.character() %>% str_split(" ") %>% .[[1]] %>% .[1] %>% ymd()
+FECHA<- FIRST_DAY %>% as.character()
+URL_SALTERAS<- paste0("https://www.wunderground.com/dashboard/pws/ISALTERA2/table/",FECHA,"/",FECHA,"/daily")
 
+
+tables_salteras<- tryCatch({readHTMLTable(htmlParse(GET(URL_SALTERAS))) %>% .[[4]]},
+                           error=function(e){"NO-DATA"})
+if(tables_salteras=="NO-DATA"){k<-k+1}else{
+  colnames(tables_salteras)<- c("Time","Temperature",	"Dew Point",	"Humidity", 	"Wind", 	"Speed", 	"Gust",
+                                "Pressure",	"Precip. Rate.",	"Precip. Accum.", 	"UV",	"Solar")
+  
+  
+  ########CAMBIOS DE UNIDADES SALTERAS
+  tables_salteras$Temperature<- as.character(tables_salteras$Temperature) %>% 
+    str_remove("F") %>% str_trim() %>% as.numeric() %>% -32 %>% "*"(5) %>% "/"(9) %>% round(digits = 2)
+  
+  tables_salteras$`Dew Point`<- as.character(tables_salteras$`Dew Point`) %>% 
+    str_remove("F") %>% str_trim() %>% as.numeric() %>% -32 %>% "*"(5) %>% "/"(9) %>% round(digits = 2)
+  tables_salteras$Humidity<- as.character(tables_salteras$Humidity) %>%
+    str_remove("%") %>% str_trim() %>% as.numeric()
+  tables_salteras$Speed<- as.character(tables_salteras$Speed) %>%
+    str_remove("mph") %>% str_trim() %>% as.numeric() %>% "/"(2.237) %>% round(digits = 3)
+  tables_salteras$Gust<- as.character(tables_salteras$Gust) %>%
+    str_remove("mph") %>% str_trim() %>% as.numeric() %>% "/"(2.237) %>% round(digits = 3)
+  
+  tables_salteras$Pressure<- as.character(tables_salteras$Pressure) %>%
+    str_remove("in") %>% str_trim() %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
+  tables_salteras$`Precip. Rate.`<- as.character(tables_salteras$`Precip. Rate.`) %>%
+    str_remove("in") %>% str_trim() %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
+  tables_salteras$`Precip. Accum.`<- as.character(tables_salteras$`Precip. Accum.`) %>%
+    str_remove("in") %>% str_trim() %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
+  
+  
+  tables_salteras$Solar<- as.character(tables_salteras$Solar) %>%
+    str_remove("w/m²") %>% str_trim() %>% as.numeric()
+  lista_web[[FIRST_DAY %>% as.character()]]<- tables_salteras
+  
+}
 lista_web<- list()
 k<- 1
 while (TRUE) {
@@ -29,27 +66,27 @@ while (TRUE) {
     
     ########CAMBIOS DE UNIDADES SALTERAS
     tables_salteras$Temperature<- as.character(tables_salteras$Temperature) %>% 
-      str_remove("F") %>% as.numeric() %>% -32 %>% "*"(5) %>% "/"(9) %>% round(digits = 2)
+      str_remove("F") %>% str_trim() %>% as.numeric() %>% -32 %>% "*"(5) %>% "/"(9) %>% round(digits = 2)
     
     tables_salteras$`Dew Point`<- as.character(tables_salteras$`Dew Point`) %>% 
-      str_remove("F") %>% as.numeric() %>% -32 %>% "*"(5) %>% "/"(9) %>% round(digits = 2)
+      str_remove("F") %>% str_trim() %>% as.numeric() %>% -32 %>% "*"(5) %>% "/"(9) %>% round(digits = 2)
     tables_salteras$Humidity<- as.character(tables_salteras$Humidity) %>%
-      str_remove("%") %>% as.numeric()
+      str_remove("%") %>% str_trim() %>% as.numeric()
     tables_salteras$Speed<- as.character(tables_salteras$Speed) %>%
-      str_remove("mph") %>% as.numeric() %>% "/"(2.237) %>% round(digits = 3)
+      str_remove("mph") %>% str_trim() %>% as.numeric() %>% "/"(2.237) %>% round(digits = 3)
     tables_salteras$Gust<- as.character(tables_salteras$Gust) %>%
-      str_remove("mph") %>% as.numeric() %>% "/"(2.237) %>% round(digits = 3)
+      str_remove("mph") %>% str_trim() %>% as.numeric() %>% "/"(2.237) %>% round(digits = 3)
     
     tables_salteras$Pressure<- as.character(tables_salteras$Pressure) %>%
-      str_remove("in") %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
+      str_remove("in") %>% str_trim() %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
     tables_salteras$`Precip. Rate.`<- as.character(tables_salteras$`Precip. Rate.`) %>%
-      str_remove("in") %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
+      str_remove("in") %>% str_trim() %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
     tables_salteras$`Precip. Accum.`<- as.character(tables_salteras$`Precip. Accum.`) %>%
-      str_remove("in") %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
+      str_remove("in") %>% str_trim() %>% as.numeric() %>% "*"(25.4) %>% round(digits = 3)
     
     
     tables_salteras$Solar<- as.character(tables_salteras$Solar) %>%
-      str_remove("w/m²") %>% as.numeric()
+      str_remove("w/m²") %>% str_trim() %>% as.numeric()
     lista_web[[FIRST_DAY %>% as.character()]]<- tables_salteras
     
   }
