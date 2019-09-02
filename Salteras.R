@@ -400,7 +400,7 @@ names(lista_merged_clean)<- names(lista_merged_clean) %>% str_split("_") %>% lap
 })
 
 path_Salteras<- here::here('Data/Parques/Salteras/CALMET/')
-saveRDS(lista_merged_clean,paste0(path_Salteras, "Lista_13_21_clean.RDS"))
+saveRDS(lista_merged_clean,paste0(path_Salteras, "Lista_20190828_clean.RDS"))
 
 
 

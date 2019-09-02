@@ -7,6 +7,14 @@ Created on Thu Aug 29 10:52:59 2019
 """
 from ftplib import FTP
 import os
+import datetime
+
+'''
+INTRODUCIMOS LA FECHA COMO YYYYMM
+'''
+FECHA= '2018'
+
+
 
 DESCARGAR_NAM12 = True 
 PATH_BASE= '/media/meteobit/Elements/'
@@ -29,7 +37,7 @@ if DESCARGAR_NAM12:
     #PARA OBT1ENER EL NOMBRE LOS ARCHIVOS EN UNA LISTA
     LISTA_NAM_DISPONIBLE=ftp.nlst()
     
-    FILES_MONTH= [item for item in LISTA_NAM_DISPONIBLE if '2019' in item]
+    FILES_MONTH= [item for item in LISTA_NAM_DISPONIBLE if FECHA  in item]
     
     for month in FILES_MONTH:
         ftp.cwd(PATH_ORIGEN + '/' +month)
@@ -37,7 +45,7 @@ if DESCARGAR_NAM12:
         PATH_MES= ftp.pwd()
         
         LISTA_NAM_DISPONIBLE=ftp.nlst()
-        FILES= [item for item in LISTA_NAM_DISPONIBLE if '2019' in item]
+        FILES= [item for item in LISTA_NAM_DISPONIBLE if FECHA in item]
     
         for Dias_junio in FILES:
             ftp.cwd(PATH_MES + '/' + Dias_junio)

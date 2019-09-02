@@ -15,7 +15,7 @@ import re
 
 pd.set_option('display.max_columns', 15)
 pd.set_option('display.max_rows', 30)
-TABLA_WIND['NAME'].iloc[5]
+
 
 '''
 ################################################################################
@@ -115,25 +115,33 @@ def OBTAIN_50_NEAREST_POINTS(LONG_NP, LAT_NP, LON, LAT):
     return TABLA_ORD_DIST[0:50]
 
 
-def EXTRACT_INFO_NAM12_TO_CSV(SELECTED_VARIABLES,
-                          NEAREST_POINTS,
-                          CUT_DATA,
-                          NAM12_FILE_NAME):
+def EXTRACT_INFO_NAM12_TO_CSV(NAM12_FILE_NAME,
+                              SELECTED_VARIABLES,
+                              NEAREST_POINTS,
+                              NAME,
+                              SEGUNDA_LOCALIZACION,
+                              NEAREST_POINTS2, 
+                              NAME2):
     '''
     FUNCION PARA EXTRAER LA INFORMACION PARA LAS VARIABLES REQUERIDAS
     ESTAS VARIABLES SE PUEDEN SACAR EMPLEANDO LA FUNCION EXTRACT_VARIABLES_FROM_GRIB.
     CUT DATA ES UN BOOLEANO. IF TRUE SE CORTA LA INFORMACION DE ACUERDO A NEAREST POINTS    
     '''
     
+    
     NAM12_GRIB= pygrib.open(NAM12_FILE_NAME)
+    
+    NOMBRE_ARCHIVO = NAM12_FILE_NAME.replace(NAM12_FILE_NAME.split('/')[-1], '') + NAM12_FILE_NAME.split('/')[-1] +'_' + NAME+ '_CONVERTED.csv'
+    NOMBRE_ARCHIVO2 = NAM12_FILE_NAME.replace(NAM12_FILE_NAME.split('/')[-1], '') + NAM12_FILE_NAME.split('/')[-1] +'_' + NAME2+ '_CONVERTED.csv'
 
+    
+    TABLA_TOTAL= pd.DataFrame()
+    TABLA_TOTAL2= pd.DataFrame()
     for i in range(SELECTED_VARIABLES.shape[0]):
         
         VAR_LEVEL= SELECTED_VARIABLES['LEVEL_Pa'].iloc[i]
         VAR_NAME= SELECTED_VARIABLES['NAME'].iloc[i]
-        
-        NOMBRE_ARCHIVO = NAM12_FILE_NAME.replace('grib2', '') + VAR_NAME.replace(' ', '_') + VAR_LEVEL.replace(' ', '_') + '.csv'
-        
+                
         EXE = 1
         if os.path.isfile(NOMBRE_ARCHIVO):
             print(NOMBRE_ARCHIVO +  ' YA EXISTE')
@@ -159,23 +167,41 @@ def EXTRACT_INFO_NAM12_TO_CSV(SELECTED_VARIABLES,
                 LATS , LONS = VARIABLE_ITEM[0].latlons()
                 DATE = VARIABLE_ITEM[0].validDate            
               
-                print('CREANDO TABLA')  
+                #print('CREANDO TABLA')  
                 dfObj = pd.DataFrame()
                 dfObj['VALUES']= VARIABLE_VALUES.ravel()
                 dfObj['LON']= LONS.ravel()
                 dfObj['LAT']= LATS.ravel()
                 dfObj['DATE'] = DATE
-                
-                if CUT_DATA:
-                    TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]
-                else:
-                    TABLA_CUT= dfObj
+
+                TABLA_CUT = dfObj[(dfObj['LON'].isin(NEAREST_POINTS['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS['LAT']))]               
+                TABLA_CUT['VAR_NAME']= str(VARIABLE_ITEM[0]).split(':')[1]
+                TABLA_CUT['LEVEL']= str(VARIABLE_ITEM[0]).split(':')[-3]
+                TABLA_CUT['FCST_TIME']= str(VARIABLE_ITEM[0]).split(':')[-2]
+                TABLA_TOTAL = TABLA_TOTAL.append(TABLA_CUT)
+
+                if SEGUNDA_LOCALIZACION:
+                    TABLA_CUT2 = dfObj[(dfObj['LON'].isin(NEAREST_POINTS2['LON'])) & (dfObj['LAT'].isin(NEAREST_POINTS2['LAT']))]
+                    TABLA_CUT2['VAR_NAME']= str(VARIABLE_ITEM[0]).split(':')[1]
+                    TABLA_CUT2['LEVEL']= str(VARIABLE_ITEM[0]).split(':')[-3]
+                    TABLA_CUT2['FCST_TIME']= str(VARIABLE_ITEM[0]).split(':')[-2]
+                    TABLA_TOTAL2 = TABLA_TOTAL.append(TABLA_CUT2)  
                     
-                print('GUARDANDO CSV en ' + NOMBRE_ARCHIVO)
-                TABLA_CUT.to_csv(NOMBRE_ARCHIVO, index = False)
+              
+ 
             except:
                 print(NAM12_FILE_NAME + ' NO ENCONTRADO ' + VAR_NAME)
+                
+    if not TABLA_TOTAL.empty:
+ 
+        print('GUARDANDO ' + NOMBRE_ARCHIVO)
+    
+        TABLA_TOTAL.to_csv(NOMBRE_ARCHIVO)
+    if not TABLA_TOTAL2.empty:
+        print('GUARDANDO ' + NOMBRE_ARCHIVO2)
+        TABLA_TOTAL2.to_csv(NOMBRE_ARCHIVO2)
 
+    return(NAM12_FILE_NAME)
 
 
 
@@ -222,7 +248,6 @@ SELECCIONAMOS UN ARCHIVO CUALQUIERA DE NAM
 ''' 
 CUSTOM_WORD =    'wind' 
 NAM12_FILE_NAME = NAM12_grb2[0]
-NAM12_FILE_NAME= '/home/meteobit/Descargas/nam_218_20190611_0000_000.grb2'
 
 '''
 CREAMOS LAS TABLAS DE VARIABLES. LO SUYO ES IR A VER LAS VARIABLES 
@@ -235,7 +260,7 @@ TABLA_VARIABLES = EXTRACT_VARIABLES_FROM_GRIB(NAM12_FILE_NAME, CUSTOM_WORD)
 
 #LA MANERA DE FILTRAR LAS VARIABLES HAY QUE AFINARLO
 TABLA_WIND= TABLA_VARIABLES[TABLA_VARIABLES.NAME.isin(set([item for item in list(TABLA_VARIABLES['NAME']) if 'wind' in item.lower()]))]
-TABLA_WIND= TABLA_WIND[TABLA_WIND['LEVEL_Pa'].isin(['level 80 m', 'level 10 m',  'level 95000 Pa','level 97500 Pa', 'level 100000 Pa',])]
+TABLA_WIND= TABLA_WIND[TABLA_WIND['LEVEL_Pa'].isin(['level 80 m', 'level 10 m'])]
 
 
 
@@ -257,10 +282,10 @@ AÑADIENDO EL LEVEL DA ERROR
 ValueError: no matches found
 
 '''
-VARIABLE = NAM12_GRIB.select(name= TABLA_WIND['NAME'].iloc[5],
-                             typeOfLevel=TABLA_WIND['TYPE_VAR'].iloc[5])
+VARIABLE = NAM12_GRIB.select(name= TABLA_WIND['NAME'].iloc[1],
+                             typeOfLevel=TABLA_WIND['TYPE_VAR'].iloc[1])
 
-VARIABLE = [item for item in VARIABLE if str(item).split(':')[-3]==TABLA_WIND['LEVEL_Pa'].iloc[5]][0]
+VARIABLE = [item for item in VARIABLE if str(item).split(':')[-3]==TABLA_WIND['LEVEL_Pa'].iloc[1]][0]
 
 LATS , LONS = VARIABLE.latlons()
 
@@ -293,64 +318,8 @@ PASAR UN DATA FRAME GENERADO CON OBTAIN_50_NEAREST_POINTS()
 COMO SE HA HECHO UN PAR DE LINEAS HACIA ARRIBA CON 
 TAMAULIPAS Y TATANKA
 '''
-MULTIPROCCES_EXECUTION= False
-
-if not MULTIPROCCES_EXECUTION:
-
-    for file in NAM12_grb2:
-        EXTRACT_INFO_NAM12_TO_CSV(SELECTED_VARIABLES=TABLA_WIND,
-                                  NEAREST_POINTS=pd.DataFrame(),
-                                  CUT_DATA=False,
-                                  NAM12_FILE_NAME= file)
-else:
-
-    import multiprocessing as mp
-    import tqdm
-    from functools import partial
-    
-    pool = mp.Pool(mp.cpu_count())
-    PARTIAL_FUNC= partial(EXTRACT_INFO_NAM12_TO_CSV, SELECTED_VARIABLES=TABLA_WIND,
-                                  NEAREST_POINTS=pd.DataFrame(),
-                                  CUT_DATA=False)
-    
-    for _ in tqdm.tqdm(pool.imap_unordered(PARTIAL_FUNC, NAM12_grb2), 
-                       total=len(NAM12_grb2)):
-        pass
-    #MATAMOS SUBPROCESOS 
-    pool.close()
-    pool.terminate()
-    pool.join()
 
 
-
-
-EMPTY_FILES= []
-for i in NAM12_csv:
-    if os.stat(i).st_size == 0:
-        EMPTY_FILES.append(i)
-        
-print('HAY ' + len(EMPTY_FILES) + ' CSVs VACIOS')
-
-
-if len(EMPTY_FILES)>0:
-    print('VOLVEMOS A EJECTUAR LOS ARCHIVOS VACIOS' + len(EMPTY_FILES) + ' CSVs VACIOS')
-
-    for file in EMPTY_FILES.split('.grb2')[0] + '.grb2' :
-        EXTRACT_INFO_NAM12_TO_CSV(SELECTED_VARIABLES=TABLA_WIND,
-                                  NEAREST_POINTS=pd.DataFrame(),
-                                  CUT_DATA=False,
-                                  NAM12_FILE_NAME= file)
-
-
-
-'''
-################################################################################
-################################################################################
-                            COJER LOS ARCHIVOS TOTALES Y 
-                            CORTARLOS PARA CADA PARQUE
-################################################################################
-################################################################################
-'''
 
 NAM12_PATH= '/media/meteobit/Elements/NAM12/'
 
@@ -358,128 +327,97 @@ NAM12_FILES= os.listdir(NAM12_PATH)
 
 
 '''
-VEMOS LOS CSVs QUE SE HA GENERADO
+SEPARAMOS NAM12 GRIBS Y CSVs
+
 '''
 NAM12_csv = [NAM12_PATH + item for item in NAM12_FILES if item.endswith('.csv')]
+NAM12_grb2 = [NAM12_PATH + item for item in NAM12_FILES if item.endswith('.grb2')]
 
 
-'''
-COMO ESTAMOS GUARDANDO LOS CSVs POR VARIABLES, VEMOS CUANTAS VARIABLES HAY
-'''
-VARIABLE_GROUPS = list(set([item.split('.')[1].replace('grb2','') for item in NAM12_csv]))
-
-
-
-'''
-LEEMOS UN CSV Y SACAMOS LAS COLUMNAS UTILES
- (LAS 50 MAS CERCANAS A TATANKA EN ESTE CASO). DE ESTA MANERA
-PODEMOS SABER CUALES SON LOS IDEX DE LAS COLUMNAS NECESARIAS
-DE ESTA MANERA PODEMOS ABRIR SOLAMENTE ABRIR LAS FILAS QUE 
-NECESITAMOS Y AGILIZAMOS EL PROCESO
-'''
-CSV_NAM12= pd.read_csv(NAM12_csv[0])
-
-
-TABLA_CUT_TATANKA = CSV_NAM12[(CSV_NAM12['LON'].isin(NEAREST_POINTS_TATANKA['LON'])) & (CSV_NAM12['LAT'].isin(NEAREST_POINTS_TATANKA['LAT']))]
-
-
-'''
-SACAMOS LOS INDEX BUENOS Y AÑADIMOS EL 0 (HEADERS)
-'''
-INDEX_1= list(TABLA_CUT_TATANKA.index.values.astype(int))
-INDEX_1.append(0)
-
-INDEX_ALL = list(CSV_NAM12.index.values.astype(int))
-
-'''
-GENERAMOS LOS INDEX NO NECESARIOS
-'''
-NON_DESIRED = [item for item in INDEX_ALL if item not in INDEX_1 ]
-
-
-
-
-
-
-
-def FROM_CSV_TO_CUT_DATA(VARIABLE,
-                         NEAREST_POINTS,
-                         NAME):
-    '''
-    ESTA FUNCNION COJE LOS CSVs GENERADOS ANTERIORMENTE Y LOS CORTA PARA UNA UNA SERIE DE PUNTOS
-    OFRECIDOS POR NEAREST_POINTS... ESTE NEAREST POINTS DEBE SER UNA TABLA SACADO CON LA FUNCION 
-    OBTAIN_50_NEAREST_POINTS(). NAME ES UN STRING 
-    
-    '''
-    CSVs_VACIOS=[]
-    
-    NOMBRE_CSV= NAM12_PATH + VARIABLE + NAME + '.csv' 
-    
-    if os.path.isfile(NOMBRE_CSV):
-        print('YA EXISTE ' + NAM12_PATH + VARIABLE)
-    else:
-        NAM12_CSV_FILT= [item for item in NAM12_csv if VARIABLE in item ]
+EMPTY_FILES= []
+for i in NAM12_csv:
+    if os.stat(i).st_size == 0:
+        EMPTY_FILES.append(i)
         
-        TABLA_FILT = pd.DataFrame()
-        
-        '''
-        SI DETECTA UN CSV VACIO NO LO AÑADE A NUESTRA TABLA
-        LO METE A UNA LISTA QUE LUEGO DEVOLVERA
-        '''
-        for i in NAM12_CSV_FILT:
-            EXE = 1
-            if os.path.isfile(i):
-                EXE=1
-                if os.stat(i).st_size == 0:
-                    print(i +  '  ESTA VACIO')
-                    CSVs_VACIOS.append(i)
-                    EXE=0
-                    
-            if EXE==1:       
-                try:
-                    
-                    CSV_NAM12= pd.read_csv(i, skiprows = NON_DESIRED)
-                    
-                    TABLA_CUT_NAME = CSV_NAM12[(CSV_NAM12['LON'].isin(NEAREST_POINTS['LON'])) & (CSV_NAM12['LAT'].isin(NEAREST_POINTS['LAT']))]
-                    TABLA_CUT_NAME['TSIM'] = i.split('_')[3]
-                    TABLA_CUT_NAME['SIMT'] = i.split('_')[4][:3]
-                    
-                    TABLA_FILT= TABLA_FILT.append(TABLA_CUT_NAME)
-                except:
-                    print('ERROR CON ' + i)
-        
-        print('GUARDANDO ' + NOMBRE_CSV)
-        TABLA_FILT.to_csv(NOMBRE_CSV)
-    
-    
-    print('DURANTE LA CREACION DE LAS TABLAS SE HAN DETECTADO ' + len(CSVs_VACIOS) + ' ARCHIVOS VACIOS')
-    return(CSVs_VACIOS)
+print('HAY ' + str(len(EMPTY_FILES)) + ' CSVs VACIOS')
+
+
+for i in EMPTY_FILES:
+    os.remove(i)
+
 
 
 MULTIPROCCES_EXECUTION= False
 
 if not MULTIPROCCES_EXECUTION:
 
-    for file in NAM12_grb2:
-        FROM_CSV_TO_CUT_DATA(NEAREST_POINTS=NEAREST_POINTS_TATANKA,
-                                  NAME = 'TATANKA',
-                                  VARIABLE= VARIABLE_GROUPS)
+    for file in sorted(NAM12_grb2):
+        EXTRACT_INFO_NAM12_TO_CSV(SELECTED_VARIABLES=TABLA_WIND,
+                                  NEAREST_POINTS=NEAREST_POINTS_TATANKA,
+                                  NAME='TATANKA',
+                                  SEGUNDA_LOCALIZACION=True,
+                                  NAM12_FILE_NAME= file,
+                                  NEAREST_POINTS2=NEAREST_POINTS_TAMAULIPAS,
+                                  NAME2= 'TAMAULIPAS')
 else:
 
     import multiprocessing as mp
-    import tqdm
+    
     from functools import partial
+    '''
+    NOTA:
+        PARA USAR PARTIAL... COMO HERRAMIENTA PARA PASAR ARGUMENTOS FIJOS A UNA 
+        FUNCION CON VARIOS ARGUMENTOS, LOS ARGUMENTOS QUE QUEREMOS QUE SEAN
+        ITERABLES SE DEBEN PONER EN PRIMERA POSICION A LA HORA DE DECLARAR LA 
+        FUNCION... 
+        FUNCION(ITERABLE, ARGUMENTOFIJO1, ARGUMENTOFIJO2 ....)
+        
+        NO HE PROBADO CON VARIOS ARGUMENTOS ITERABLES... PERO AUN NO ME HA HECHO
+        FALTA Y TIENEN PINTA DE SER FUENTE DE PROBLEMAS. 
+        
+        
+    NOTA2:
+        A LA HORA DE DIFINIR LOS PROCESOS, SOLIA USAR mp.cpu_count()
+        QUE ES EL NUMERO DE PROCESADORES DEL ORDENADOR. 
+        
+        PERO UNA VEZ ME DIJERON QUE PROCESOS EN PARALELO Y PROCESADORES 
+        NO TIENEN PORQUE SER IGUALES.... ES DECIR. PUEDO TENER 4 PROCESADORES
+        Y 40 PROCESOS EN PARALELO.... ESTO COJIDITO CON PINZAS POR FAVOR. 
+        
+        DE TODOS MODOS. ME ESTOY DANDO CUENTA DE QUE AUMENTANDO LOS PROCESOS 
+        SE PUEDE LLEGAR A UN PUNTO DE 
+    
+    '''
     
     pool = mp.Pool(mp.cpu_count())
-    PARTIAL_FUNC= partial(FROM_CSV_TO_CUT_DATA,
-                                  NEAREST_POINTS=NEAREST_POINTS_TATANKA,
-                                  NAME = 'TATANKA')
+    PARTIAL_FUNC= partial(EXTRACT_INFO_NAM12_TO_CSV, SELECTED_VARIABLES=TABLA_WIND,
+                                  NEAREST_POINTS=pd.DataFrame(),
+                                  CUT_DATA=False)
     
-    for _ in tqdm.tqdm(pool.imap_unordered(PARTIAL_FUNC, VARIABLE_GROUPS), 
+    CORRUPTED_FILES = pool.map(PARTIAL_FUNC, NAM12_grb2)
+    
+    '''
+    PARA BARRA DE PROGRESO...
+    AQUI NO USAMOS PORQUE SALEN POR PANTALLA UNOS PRINT
+    QUE NOS DAN UNA IDEA DE COMO VA AVANZADO
+    
+    import tqdm
+    for _ in tqdm.tqdm(pool.imap_unordered(PARTIAL_FUNC, NAM12_grb2), 
                        total=len(NAM12_grb2)):
         pass
+    '''
+    
     #MATAMOS SUBPROCESOS 
     pool.close()
     pool.terminate()
     pool.join()
-    
+
+
+
+BORRAR_CORRUPTOS= False
+if BORRAR_CORRUPTOS:
+    for i in CORRUPTED_FILES:
+        os.remove(i)
+
+        
+
