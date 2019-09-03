@@ -52,4 +52,6 @@ for(file in TATANKA_FILES){
 
 TABLA_TATANKA<- LISTA_TATANKA_NAM %>% bind_rows()
 
+if(!dir.exists( here::here('Data/Parques/PRUEBA_EOLICOS/TATANKA_DATA'))){dir.create(here::here('Data/Parques/PRUEBA_EOLICOS/TATANKA_DATA'), recursive = TRUE)}
+
 saveRDS(TABLA_TATANKA, here::here('Data/Parques/PRUEBA_EOLICOS/TATANKA_DATA/NAM_12_TATANKA.RDS'))
