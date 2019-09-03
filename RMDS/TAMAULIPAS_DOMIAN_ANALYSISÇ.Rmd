@@ -904,7 +904,7 @@ theme_light()
 
 ```
 
-```{r eval=TRUE}
+```{r eval=TRUE, results='show'}
 LISTA_DATOS_LEVELS<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/LISTA_DATOS.RDS'))
 NAM12_DATA<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/NAM_12_TAMAULIPAS.RDS'))
 
@@ -964,21 +964,22 @@ for(x in LIST){
 colnames(TABLA_ACCURACY)<- c( 'ME','RMSE','MAE','MPE','MAPE','CORR', 'MODELO','LON','LAT')
 }
 
-aggregate(TABLA_ACCURACY[, 1:6], list(MODELO= TABLA_ACCURACY$MODELO), FUN = function(x) mean(as.numeric(as.character(x))))
+aggregate(TABLA_ACCURACY[, 1:6], list(MODELO= TABLA_ACCURACY$MODELO), FUN = function(x) mean(as.numeric(as.character(x)))) %>% kable(label = 'TABLA DE INDICES. MEDIAS DE TODOS LOS PUNTOS')
+
+aggregate(TABLA_ACCURACY[, 1:6], list(MODELO= TABLA_ACCURACY$MODELO), FUN = function(x) max(as.numeric(as.character(x)))) %>% kable(label = 'TABLA DE INDICES. MAXIMAS')
+aggregate(TABLA_ACCURACY[, 1:6], list(MODELO= TABLA_ACCURACY$MODELO), FUN = function(x) min(as.numeric(as.character(x)))) %>% kable(label = 'TABLA DE INDICES. MINIMAS')
 
 
-aggregate(TABLA_ACCURACY[,c( 'CORR')], 
-          list(MODELO= TABLA_ACCURACY$MODELO), FUN = function(x) which.max(x) )
 
 TABLA_MAX_COR<- TABLA_ACCURACY %>% group_by(MODELO) %>% group_split() %>% lapply(function(x) x[which.max(x$CORR), ]) %>% bind_rows()
 
 
 
-D01 %>% filter(LON== TABLA_MAX_COR %>% .[which(.$MODELO=='D01'), 'LON'] %>% as.numeric(),
-               D01$LAT==TABLA_MAX_COR %>% .[which(.$MODELO=='D01'), 'LAT'] %>% as.numeric())
-
 ```
-```{r fig.height=4}
+
+
+```{r fig.height=6, eval=TRUE}
+
 ggplot()+
   geom_line(data= D01 %>% filter(year(DATE)==2019, 
                                  month(DATE)==1, 
