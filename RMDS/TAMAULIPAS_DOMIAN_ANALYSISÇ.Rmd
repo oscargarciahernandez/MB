@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = FALSE,
                       message=FALSE, 
                       results='hide',
                       fig.align = 'center')
+library(knitr)
 ```
 
 # INTRODUCCION
@@ -624,93 +625,184 @@ windRose(TABLA_MAX_D03, ws= 'WS', wd = 'WD',paddle = FALSE)
 
 ```
 
-
 ```{r}
+NAM12_DATA<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/NAM_12_TAMAULIPAS.RDS'))
 
-cut_in<- 3.5
-nominal<- 11.5
-cut_off<- 25
-max_power<- 3000
-
-x<- data.frame(vwind= c(3.5, 11.5), power= c(0, 3000))
-fit<- lm(power ~ exp(vwind), data = x)
+LISTA_DATOS_LEVELS<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/LISTA_DATOS.RDS'))
 
 
-plot(x$vwind, x$power, 
-     xlim=c(0,30),
-     ylim= c(0,1600), xlab= "Wind Speed (m/s)",
-     ylab= "Power (kW)", 
-     main= "AW77/3000 Estimated power curve ")
-lines(seq(0,11.5,length.out = 1000), predict(fit, data.frame(vwind=seq(0,11.5,length.out = 1000))))
-lines(x= c(11.5, 25, 25.1), y=c(3000,3000, 0))
-lines(seq(0,11.5,length.out = 1000), 
-      ((seq(0,11.5,length.out = 1000)^3*0.5*1.2*4657)/1000)*0.35, col="red")
-
-r<-(((seq(0,11.5,length.out = 1000)^3*0.5*1.2*4657)/1000)*0.35)-
-        predict(fit, data.frame(vwind=seq(0,11.5,length.out = 1000)))
-mean_c<- (seq(0,11.5,length.out = 1000)^3*0.5*1.2*4657/1000)*0.35 - r/2
-lines(seq(0,11.5,length.out = 1000), 
-      mean_c, col="blue")
 
 
-CURVA_FINAL<- data.frame(Vwind= c(seq(0,11.5,length.out = 1000),
-                                  seq(11.51,25,length.out = 100)),
-                         power= c(mean_c, rep(3000, 100)),
-                         power2= c(((seq(0,11.5,length.out = 1000)^3*0.5*1.2*4657)/1000)*0.35, rep(3000,100)),
-                         power3= c(predict(fit, data.frame(vwind=seq(0,11.5,length.out = 1000))), rep(3000,100)))
-CURVA_FINAL$power<- ifelse(CURVA_FINAL$Vwind<3.5, 0, CURVA_FINAL$power)
-ggplot(CURVA_FINAL)+
-  geom_line(aes(x= Vwind, y=power))+
+TABLA_CORR<- data.frame(matrix(ncol = 10))
+k<- 1 
+
+for(point in  NAM12_DATA %>% group_by(LON, LAT) %>% group_split() ){
+  
+  TABLA_NAM<-point
+INFO_PARQUES<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS'))
+INFO_TATANKA<- INFO_PARQUES[str_detect(INFO_PARQUES$PARQUE, 'Tamaulipas'),]
+
+
+TABLA_1_JOIN<- left_join(TABLA_NAM, INFO_TATANKA , by= 'DATE') %>% .[complete.cases(.),]
+
+
+TABLA_1_JOIN$PRUDUCCION_DISP_NORM<- (TABLA_1_JOIN$PRUDUCCION_MWH*TABLA_1_JOIN$DISPONIBILIDAD/100-mean(TABLA_1_JOIN$PRUDUCCION_MWH*TABLA_1_JOIN$DISPONIBILIDAD/100))/sd(TABLA_1_JOIN$PRUDUCCION_MWH*TABLA_1_JOIN$DISPONIBILIDAD/100)
+
+TABLA_1_JOIN$PRUDUCCION_MWH_NORM<- (TABLA_1_JOIN$PRUDUCCION_MWH - mean(TABLA_1_JOIN$PRUDUCCION_MWH))/sd(TABLA_1_JOIN$PRUDUCCION_MWH)
+
+TABLA_1_JOIN$WS_NORM10<- (TABLA_1_JOIN$WS10 - mean(TABLA_1_JOIN$WS10))/sd(TABLA_1_JOIN$WS10)
+TABLA_1_JOIN$WS_NORM80<- (TABLA_1_JOIN$WS80 - mean(TABLA_1_JOIN$WS80))/sd(TABLA_1_JOIN$WS80)
+
+
+
+
+
+CORR_WS_DISP_NORM10<- cor(TABLA_1_JOIN$WS_NORM10, TABLA_1_JOIN$PRUDUCCION_DISP_NORM, use = 'complete.obs')
+CORR_WS_DISP_NORM80<- cor(TABLA_1_JOIN$WS_NORM80, TABLA_1_JOIN$PRUDUCCION_DISP_NORM, use = 'complete.obs')
+
+CORR_WS_NO_DISP_NORM10<- cor(TABLA_1_JOIN$WS_NORM10, TABLA_1_JOIN$PRUDUCCION_MWH_NORM, use = 'complete.obs')
+CORR_WS_NO_DISP_NORM80<- cor(TABLA_1_JOIN$WS_NORM80, TABLA_1_JOIN$PRUDUCCION_MWH_NORM, use = 'complete.obs')
+
+CORR_WS_NO_NORM_NO_DISP10<- cor(TABLA_1_JOIN$WS10, TABLA_1_JOIN$PRUDUCCION_MWH)
+CORR_WS_NO_NORM_DISP10<- cor(TABLA_1_JOIN$WS10, TABLA_1_JOIN$PRUDUCCION_MWH*TABLA_1_JOIN$DISPONIBILIDAD/100)
+
+
+CORR_WS_NO_NORM_NO_DISP80<- cor(TABLA_1_JOIN$WS80, TABLA_1_JOIN$PRUDUCCION_MWH)
+CORR_WS_NO_NORM_DISP80<- cor(TABLA_1_JOIN$WS80, TABLA_1_JOIN$PRUDUCCION_MWH*TABLA_1_JOIN$DISPONIBILIDAD/100)
+
+
+TABLA_CORR[k,]<- c(CORR_WS_DISP_NORM10,
+                   CORR_WS_DISP_NORM80,
+                   CORR_WS_NO_DISP_NORM10,
+                   CORR_WS_NO_DISP_NORM80,
+                   CORR_WS_NO_NORM_NO_DISP10,
+                   CORR_WS_NO_NORM_NO_DISP80, 
+                   CORR_WS_NO_NORM_DISP10,
+                   CORR_WS_NO_NORM_DISP80,
+                   TABLA_1_JOIN$LON.x %>% unique(),
+                   TABLA_1_JOIN$LAT.x %>% unique())
+
+k<- k+1
+}
+
+colnames(TABLA_CORR)<- c('WS_NORM_PRO_NORM_DISP10','WS_NORM_PRO_NORM_DISP80',
+                          'WS_NORM_PRO_NORM10','WS_NORM_PRO_NORM80', 
+                         'WS_PRO10','WS_PRO80',
+                         'WS_PRO_DISP10', 'WS_PRO_DISP80', 'LON','LAT')
+
+
+
+
+TABLA_CORR[which(TABLA_CORR==max(TABLA_CORR[,1:8]), arr.ind = TRUE)[1],1:10]
+
+LON_MAX<-TABLA_CORR[which(TABLA_CORR==max(TABLA_CORR[,1:8]), arr.ind = TRUE)[1],c("LON")]
+LAT_MAX<-TABLA_CORR[which(TABLA_CORR==max(TABLA_CORR[,1:8]), arr.ind = TRUE)[1],c("LAT")]
+
+TABLA_MAX_NAM <- NAM12_DATA%>% filter(LON==LON_MAX, LAT==LAT_MAX)
+
+
+
+INFO_PARQUES<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS'))
+INFO_TATANKA<- INFO_PARQUES[str_detect(INFO_PARQUES$PARQUE, 'Tamaulipas'),]
+
+
+
+
+TABLA_MAX_JOIN_NAM<- left_join(TABLA_MAX_NAM, INFO_TATANKA , by= 'DATE') %>% .[complete.cases(.),]
+
+
+
+
+
+TABLA_MAX_JOIN_NAM$PRUDUCCION_MWH_NORM<- (TABLA_MAX_JOIN_NAM$PRUDUCCION_MWH - mean(TABLA_MAX_JOIN_NAM$PRUDUCCION_MWH))/sd(TABLA_MAX_JOIN_NAM$PRUDUCCION_MWH)
+
+TABLA_MAX_JOIN_NAM$WS_NORM<- (TABLA_MAX_JOIN_NAM$WS80 - mean(TABLA_MAX_JOIN_NAM$WS80))/sd(TABLA_MAX_JOIN_NAM$WS80)
+
+
+
+
+
+tablad01<- TABLA_MAX_D01[,c('DATE', "WS", "WD", "WS_NORM", "PRUDUCCION_MWH","PRUDUCCION_MWH_NORM")]
+colnames(tablad01)<- c('DATE', colnames(tablad01)[2:length(tablad01)] %>% paste0('D01'))
+
+tablad02<- TABLA_MAX_D02[,c('DATE', "WS", "WD", "WS_NORM", "PRUDUCCION_MWH","PRUDUCCION_MWH_NORM")]
+colnames(tablad02)<- c('DATE', colnames(tablad02)[2:length(tablad02)] %>% paste0('D02'))
+
+tablad03<- TABLA_MAX_D03[,c('DATE', "WS", "WD", "WS_NORM", "PRUDUCCION_MWH","PRUDUCCION_MWH_NORM")]
+colnames(tablad03)<-  c('DATE', colnames(tablad03)[2:length(tablad03)] %>% paste0('D03'))
+
+
+tablanam<-  TABLA_MAX_JOIN_NAM[,c('DATE', "WS10","WS80","WD10", "WD80" ,
+                                  "WS_NORM", "PRUDUCCION_MWH","PRUDUCCION_MWH_NORM")]
+colnames(tablanam)<-  c('DATE', colnames(tablanam)[2:length(tablanam)] %>% paste0('NAM'))
+
+
+TABLA_ALL_MODELS<- left_join(tablad01,tablad02,by= 'DATE')
+TABLA_ALL_MODELS<- left_join(TABLA_ALL_MODELS,tablad03,  by= 'DATE')
+TABLA_ALL_MODELS<- left_join(TABLA_ALL_MODELS, tablanam, by= 'DATE')
+
+
+
+TABLA_ALL_MODELS %>% .[!is.na(TABLA_ALL_MODELS$WS_NORMNAM), ]%>%  ggplot()+
+  geom_line(aes(x= DATE, y = WS_NORMD01),colour= 'red')+
+  geom_line(aes(x= DATE, y = WS_NORMD02),colour= 'orange')+
+  geom_line(aes(x= DATE, y = WS_NORMD03), colour= 'green')+
+  geom_line(aes(x= DATE, y = WS_NORMNAM), colour= 'blue')+
+  geom_line(aes(x= DATE, y = PRUDUCCION_MWH_NORMNAM))+
+  ylab('NORMALIZED VARIABLES')+
+  xlab('DATE')+
+  labs(subtitle = 'VERDE = WRF D03
+          NARANJA = WRF D02
+          ROJO = WRF D01
+          AZUL = NAM12
+          NEGRO = PRODUCCION')+
   theme_light()
 
+
+
 ```
 
-```{r eval=FALSE}
+```{r results='show'}
+TABLA_ACCURACY<- data.frame(matrix(ncol = 5))
+library(forecast)
+TABLA_ACCURACY[1,]<- c(accuracy(TABLA_ALL_MODELS$WS_NORMD01, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01))
+TABLA_ACCURACY[2,]<- c(accuracy(TABLA_ALL_MODELS$WS_NORMD02, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01))
+TABLA_ACCURACY[3,]<- c(accuracy(TABLA_ALL_MODELS$WS_NORMD03, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01))
+TABLA_ACCURACY[4,]<- c(accuracy(TABLA_ALL_MODELS$WS_NORMNAM, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01))
 
-CURVA_FINAL$interval<-  CURVA_FINAL$Vwind %>% cut(breaks=seq(0, 50, 0.1))
-TABLA_AGRUP<- CURVA_FINAL %>% group_split(interval) %>% lapply(function(x){
-  tabla<- cbind(x$power %>% mean(),
-                x$power2 %>% mean(),
-                x$power3 %>% mean(),
-        x$Vwind %>% mean(),
-        x$interval %>% unique() %>% as.character()) %>% as.data.frame()
-  colnames(tabla)<- c("power", "WS", "interval")
-  tabla
-  }) %>% bind_rows()
+colnames(TABLA_ACCURACY)<- c('ME', 'RMSE', 'MAE', 'MPE', 'MAPE')
+rownames(TABLA_ACCURACY)<- c('WRF D01','WRF D02','WRF D03','NAM12')
 
-TABLA_MAX_JOIN$Wind_INTERVAL<- TABLA_MAX_JOIN$WS%>% cut(breaks=seq(0, 50, 0.1))
-
-TABLA_POTENCIA<- TABLA_MAX_JOIN %>% group_split(Wind_INTERVAL) %>% 
-  lapply(function(x){
-    ESTM_POWER1<- CURVA_FINAL$power[which(CURVA_FINAL$interval== x$Wind_INTERVAL %>% unique() %>% as.character())]*61/1000
-    ESTM_POWER2<- CURVA_FINAL$power2[which(CURVA_FINAL$interval== x$Wind_INTERVAL %>% unique() %>% as.character())]*61/1000
-    ESTM_POWER3<- CURVA_FINAL$power3[which(CURVA_FINAL$interval== x$Wind_INTERVAL %>% unique() %>% as.character())]*61/1000
-    
-    x$EST_POWER1<- ifelse(length(ESTM_POWER1)==0, 
-                          rep(NA, 
-                              length(x$WS)),
-                          ESTM_POWER1)
-    x$EST_POWER2<- ifelse(length(ESTM_POWER2)==0, rep(NA, length(x$WS)), ESTM_POWER2)
-    x$EST_POWER3<- ifelse(length(ESTM_POWER3)==0, rep(NA, length(x$WS)), ESTM_POWER3)  
-  x
-  }) %>% bind_rows()
-
-TABLA_POTENCIA<- TABLA_POTENCIA %>% .[order(.$DATE), ]
-
-
-cor(TABLA_POTENCIA$PRUDUCCION_MWH, TABLA_POTENCIA$EST_POWER1, use = 'complete.obs')
-cor(TABLA_POTENCIA$PRUDUCCION_MWH, TABLA_POTENCIA$EST_POWER2, use = 'complete.obs')
-cor(TABLA_POTENCIA$PRUDUCCION_MWH, TABLA_POTENCIA$EST_POWER3, use = 'complete.obs')
-cor(TABLA_POTENCIA$PRUDUCCION_MWH, TABLA_POTENCIA$WS, use = 'complete.obs')
-
-
-ggplot(TABLA_POTENCIA[1:nrow(TABLA_POTENCIA)/4,]) + 
-  geom_line(aes(x= DATE, y=PRUDUCCION_MWH))+
-  geom_line(aes(x= DATE, y=EST_POWER1*DISPONIBILIDAD/100), col= "blue")+
-  geom_line(aes(x= DATE, y=EST_POWER2*DISPONIBILIDAD/100), col= "purple")+
-  geom_line(aes(x= DATE, y=EST_POWER3*DISPONIBILIDAD/100), col= "orange")+
-  geom_se(aes(x= DATE, y=WD), col= "green")+
-    theme_light()
+kable(TABLA_ACCURACY)
 
 ```
+
+
+
+```{r fig.height=6, fig.width=6}
+library(plotrix)
+
+
+taylor.diagram(TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, show.gamma = TRUE)
+taylor.diagram(TABLA_ALL_MODELS$WS_NORMD01, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, add = TRUE, col = 'red')
+taylor.diagram(TABLA_ALL_MODELS$WS_NORMD02, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, add = TRUE, col = 'orange')
+taylor.diagram(TABLA_ALL_MODELS$WS_NORMD03, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, add = TRUE, , col = 'green')
+taylor.diagram(TABLA_ALL_MODELS$WS_NORMNAM, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, add = TRUE, , col = 'blue')
+
+lpos<-1.5*sd(TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01)
+# add a legend
+legend(lpos,lpos-0.2,legend=c('D01', 'D02','D03', 'NAM12'),
+       pch=19,col=c('red', 'orange', 'green', 'blue'))
+```
+
+
+
+
+
+
+
+
+
+
+
 

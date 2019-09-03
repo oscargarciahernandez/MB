@@ -372,7 +372,8 @@ TABLA_SALTERAS_WEB$WDir<-ifelse(y=="North",0,
                                                                                                     ifelse(y=="NW", 315,
                                                                                                            ifelse(y=="NNW", 337.5,NA))))))))))))))))
   
-  
+
+
 windRose(TABLA_SALTERAS_WEB, ws = 'Speed', wd= 'WDir', paddle = FALSE)
 
 windRose(TABLA_VIENTO, ws = 'VELVIENTO', wd= 'DIRVIENTO', paddle = FALSE)
@@ -380,3 +381,53 @@ windRose(TABLA_VIENTO, ws = 'VELVIENTO', wd= 'DIRVIENTO', paddle = FALSE)
 
 ```
 
+```{r fig.width=10, fig.height=10, echo=FALSE, message=FALSE, results='hide'}
+library(rasterVis)
+library(elevatr)
+
+
+
+n=max(COORD_SIM_D01$LAT) 
+s=min(COORD_SIM_D01$LAT)    
+e=max(COORD_SIM_D01$LON)    
+w=min(COORD_SIM_D01$LON) 
+
+incr<- 0.0005
+
+
+if(n > 0){n<- n + incr}else{n<- n + incr}
+if(s > 0){s<- s - incr}else{s<- s- incr}
+if(e > 0){e<- e + incr}else{e<- e + incr}
+if(w > 0){w<- w - incr}else{w<- w- incr}
+
+
+
+ul <- round(c(n,w),digits = 2)  #Upper Left
+lr <- round(c(s,e), digits = 2)  #Lower Right
+
+
+lon_location<- seq(lr[1],ul[1],length.out = 100 ) 
+lat_location<- seq(ul[2],lr[2], length.out = 100)
+data_loc<- expand.grid(lat_location,lon_location)
+colnames(data_loc)<- c("x", "y")
+
+spdf <- SpatialPointsDataFrame(coords = data_loc, data = data_loc,
+                               proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+if(!dir.exists(here::here('Mapas/Raster_SALTERAS/'))){dir.create(here::here('Mapas/Raster_SALTERAS/'), recursive = T)}
+
+if(file.exists(here::here('Mapas/Raster_SALTERAS/map_raster1.RDS'))){
+  map_raster1<- readRDS(here::here('Mapas/Raster_SALTERAS/map_raster1.RDS'))
+}else{
+  map_raster1<- get_elev_raster(spdf, z=12)
+  saveRDS(map_raster1,here::here('Mapas/Raster_SALTERAS/map_raster1.RDS'))
+}
+
+levelplot(map_raster1, par.settings= viridisTheme()) + 
+  layer(panel.points(COORD_SIM_D01$LON ,
+                     COORD_SIM_D01$LAT, pch=21, cex=1, colour='white', fill= 'white'))+
+  layer(panel.points(LON_PARQUE ,
+                     LAT_PARQUE, pch=21, cex=1, colour='white', fill= 'red'))
+
+
+```
