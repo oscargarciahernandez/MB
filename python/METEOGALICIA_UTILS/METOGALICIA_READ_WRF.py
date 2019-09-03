@@ -94,54 +94,77 @@ LAT_CERROBLANCO=  38.72292
 
 NEAREST_POINTS_CERROBLANCO = OBTAIN_50_NEAREST_POINTS(LONS[:], LATS[:], LON_CERROBLANCO, LAT_CERROBLANCO)
 
+LISTA_ERRORES= []
 for file in sorted([PATH_METEOGALICIA + item for item in FILES_WRF if 'wrf_arw' in item]):
     FILENAME = file
+    if os.path.isfile(file.replace('.nc4', 'CONVERTED.csv')):
+        print(file.replace('.nc4', 'CONVERTED.csv') + ' YA EXISTE')
+    else:
+        try:
     
-    NETCDF=  Dataset(FILENAME)
-    
-    TIME= NETCDF.variables['time']
-    
-    LONS= NETCDF.variables['lon']
-    LATS= NETCDF.variables['lat']
-    X= NETCDF.variables['x']
-    Y= NETCDF.variables['y']
-    
-    U= NETCDF.variables['u']
-    V= NETCDF.variables['v']
-    
-    Ulev1= NETCDF.variables['ulev1']
-    Vlev1= NETCDF.variables['vlev1']
-    
-    Ulev2= NETCDF.variables['ulev2']
-    Vlev2= NETCDF.variables['vlev2']
-    
-    Ulev3= NETCDF.variables['ulev3']
-    Vlev3= NETCDF.variables['vlev3']
-    
-    TABLA_WIND= pd.DataFrame()
-    for DATE in range(len(TIME)):
-        dfObj = pd.DataFrame()
-
-        dfObj['U10']= U[DATE,:].ravel()
-        dfObj['V10']= V[DATE,:].ravel()
-        dfObj['ULEV1']= Ulev1[DATE,:].ravel()
-        dfObj['VLEV1']= Vlev1[DATE,:].ravel()
-        dfObj['ULEV2']= Ulev2[DATE,:].ravel()
-        dfObj['VLEV2']= Vlev2[DATE,:].ravel()
-        dfObj['ULEV3']= Ulev3[DATE,:].ravel()
-        dfObj['VLEV3']= Vlev3[DATE,:].ravel()
-    
-        dfObj['LON']= LONS[:].ravel()
-        dfObj['LAT']= LATS[:].ravel()
-        dfObj['DATE'] = TIME[DATE]
-        dfObj['DATE_UNITS']= TIME.units
-        TABLA_WIND= TABLA_WIND.append(dfObj)
+            NETCDF=  Dataset(FILENAME)
+            
+            TIME= NETCDF.variables['time']
+            
+            LONS= NETCDF.variables['lon']
+            LATS= NETCDF.variables['lat']
+            X= NETCDF.variables['x']
+            Y= NETCDF.variables['y']
+            
+            U= NETCDF.variables['u']
+            V= NETCDF.variables['v']
+            
+            Ulev1= NETCDF.variables['ulev1']
+            Vlev1= NETCDF.variables['vlev1']
+            
+            Ulev2= NETCDF.variables['ulev2']
+            Vlev2= NETCDF.variables['vlev2']
+            
+            Ulev3= NETCDF.variables['ulev3']
+            Vlev3= NETCDF.variables['vlev3']
+            
+            TABLA_WIND= pd.DataFrame()
+            for DATE in range(len(TIME)):
+                dfObj = pd.DataFrame()
         
+                dfObj['U10']= U[DATE,:].ravel()
+                dfObj['V10']= V[DATE,:].ravel()
+                dfObj['ULEV1']= Ulev1[DATE,:].ravel()
+                dfObj['VLEV1']= Vlev1[DATE,:].ravel()
+                dfObj['ULEV2']= Ulev2[DATE,:].ravel()
+                dfObj['VLEV2']= Vlev2[DATE,:].ravel()
+                dfObj['ULEV3']= Ulev3[DATE,:].ravel()
+                dfObj['VLEV3']= Vlev3[DATE,:].ravel()
+            
+                dfObj['LON']= LONS[:].ravel()
+                dfObj['LAT']= LATS[:].ravel()
+                dfObj['DATE'] = TIME[DATE]
+                dfObj['DATE_UNITS']= TIME.units
+                TABLA_WIND= TABLA_WIND.append(dfObj)
+                
+            
+            
+            TABLA_CUT = TABLA_WIND[(TABLA_WIND['LON'].isin(NEAREST_POINTS_CERROBLANCO['LON'])) & (TABLA_WIND['LAT'].isin(NEAREST_POINTS_CERROBLANCO['LAT']))]               
+            TABLA_CUT.to_csv(file.replace('.nc4', 'CONVERTED.csv'))
+        except:
+            print('ERROR EXTRAYENDO DATOS CONSULTA LISTA_ERRORES PARA SABER QUE ARCHIVO FALLA')
+            LISTA_ERRORES.append(file)
+            
+
+
+
+
+JUNTAR_CSVS =False
+
+if JUNTAR_CSVS:
+    PATH_METEOGALICIA= '/home/meteobit/METEOGALICIA/'
+    FILES_WRF = os.listdir(PATH_METEOGALICIA)
+    
+    METEOGALICIA_CSV= [PATH_METEOGALICIA + item for item in FILES_WRF if '.csv' in item]
+    
+    HISTORICO_METEOGALICIA= pd.DataFrame()
+    for csv in METEOGALICIA_CSV: 
+        HISTORICO_METEOGALICIA= HISTORICO_METEOGALICIA.append(pd.read_csv(csv))
     
     
-    TABLA_CUT = TABLA_WIND[(TABLA_WIND['LON'].isin(NEAREST_POINTS_CERROBLANCO['LON'])) & (TABLA_WIND['LAT'].isin(NEAREST_POINTS_CERROBLANCO['LAT']))]               
-    TABLA_CUT.to_csv(file.replace('.nc4', 'CONVERTED.csv'))
-
-
-
-
+    HISTORICO_METEOGALICIA.to_csv(PATH_METEOGALICIA + 'HISTORICO_METEOGALICIA.csv')

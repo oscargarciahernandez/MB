@@ -342,6 +342,10 @@ print('HAY ' + str(len(EMPTY_FILES)) + ' CSVs VACIOS')
 
 for i in EMPTY_FILES:
     os.remove(i)
+    
+    
+CSVs_CREADOS= [item.split('/')[-1].split('.')[0] for item in NAM12_csv]
+NAM_GRB2_faltantes = [item2 for item2 in  NAM12_grb2 if item2.split('/')[-1].split('.')[0] not in CSVs_CREADOS ]
 
 
 
@@ -349,7 +353,7 @@ MULTIPROCCES_EXECUTION= False
 
 if not MULTIPROCCES_EXECUTION:
 
-    for file in sorted(NAM12_grb2):
+    for file in sorted(NAM_GRB2_faltantes):
         EXTRACT_INFO_NAM12_TO_CSV(SELECTED_VARIABLES=TABLA_WIND,
                                   NEAREST_POINTS=NEAREST_POINTS_TATANKA,
                                   NAME='TATANKA',
