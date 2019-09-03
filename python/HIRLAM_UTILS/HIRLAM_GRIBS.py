@@ -227,3 +227,30 @@ for i in HIRLAM_FILES:
                                NEAREST_POINTS=NEAREST_POINTS_CERROBLANCO,
                                SELECTED_VARIABLES=TABLA_SELECTED_VAR)
 
+
+
+
+HIRLAM_FILES = [PATH_TO_HIRLAM + item for item in os.listdir(PATH_TO_HIRLAM)]
+HIRLAM_FILES = [item for item in HIRLAM_FILES if not item.endswith('.csv')]
+
+HUECOS= pd.read_csv('/home/meteobit/MB/Data/Parques/PRUEBA_EOLICOS/CERROBLANCO/HIRLAM/HUECOS_HIRLAM_2019-09-03.csv')
+
+
+import re
+PATTERN_DATE = re.compile(r'\d{8}')
+
+
+HIRLAM_DATE= [re.findall(PATTERN_DATE, item)[0] for item in HIRLAM_FILES if re.findall(PATTERN_DATE, item)]
+
+
+HIRLAM_DISPONIBLE= [item.replace('-','') for item in HUECOS['x'] if item.replace('-','')  in HIRLAM_DATE] 
+
+
+HIRLAM_FILES_FALTANTES= [item for item in HIRLAM_FILES if re.findall(PATTERN_DATE, item) if re.findall(PATTERN_DATE, item)[0] in HIRLAM_DISPONIBLE]
+
+
+
+EXTRACT_INFO_HIRLAM_TO_CSV(HIRLAM_FILES_FALTANTES[0], 
+                           CUT_DATA=True,
+                           NEAREST_POINTS=NEAREST_POINTS_CERROBLANCO,
+                           SELECTED_VARIABLES=TABLA_SELECTED_VAR)
