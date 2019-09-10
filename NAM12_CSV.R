@@ -55,3 +55,25 @@ TABLA_TATANKA<- LISTA_TATANKA_NAM %>% bind_rows()
 if(!dir.exists( here::here('Data/Parques/PRUEBA_EOLICOS/TATANKA_DATA'))){dir.create(here::here('Data/Parques/PRUEBA_EOLICOS/TATANKA_DATA'), recursive = TRUE)}
 
 saveRDS(TABLA_TATANKA, here::here('Data/Parques/PRUEBA_EOLICOS/TATANKA_DATA/NAM_12_TATANKA.RDS'))
+
+
+
+
+
+# AÑADIMOS LOS DATOS DE PRODUCCION A LOS DATOS DEL NAM12 ------------------
+
+ADD_PROD<- FALSE
+
+if (ADD_PROD) {
+  TAMAULIPAS_DATA<- here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/NAM_12_TAMAULIPAS.RDS') %>% readRDS()
+  INFO_PARQUES<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS'))
+  INFO_TAMAULIPAS<- INFO_PARQUES %>% filter(PARQUE=='P.E.TAMAULIPAS')
+  
+  MERGE_TAMAULIPAS<- left_join(TAMAULIPAS_DATA, INFO_TAMAULIPAS, by= 'DATE')
+  
+  write.csv(MERGE_TAMAULIPAS, 
+            file = here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/NAM_12_TAMAULIPAS_WITH_PRODUCTION.csv'),
+            sep = ';')
+}
+
+
