@@ -340,6 +340,9 @@ pollutionRose(SALTERAS_N_NO %>% mutate(WS_un=1, WS_dos=2),
 
 ```{r}
 library(readxl)
+LAT_KAURA<-  37.488919 
+LON_KAURA<- -6.093440
+
 LAT_ESTACION_SEVILLA <- 37.514444
 LON_ESTACION_SEVILLA<- -6.064167
 DATOS_SEVILLA<- read_xlsx(here::here('Data/Parques/Salteras/SEVILLA.xlsx'))
@@ -387,12 +390,12 @@ library(elevatr)
 
 
 
-n=max(COORD_SIM_D01$LAT) 
-s=min(COORD_SIM_D01$LAT)    
-e=max(COORD_SIM_D01$LON)    
-w=min(COORD_SIM_D01$LON) 
+n=max(LAT_ESTACION_SEVILLA) 
+s=min(LAT_ESTACION_SEVILLA)    
+e=max(LON_ESTACION_SEVILLA)    
+w=min(LON_ESTACION_SEVILLA) 
 
-incr<- 0.0005
+incr<- 0.01
 
 
 if(n > 0){n<- n + incr}else{n<- n + incr}
@@ -424,10 +427,10 @@ if(file.exists(here::here('Mapas/Raster_SALTERAS/map_raster1.RDS'))){
 }
 
 levelplot(map_raster1, par.settings= viridisTheme()) + 
-  layer(panel.points(COORD_SIM_D01$LON ,
-                     COORD_SIM_D01$LAT, pch=21, cex=1, colour='white', fill= 'white'))+
-  layer(panel.points(LON_PARQUE ,
-                     LAT_PARQUE, pch=21, cex=1, colour='white', fill= 'red'))
+  layer(panel.points(LON_ESTACION_SEVILLA,
+                     LAT_ESTACION_SEVILLA, pch=21, cex=1, colour='white', fill= 'white'))+
+  layer(panel.points(LON_KAURA ,
+                     LAT_KAURA, pch=21, cex=1, colour='white', fill= 'red'))
 
 
 ```

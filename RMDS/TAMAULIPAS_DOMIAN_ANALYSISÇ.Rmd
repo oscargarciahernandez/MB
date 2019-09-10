@@ -615,7 +615,7 @@ TABLA_MAX_D03<- TABLA_MAX_JOIN
   theme_light()
 
 ```
-```{r}
+```{r eval=FALSE}
 library(openair)
 
 windRose(TABLA_MAX_D01, ws= 'WS', wd = 'WD',paddle = FALSE)
@@ -782,12 +782,22 @@ kable(TABLA_ACCURACY)
 ```{r fig.height=6, fig.width=6}
 library(plotrix)
 
+TABLA_ALL_MODELS<- TABLA_ALL_MODELS %>% .[complete.cases(.), ]
+
 
 taylor.diagram(TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, show.gamma = TRUE)
-taylor.diagram(TABLA_ALL_MODELS$WS_NORMD01, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, add = TRUE, col = 'red')
-taylor.diagram(TABLA_ALL_MODELS$WS_NORMD02, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, add = TRUE, col = 'orange')
-taylor.diagram(TABLA_ALL_MODELS$WS_NORMD03, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, add = TRUE, , col = 'green')
-taylor.diagram(TABLA_ALL_MODELS$WS_NORMNAM, TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, add = TRUE, , col = 'blue')
+taylor.diagram(TABLA_ALL_MODELS$WS_NORMD01, 
+               TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, 
+               add = TRUE, col = 'red')
+taylor.diagram(TABLA_ALL_MODELS$WS_NORMD02,
+               TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, 
+               add = TRUE, col = 'orange')
+taylor.diagram(TABLA_ALL_MODELS$WS_NORMD03,
+               TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01,
+               add = TRUE, , col = 'green')
+taylor.diagram(TABLA_ALL_MODELS$WS_NORMNAM, 
+               TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01, 
+               add = TRUE, , col = 'blue')
 
 lpos<-1.5*sd(TABLA_ALL_MODELS$PRUDUCCION_MWH_NORMD01)
 # add a legend
@@ -798,11 +808,189 @@ legend(lpos,lpos-0.2,legend=c('D01', 'D02','D03', 'NAM12'),
 
 
 
+```{r}
+library(WindCurves)
+#POTENCIA = 183 MW 
+#NUMERO DE TURBINAS = 61 	
+#MODELO  =AW125/3000
+
+CUTIN= 3.5
+VNOM= 15
+CUTOFF= 25
+PNOM= 3000000
+PPICO= 3300000
+RADIO<- sqrt(12305/pi) 
+
+WIND_TURBINE_CURVE<- function(VSTART, VNOM,VOFF,
+                              PNOM, PPICO, RADIO){
+  V<- c(VSTART, VNOM/2)
+  P<- c(0.5*1.2*pi*RADIO^2*VSTART^3 * 0.3, 
+        0.5*1.2*pi*RADIO^2*(VNOM/2)^3 * 0.5)
+  
+  Bornay<- data.frame(v= c(0,V,VNOM,(VNOM+VOFF)/2,VOFF),wp = c(0,P,PNOM,(PNOM+PPICO)/2,PPICO))
+  
+  AJUSTE_CURVA<- fitcurve(Bornay)
+  
+  INTER_LOG_CURVE<- spline(AJUSTE_CURVA$Speed,AJUSTE_CURVA$`Logistic Function`, n = 25)
+  INTER_LOG_CURVE$WS <- INTER_LOG_CURVE$x
+  INTER_LOG_CURVE$WP<- INTER_LOG_CURVE$y
+  INTER_LOG_CURVE$x<- NULL
+  INTER_LOG_CURVE$y<- NULL
+  INTER_LOG_CURVE2<- lm(WP~ WS^3, data = data.frame(WP= AJUSTE_CURVA$`Logistic Function`,
+                                                       WS =AJUSTE_CURVA$Speed))
+  
+  
+  return(list(INTERP= INTER_LOG_CURVE, FITTED = AJUSTE_CURVA, EXP= INTER_LOG_CURVE2))
+}
+
+AW125<- WIND_TURBINE_CURVE(VSTART = CUTIN, 
+                   VNOM = VNOM, 
+                   VOFF = CUTOFF,
+                   PNOM = PNOM,
+                   PPICO = PPICO,
+                   RADIO = RADIO)
+
+
+V1<- seq(0,CUTIN, by = 0.01)
+V2<- seq(CUTIN, VNOM, by= 0.01)
+V3<- seq(VNOM, CUTOFF, by = 0.01)
+
+CP<- 3000000/(V2^3*1.2* pi * RADIO^2*0.5)
+
+P1<- rep(0, length(V1))
+P2<- V2^3 *1.2* pi * RADIO^2*0.5*ifelse(CP> 0.3, 0.3, CP)
+P3<- rep(PNOM, length(V3))
+
+Curve_builld<- data.frame(WS= c(V1,V2,V3),
+                          WP= c(P1,P2,P3))
+
+ggplot()+
+  geom_line(aes(x= AW125$INTERP$WS, y= AW125$INTERP$WP), col= 'red')+
+  geom_line(aes(x= AW125$FITTED$Speed, y= AW125$FITTED$Power),  col= 'blue')+
+  geom_line(aes(x= AW125$FITTED$Speed, y= AW125$FITTED$`Weibull CDF`),  col= 'green')+
+  geom_line(aes(x= AW125$FITTED$Speed, y= AW125$FITTED$`Logistic Function`),  col= 'orange')+
+  geom_line(aes(x= Curve_builld$WS, y=Curve_builld$WP))+
+theme_light()
+
+  
+
+```
+
+```{r eval=FALSE}
+TABLA_MODELS2<- data.frame(matrix(nrow = 788))
+TABLA_MODELS2$D01<- cut(TABLA_ALL_MODELS$WSD01,breaks= Curve_builld$WS %>% unique(), labels= Curve_builld$WP[1:2500]) %>% as.character() %>% as.numeric() 
+
+TABLA_MODELS2$D02<- cut(TABLA_ALL_MODELS$WSD02,breaks= Curve_builld$WS %>% unique(), labels= Curve_builld$WP[1:2500]) %>% as.character() %>% as.numeric()
+
+TABLA_MODELS2$D03<- cut(TABLA_ALL_MODELS$WSD03,breaks= Curve_builld$WS %>% unique(), labels= Curve_builld$WP[1:2500]) %>% as.character() %>% as.numeric()
+
+TABLA_MODELS2$NAM10<- cut(TABLA_ALL_MODELS$WS10NAM,breaks= Curve_builld$WS %>% unique(), labels= Curve_builld$WP[1:2500]) %>% as.character() %>% as.numeric()
+
+TABLA_MODELS2$NAM80<- cut(TABLA_ALL_MODELS$WS80NAM,breaks= Curve_builld$WS %>% unique(), labels= Curve_builld$WP[1:2500]) %>% as.character() %>% as.numeric()
+
+TABLA_MODELS2$MWH<- TABLA_ALL_MODELS$PRUDUCCION_MWHD01
+TABLA_MODELS2$DATE<- TABLA_ALL_MODELS$DATE
+
+
+TABLA_MODELS2 [1:nrow(TABLA_MODELS2)/4, ]%>% ggplot(aes(x= DATE))+
+  geom_line(aes(y=D01/10^6*61), col= 'red', alpha=0.5)+
+  geom_line(aes(y=D02/10^6*61), col= 'orange',alpha=0.5)+
+  geom_line(aes(y=D03/10^6*61), col= 'blue',alpha=0.5)+
+  geom_line(aes(y=NAM80/10^6*61), col= 'green',alpha=0.5)+
+  geom_line(aes(y=NAM10/10^6*61), col= 'darkgreen',alpha=0.5)+
+  geom_line(aes(y=MWH))+
+theme_light()
+
+
+```
+
+```{r eval=TRUE, results='show'}
+LISTA_DATOS_LEVELS<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/LISTA_DATOS.RDS'))
+NAM12_DATA<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/NAM_12_TAMAULIPAS.RDS'))
+
+
+D01<-LISTA_DATOS_LEVELS$L2$D01
+D02<- LISTA_DATOS_LEVELS$L3$D02
+D03<- LISTA_DATOS_LEVELS$L3$D03
+D01$MWH_EST<- cut(D01$WS,breaks= Curve_builld$WS %>% unique(), 
+                  labels= Curve_builld$WP[1:2500]) %>% as.character() %>% 
+  as.numeric() %>% "/" (10^6) %>% "*"(61)
+D01$DATE<- D01$DATE %>% ymd_hms()
+
+D02$MWH_EST<- cut(D02$WS,breaks= Curve_builld$WS %>% unique(), 
+                  labels= Curve_builld$WP[1:2500]) %>% as.character() %>% 
+  as.numeric() %>% "/" (10^6) %>% "*"(61)
+D02$DATE<- D02$DATE %>% ymd_hms()
+
+
+D03$MWH_EST<- cut(D03$WS,breaks= Curve_builld$WS %>% unique(), 
+                  labels= Curve_builld$WP[1:2500]) %>% as.character() %>% 
+  as.numeric() %>% "/" (10^6) %>% "*"(61)
+D03$DATE<- D03$DATE %>% ymd_hms()
+
+
+NAM12<- NAM12_DATA
+NAM12$MWH_EST10<- cut(NAM12$WS10,breaks= Curve_builld$WS %>% unique(), 
+                  labels= Curve_builld$WP[1:2500]) %>% as.character() %>% 
+  as.numeric() %>% "/" (10^6) %>% "*"(61)
+
+NAM12$MWH_EST<- cut(NAM12$WS80,breaks= Curve_builld$WS %>% unique(), 
+                  labels= Curve_builld$WP[1:2500]) %>% as.character() %>% 
+  as.numeric() %>% "/" (10^6) %>% "*"(61)
+
+INFO_PARQUES<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS'))
+INFO_TAMAULIPAS<- INFO_PARQUES[str_detect(INFO_PARQUES$PARQUE, 'Tamaulipas'),]
+
+lista_modelos<- list(D01,D02,D03, NAM12)
+names(lista_modelos)<- c('D01', 'D02', 'D03',  'NAM12' )
+
+k<- 1
+TABLA_ACCURACY<- data.frame(matrix(ncol = 9))
+
+for(modelo in 1:length(lista_modelos)){
+  ALL_JOINED<- left_join(lista_modelos[[modelo]],INFO_TAMAULIPAS, by='DATE')
+                           
+LIST<- ALL_JOINED %>% group_by(LON.x, LAT.x) %>% group_split()            
+
+for(x in LIST){
+  TABLA_ACCURACY[k,]<- c(accuracy(x$MWH_EST, x$PRUDUCCION_MWH), 
+                         cor(x$MWH_EST, x$PRUDUCCION_MWH, 
+                             use = 'complete.obs'),
+                         names(lista_modelos)[modelo],
+                         x$LON.x %>% unique(),
+                         x$LAT.x %>% unique())
+  k<- k + 1 
+}
+colnames(TABLA_ACCURACY)<- c( 'ME','RMSE','MAE','MPE','MAPE','CORR', 'MODELO','LON','LAT')
+}
+
+aggregate(TABLA_ACCURACY[, 1:6], list(MODELO= TABLA_ACCURACY$MODELO), FUN = function(x) mean(as.numeric(as.character(x)))) %>% kable(label = 'TABLA DE INDICES. MEDIAS DE TODOS LOS PUNTOS')
+
+aggregate(TABLA_ACCURACY[, 1:6], list(MODELO= TABLA_ACCURACY$MODELO), FUN = function(x) max(as.numeric(as.character(x)))) %>% kable(label = 'TABLA DE INDICES. MAXIMAS')
+aggregate(TABLA_ACCURACY[, 1:6], list(MODELO= TABLA_ACCURACY$MODELO), FUN = function(x) min(as.numeric(as.character(x)))) %>% kable(label = 'TABLA DE INDICES. MINIMAS')
 
 
 
+TABLA_MAX_COR<- TABLA_ACCURACY %>% group_by(MODELO) %>% group_split() %>% lapply(function(x) x[which.max(x$CORR), ]) %>% bind_rows()
 
 
 
+```
 
+
+```{r fig.height=6, eval=TRUE}
+
+ggplot()+
+  geom_line(data= D01 %>% filter(year(DATE)==2019, 
+                                 month(DATE)==1, 
+                                 week(DATE)==1),
+            aes(x= DATE, y= MWH_EST), col= 'red')+
+  geom_line(data= INFO_TAMAULIPAS%>% filter(year(DATE)==2019, month(DATE)==1,week(DATE)==1), 
+            aes(x= DATE, y= PRUDUCCION_MWH), col= 'green', size = 2)+
+  geom_line(data= D02%>% filter(year(DATE)==2019,
+                                month(DATE)==1,
+                                week(DATE)==1), 
+            aes(x= DATE, y= MWH_EST), col= 'orange')+
+  theme_light()
+```
 
