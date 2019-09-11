@@ -191,7 +191,7 @@ TABLA_VARIABLES = EXTRACT_VARIABLES_FROM_GRIB(HIRLAM_FILENAME, 'wind')
 TABLA_WIND= TABLA_VARIABLES[TABLA_VARIABLES.NAME.isin(set([item for item in list(TABLA_VARIABLES['NAME']) if 'wind' in item.lower()]))]
 
 TIME_STAMP= [item for item in list(set(TABLA_WIND['TIMESTAMP'])) if '(max)' not in item]
-VARIABLES = list(set(TABLA_WIND['NAME']))[1:5]
+VARIABLES = ['10 metre U wind component','10 metre V wind component','100 metre U wind component','100 metre V wind component']
 
 
 TABLA_SELECTED_VAR= TABLA_WIND[(TABLA_WIND['TIMESTAMP'].isin(TIME_STAMP)) & (TABLA_WIND['NAME'].isin(VARIABLES))]
@@ -229,28 +229,52 @@ for i in HIRLAM_FILES:
 
 
 
+MOVE_CSV_TO_OTHER_FOLDER= False
 
-HIRLAM_FILES = [PATH_TO_HIRLAM + item for item in os.listdir(PATH_TO_HIRLAM)]
-HIRLAM_FILES = [item for item in HIRLAM_FILES if not item.endswith('.csv')]
+if MOVE_CSV_TO_OTHER_FOLDER: 
+    PATH_TO_HIRLAM= '/home/meteobit/Escritorio/Parques/EZ/'
+    HIRLAM_FILES = [PATH_TO_HIRLAM + item for item in os.listdir(PATH_TO_HIRLAM) if 'ATH' in item]
+    CSV_FILES= [item for item in HIRLAM_FILES if 'CONVERTED.csv' in item]
+    
+    PATH_CSV= PATH_TO_HIRLAM + 'CSVs/'
+    if not os.path.isdir(PATH_CSV):
+        os.makedirs(PATH_CSV, exist_ok=True)
+    
+    
+    import shutil
+    
+    for file in CSV_FILES:
+        shutil.move(file, PATH_CSV + file.split('/')[-1])
+    
+    
+    
 
-HUECOS= pd.read_csv('/home/meteobit/MB/Data/Parques/PRUEBA_EOLICOS/CERROBLANCO/HIRLAM/HUECOS_HIRLAM_2019-09-03.csv')
-
-
-import re
-PATTERN_DATE = re.compile(r'\d{8}')
-
-
-HIRLAM_DATE= [re.findall(PATTERN_DATE, item)[0] for item in HIRLAM_FILES if re.findall(PATTERN_DATE, item)]
-
-
-HIRLAM_DISPONIBLE= [item.replace('-','') for item in HUECOS['x'] if item.replace('-','')  in HIRLAM_DATE] 
-
-
-HIRLAM_FILES_FALTANTES= [item for item in HIRLAM_FILES if re.findall(PATTERN_DATE, item) if re.findall(PATTERN_DATE, item)[0] in HIRLAM_DISPONIBLE]
 
 
 
-EXTRACT_INFO_HIRLAM_TO_CSV(HIRLAM_FILES_FALTANTES[0], 
-                           CUT_DATA=True,
-                           NEAREST_POINTS=NEAREST_POINTS_CERROBLANCO,
-                           SELECTED_VARIABLES=TABLA_SELECTED_VAR)
+CUBRIR_HUECOS= False
+
+if CUBRIR_HUECOS:
+    HIRLAM_FILES = [PATH_TO_HIRLAM + item for item in os.listdir(PATH_TO_HIRLAM)]
+    HIRLAM_FILES = [item for item in HIRLAM_FILES if not item.endswith('.csv')]
+    
+    HUECOS= pd.read_csv('/home/meteobit/MB/Data/Parques/PRUEBA_EOLICOS/CERROBLANCO/HIRLAM/HUECOS_HIRLAM_2019-09-03.csv')
+    
+    
+    PATTERN_DATE = re.compile(r'\d{8}')
+    
+    
+    HIRLAM_DATE= [re.findall(PATTERN_DATE, item)[0] for item in HIRLAM_FILES if re.findall(PATTERN_DATE, item)]
+    
+    
+    HIRLAM_DISPONIBLE= [item.replace('-','') for item in HUECOS['x'] if item.replace('-','')  in HIRLAM_DATE] 
+    
+    
+    HIRLAM_FILES_FALTANTES= [item for item in HIRLAM_FILES if re.findall(PATTERN_DATE, item) if re.findall(PATTERN_DATE, item)[0] in HIRLAM_DISPONIBLE]
+    
+    
+    
+    EXTRACT_INFO_HIRLAM_TO_CSV(HIRLAM_FILES_FALTANTES[0], 
+                               CUT_DATA=True,
+                               NEAREST_POINTS=NEAREST_POINTS_CERROBLANCO,
+                               SELECTED_VARIABLES=TABLA_SELECTED_VAR)
