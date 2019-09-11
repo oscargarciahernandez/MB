@@ -190,7 +190,7 @@ for(i in 1:nrow(TABLA_VARIABLES)){
             theme_bw()
         }
         
-        tuneplot(xgb_tune)
+        #tuneplot(xgb_tune)
         
         
         if(xgb_tune$bestTune$nrounds==nroundsmin){
@@ -222,11 +222,7 @@ for(i in 1:nrow(TABLA_VARIABLES)){
         
       }
       
-      '
-PARECE QUE QUEDA COMO 1400 nrounds y 0.3 eta, ahora ajustamos 
-depth
-'
-      
+  
       # AJUSTAMOS DEPTH y CHILD WEIGH ---------------------------------------------------------
       
       nroundsmin<- 50
@@ -262,7 +258,7 @@ depth
           verbose = TRUE
         )
         
-        tuneplot(xgb_tune2)
+        #tuneplot(xgb_tune2)
         xgb_tune2$bestTune
         
         
@@ -311,9 +307,9 @@ depth
       
       while (TRUE) {
         k<- 0
-        VECTOR_COLSAMPLE<- seq(from = colsamplemin, to = colsamplemax, length.out = 10) %>% round(3)
-        VECTOR_SUBSAMPLE<- seq(from = subsamplemin, to= subsamplemax , length.out = 10) %>% round(3)
-        VECTOR_NROUNDS<- seq(from = nroundsmin, to = nroundsmax, length.out = 10) %>% round()
+        VECTOR_COLSAMPLE<- seq(from = colsamplemin, to = colsamplemax, length.out = 7) %>% round(3)
+        VECTOR_SUBSAMPLE<- seq(from = subsamplemin, to= subsamplemax , length.out = 7) %>% round(3)
+        VECTOR_NROUNDS<- seq(from = nroundsmin, to = nroundsmax, length.out = 5) %>% round()
         
         
         tune_grid3 <- expand.grid(
@@ -335,7 +331,7 @@ depth
           verbose = TRUE
         )
         
-        tuneplot(xgb_tune3, probs = .95)
+        ##tuneplot(xgb_tune3, probs = .95)
         xgb_tune3$bestTune
         
         if(xgb_tune3$bestTune$colsample_bytree ==colsamplemin){
@@ -362,6 +358,8 @@ depth
         if(k==0){
           print(xgb_tune3$bestTune)
           break
+        }else{
+          print('CAMBIANDO PARAMETROS')
         }
         
         
@@ -371,7 +369,7 @@ depth
       
       
       
-      # AJUSTAMOS GAMMA ---------------------------------------------------------
+        # AJUSTAMOS GAMMA ---------------------------------------------------------
       nroundsmin<- 50
       nroundsmax<- 1000
       
@@ -403,21 +401,21 @@ depth
           verbose = TRUE
         )
         
-        tuneplot(xgb_tune4)
+        #tuneplot(xgb_tune4)
         
-        if(xgb_tune3$bestTune$gamma==gammamin){
+        if(xgb_tune4$bestTune$gamma==gammamin){
           subsamplemin= subsamplemin - subsamplemin/1.5
           subsamplemax= subsamplemax - subsamplemax/1.5
           k<- 1
         }
-        if(xgb_tune3$bestTune$gamma==gammamax){
+        if(xgb_tune4$bestTune$gamma==gammamax){
           subsamplemin= subsamplemin + subsamplemin/1.5
           subsamplemax= subsamplemax + subsamplemax/1.5
           k<- 1
         }
         
         if(k==0){
-          print(xgb_tune3$bestTune)
+          print(xgb_tune4$bestTune)
           break
         }
         
@@ -451,7 +449,7 @@ depth
         verbose = TRUE
       )
       
-      tuneplot(xgb_tune5)
+      #tuneplot(xgb_tune5)
       
       
       
@@ -542,6 +540,8 @@ depth
     }
     
     
+  }, error= function(e){
+    print(e)
   })
   
   
