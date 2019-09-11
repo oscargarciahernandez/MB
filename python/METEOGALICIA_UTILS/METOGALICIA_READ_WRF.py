@@ -72,7 +72,7 @@ PATH_METEOGALICIA= '/home/meteobit/METEOGALICIA/'
 FILES_WRF = os.listdir(PATH_METEOGALICIA)
 
 
-FILENAME= [PATH_METEOGALICIA + item for item in FILES_WRF if 'wrf_arw' in item][0]
+FILENAME= [PATH_METEOGALICIA + item for item in FILES_WRF if '.csv' not in item][0]
 NETCDF=  Dataset(FILENAME)
 
 DISPLAY_VARIABLES_DESCRIPTION= True

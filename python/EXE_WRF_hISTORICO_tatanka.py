@@ -124,8 +124,8 @@ def DETECTAR_RESULTADO_WRF(output):
 
 # PONEMOS LOS DÍAS QUE QUEREMOS DESDE 20190101 HASTA 20190631
 dias_2018= []
-for mes in np.arange(1,13):
-    for dia in np.arange(1,32):
+for mes in np.arange(6,13):
+    for dia in np.arange(21,32):
         try:
             dias_2018.append(datetime.datetime(2019, mes, dia).strftime("%Y%m%d"))
         except:
@@ -144,9 +144,8 @@ if not os.path.exists(PATH_SAVE):
 if not os.path.exists(PATH_SAVE_OUTPUT):
     os.makedirs(PATH_SAVE_OUTPUT)
     
-DIAS_JUNIO= [item for item in dias_2018 if '201906' in item]
 
-for FECHA_EJECUCION in  DIAS_JUNIO: 
+for FECHA_EJECUCION in  dias_2018: 
     
     #COPIAMOS LOS GRIBS A LA CARPETA DE GRIBS
     SIMULACIONES_HECHAS= os.listdir(PATH_SAVE_OUTPUT)

@@ -103,7 +103,7 @@ APLICAMOS LO DEL CHINO A TAMAULIPAS
 ###############################################################################
 ###############################################################################
 '''
-path_csv= '/home/oscar/MB/Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/NAM_12_TAMAULIPAS_WITH_PRODUCTION.csv'
+path_csv= '/home/meteobit/MB/Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/NAM_12_TAMAULIPAS_WITH_PRODUCTION.csv'
 data = pd.read_csv(path_csv)
 
 LON_TAMAULIPAS= data[['LON.y']].iloc[0]
@@ -198,7 +198,7 @@ for i in range(len(variables_modelo)):
     
     data_group1= data_grouped.get_group(TABLA_COR.idxmax())
     
-    data_group1= data_cut
+    #data_group1= data_cut
     
     data_group1=data_group1.dropna()
     
@@ -282,7 +282,6 @@ data = pd.read_csv(path_csv)
 LON_CERROBLANCO= data[['LON.y']].iloc[0]
 LAT_CERROBLANCO= data[['LAT.y']].iloc[0]
 
-from math import sin, cos, sqrt, atan2, radians
 import datetime as datetime
 
 data['dist']= 'NA'

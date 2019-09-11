@@ -10,7 +10,7 @@ READ_CSVs= FALSE
 
 if (READ_CSVs) {
   
-  HIRLAM_FILES<- '/home/meteobit/Escritorio/Parques/EZ/' %>% list.files(full.names = T) %>% .[str_detect(., 'CONVERTED')]
+  HIRLAM_FILES<- '/home/meteobit/Escritorio/Parques/EZ/CSVs/' %>% list.files(full.names = T) %>% .[str_detect(., 'CONVERTED')]
   
   HIRLAM_LIST<- list()
   HIRLAM_ERRORS<- vector()

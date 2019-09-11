@@ -2,7 +2,7 @@ library(here)
 source('libraries.R')
 
 
-TATANKA_FILES<- '/media/oscar/Elements/NAM12/'  %>% list.files(full.names = T) %>% .[str_detect(., 'TATANKA_CONVERTED')]
+TATANKA_FILES<- '/media/meteobit/Elements/NAM12/'  %>% list.files(full.names = T) %>% .[str_detect(., 'TATANKA_CONVERTED')]
 for (i in TATANKA_FILES) {
   if(file.info(i)$size>10){
     print(i)
@@ -65,14 +65,14 @@ saveRDS(TABLA_TATANKA, here::here('Data/Parques/PRUEBA_EOLICOS/TATANKA_DATA/NAM_
 ADD_PROD<- FALSE
 
 if (ADD_PROD) {
-  TAMAULIPAS_DATA<- here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/NAM_12_TAMAULIPAS.RDS') %>% readRDS()
+  TATANKA_DATA<- here::here('Data/Parques/PRUEBA_EOLICOS/TATANKA_DATA/NAM_12_TATANKA.RDS') %>% readRDS()
   INFO_PARQUES<- readRDS(here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS'))
-  INFO_TAMAULIPAS<- INFO_PARQUES %>% filter(PARQUE=='P.E.TAMAULIPAS')
+  INFO_TATANKA<- INFO_PARQUES %>% filter(PARQUE=='P.E.Tatanka')
   
-  MERGE_TAMAULIPAS<- left_join(TAMAULIPAS_DATA, INFO_TAMAULIPAS, by= 'DATE')
+  MERGE_TATANKA<- left_join(TATANKA_DATA, INFO_TATANKA, by= 'DATE')
   
-  write.csv(MERGE_TAMAULIPAS, 
-            file = here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/NAM_12_TAMAULIPAS_WITH_PRODUCTION.csv'),
+  write.csv(MERGE_TATANKA, 
+            file = here::here('Data/Parques/PRUEBA_EOLICOS/TATANKA_DATA/NAM_12_TATANKA_WITH_PRODUCTION.csv'),
             sep = ';')
 }
 

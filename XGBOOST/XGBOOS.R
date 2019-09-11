@@ -27,10 +27,16 @@ subsample: Row sampling, default: 1
 
 # IMPORT DATA -------------------------------------------------------------
 
-DATA_ALL<- here::here('NUEVO/Data_calibracion/0B38DAE79059/ERA5_2019-06-01.RDS') %>% readRDS()
+DATA_ALL<- here::here('Data/Parques/PRUEBA_EOLICOS/TATANKA_DATA/NAM_12_TATANKA_WITH_PRODUCTION.csv') %>% read_csv()
 
 
-DATA_ONE_LOCATION<- DATA_ALL %>% group_by(ERAlon, ERAlat) %>% group_split() %>% .[[1]]
+MAX_COR_POINT<- DATA_ALL %>% group_by(LON.x, LAT.x) %>% group_split() %>% 
+  sapply(function(x){
+    cor(x$WS10,x$PRUDUCCION_MWH, use = 'complete.obs')
+  }) %>% which.max()
+
+DATA_ONE_LOCATION<- DATA_ALL %>%  group_by(LON.x, LAT.x) %>% group_split() %>% .[[MAX_COR_POINT]]
+
 
 TEST_TRAIN_FACTOR<- 1.5
 N_DATOS<-DATA_ONE_LOCATION %>% nrow()
@@ -45,10 +51,17 @@ DATA_TRAIN_HOLDOUT <- dplyr::sample_frac(DATA_TRAIN, 0.2)
 hid <- as.numeric(rownames(DATA_TRAIN_HOLDOUT))
 DATA_TRAIN <- DATA_TRAIN[-hid, ]
 '
+
+# CREAMOS MODELO LINEAL DE REFERENCIA -------------------------------------
+
+
+linear_base <- lm(paste0("PRUDUCCION_MWH ~ ", paste(c('WS10','WD10','WS80', 'WD80'), collapse = ' + ')),data = DATA_TRAIN)
+
 # XGBOOST CON PARAMETROS PREDETERMINADOS ----------------------------------
 
-input_x<- DATA_TRAIN[,c("ERAWS","ERAWD" )]
-input_y<- DATA_TRAIN[,"WS_N"]$WS_N
+
+input_x<- DATA_TRAIN[,c('WS80', 'WD80')]
+input_y<- DATA_TRAIN[,"PRUDUCCION_MWH"]$PRUDUCCION_MWH
 
 grid_default <- expand.grid(
   nrounds = 100,
@@ -78,8 +91,8 @@ xgb_base <- caret::train(
 
 # AJUSTAMOS EL NUMERO DE ARBOLES Y ETAÇ -----------------------------------
 
-nroundsmin<- 500
-nroundsmax<- 2500
+nroundsmin<- 50
+nroundsmax<- 1000
 
 
 etamin<- 0.05
@@ -88,8 +101,8 @@ etamax<- 0.5
 
 while (TRUE) {
   k<- 0
-  VECTOR_ETA<- seq(from = etamin, to = etamax, length.out = 7) %>% round(3)
-  VECTOR_NROUNDS<- seq(from = nroundsmin, to = nroundsmax, length.out = 7) %>% round()
+  VECTOR_ETA<- seq(from = etamin, to = etamax, length.out = 10) %>% round(3)
+  VECTOR_NROUNDS<- seq(from = nroundsmin, to = nroundsmax, length.out = 10) %>% round()
   tune_grid <- expand.grid(
     nrounds = VECTOR_NROUNDS,
     eta = VECTOR_ETA,
@@ -163,20 +176,27 @@ depth
 
 # AJUSTAMOS DEPTH y CHILD WEIGH ---------------------------------------------------------
 
+nroundsmin<- 50
+nroundsmax<- 1000
+
+mchildweightmin<- 1
+mchildweightmax<- 10
+
 
 while (TRUE) {
   k<- 0
-  VECTOR_ETA<- seq(from = etamin, to = etamax, length.out = 7) %>% round(3)
-  VECTOR_NROUNDS<- seq(from = nroundsmin, to = nroundsmax, length.out = 7) %>% round()
+  VECTOR_MCW<- seq(from = mchildweightmin, to = mchildweightmax, length.out = 10) %>% round()
+  VECTOR_NROUNDS<- seq(from = nroundsmin, to = nroundsmax, length.out = 10) %>% round()
+  
   tune_grid2 <- expand.grid(
-    nrounds = seq(from = 50, to = nrounds, by = 50),
+    nrounds = VECTOR_NROUNDS,
     eta = xgb_tune$bestTune$eta,
     max_depth = ifelse(xgb_tune$bestTune$max_depth == 2,
                        c(xgb_tune$bestTune$max_depth:4),
                        xgb_tune$bestTune$max_depth - 1:xgb_tune$bestTune$max_depth + 1),
     gamma = 0,
     colsample_bytree = 1,
-    min_child_weight = c(1, 2, 3),
+    min_child_weight = VECTOR_MCW,
     subsample = 1
   )
   
@@ -193,29 +213,29 @@ while (TRUE) {
   xgb_tune2$bestTune
   
   
-  if(xgb_tune$bestTune$nrounds==nroundsmin){
+  if(xgb_tune2$bestTune$nrounds==nroundsmin){
     nroundsmin= nroundsmin - nroundsmin/1.5
     nroundsmax= nroundsmax - nroundsmax/1.5
     k<- 1
   }
-  if(xgb_tune$bestTune$nrounds==nroundsmax){
+  if(xgb_tune2$bestTune$nrounds==nroundsmax){
     nroundsmin= nroundsmin + nroundsmin/1.5
     nroundsmax= nroundsmax + nroundsmax/1.5
     k<- 1
   }
-  if(xgb_tune$bestTune$eta==etamin){
-    etamin= etamin - etamin/1.5
-    etamax= etamax - etamax/1.5
+  if(xgb_tune2$bestTune$min_child_weight==mchildweightmin){
+    mchildweightmin= mchildweightmin - mchildweightmin/1.5
+    mchildweightmax= mchildweightmax - mchildweightmax/1.5
     k<- 1
   }
-  if(xgb_tune$bestTune$eta==etamax){
-    etamin= etamin + etamin/1.5
-    etamax= etamax + etamax/1.5
+  if(xgb_tune2$bestTune$min_child_weight==mchildweightmax){
+    mchildweightmin= mchildweightmin + mchildweightmin/1.5
+    mchildweightmax= mchildweightmax + mchildweightmax/1.5
     k<- 1
   }
   
   if(k==0){
-    print(xgb_tune$bestTune)
+    print(xgb_tune2$bestTune)
     break
   }
   
@@ -226,53 +246,133 @@ while (TRUE) {
 
 # AJUSTAMOS COLUMN AND ROW SAMPLING ---------------------------------------
 
-tune_grid3 <- expand.grid(
-  nrounds = seq(from = 50, to = nrounds, by = 50),
-  eta = xgb_tune$bestTune$eta,
-  max_depth = xgb_tune2$bestTune$max_depth,
-  gamma = 0,
-  colsample_bytree = c(0.4, 0.6, 0.8, 1.0),
-  min_child_weight = xgb_tune2$bestTune$min_child_weight,
-  subsample = c(0.5, 0.75, 1.0)
-)
+nroundsmin<- 50
+nroundsmax<- 1000
 
-xgb_tune3 <- caret::train(
-  x = input_x,
-  y = input_y,
-  trControl = tune_control,
-  tuneGrid = tune_grid3,
-  method = "xgbTree",
-  verbose = TRUE
-)
+colsamplemin<- 0.1
+colsamplemax<- 1
 
-tuneplot(xgb_tune3, probs = .95)
-xgb_tune3$bestTune
+subsamplemin<- 0.1
+subsamplemax<- 1
+
+
+while (TRUE) {
+  k<- 0
+  VECTOR_COLSAMPLE<- seq(from = colsamplemin, to = colsamplemax, length.out = 10) %>% round(3)
+  VECTOR_SUBSAMPLE<- seq(from = subsamplemin, to= subsamplemax , length.out = 10) %>% round(3)
+  VECTOR_NROUNDS<- seq(from = nroundsmin, to = nroundsmax, length.out = 10) %>% round()
+  
+  
+  tune_grid3 <- expand.grid(
+    nrounds = VECTOR_NROUNDS,
+    eta = xgb_tune$bestTune$eta,
+    max_depth = xgb_tune2$bestTune$max_depth,
+    gamma = 0,
+    colsample_bytree = VECTOR_COLSAMPLE,
+    min_child_weight = xgb_tune2$bestTune$min_child_weight,
+    subsample = VECTOR_SUBSAMPLE
+  )
+  
+  xgb_tune3 <- caret::train(
+    x = input_x,
+    y = input_y,
+    trControl = tune_control,
+    tuneGrid = tune_grid3,
+    method = "xgbTree",
+    verbose = TRUE
+  )
+  
+  tuneplot(xgb_tune3, probs = .95)
+  xgb_tune3$bestTune
+  
+    if(xgb_tune3$bestTune$colsample_bytree ==colsamplemin){
+    colsamplemin= colsamplemin - colsamplemin/1.5
+    colsamplemax= colsamplemax - colsamplemax/1.5
+    k<- 1
+  }
+  if(xgb_tune3$bestTune$colsample_bytree==colsamplemax){
+    colsamplemin= colsamplemin + colsamplemin/1.5
+    colsamplemax= colsamplemax + colsamplemax/1.5
+    k<- 1
+  }
+  if(xgb_tune3$bestTune$subsample==subsamplemin){
+    subsamplemin= subsamplemin - subsamplemin/1.5
+    subsamplemax= subsamplemax - subsamplemax/1.5
+    k<- 1
+  }
+  if(xgb_tune3$bestTune$subsample==subsamplemax){
+    subsamplemin= subsamplemin + subsamplemin/1.5
+    subsamplemax= subsamplemax + subsamplemax/1.5
+    k<- 1
+  }
+  
+  if(k==0){
+    print(xgb_tune3$bestTune)
+    break
+  }
+  
+  
+}
+
 
 
 
 
 # AJUSTAMOS GAMMA ---------------------------------------------------------
+nroundsmin<- 50
+nroundsmax<- 1000
 
-tune_grid4 <- expand.grid(
-  nrounds = seq(from = 50, to = nrounds, by = 50),
-  eta = xgb_tune$bestTune$eta,
-  max_depth = xgb_tune2$bestTune$max_depth,
-  gamma = c(0, 0.05, 0.1, 0.5, 0.7, 0.9, 1.0),
-  colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
-  min_child_weight = xgb_tune2$bestTune$min_child_weight,
-  subsample = xgb_tune3$bestTune$subsample
-)
+gammamin<- 0.001
+gammamax<- 1
 
-xgb_tune4 <- caret::train(
-  x = input_x,
-  y = input_y,
-  trControl = tune_control,
-  tuneGrid = tune_grid4,
-  method = "xgbTree",
-  verbose = TRUE
-)
+while (TRUE) {
+  k<- 0
+  VECTOR_GAMMA<-  seq(from = gammamin, to = gammamax, length.out = 10) %>% round(3)
+  VECTOR_NROUNDS<- seq(from = nroundsmin, to = nroundsmax, length.out = 10) %>% round()
+  
+  
+  tune_grid4 <- expand.grid(
+    nrounds = VECTOR_NROUNDS,
+    eta = xgb_tune$bestTune$eta,
+    max_depth = xgb_tune2$bestTune$max_depth,
+    gamma = VECTOR_GAMMA,
+    colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+    min_child_weight = xgb_tune2$bestTune$min_child_weight,
+    subsample = xgb_tune3$bestTune$subsample
+  )
+  
+  xgb_tune4 <- caret::train(
+    x = input_x,
+    y = input_y,
+    trControl = tune_control,
+    tuneGrid = tune_grid4,
+    method = "xgbTree",
+    verbose = TRUE
+  )
+  
+  tuneplot(xgb_tune4)
 
-tuneplot(xgb_tune4)
+    if(xgb_tune3$bestTune$gamma==gammamin){
+    subsamplemin= subsamplemin - subsamplemin/1.5
+    subsamplemax= subsamplemax - subsamplemax/1.5
+    k<- 1
+  }
+  if(xgb_tune3$bestTune$gamma==gammamax){
+    subsamplemin= subsamplemin + subsamplemin/1.5
+    subsamplemax= subsamplemax + subsamplemax/1.5
+    k<- 1
+  }
+  
+  if(k==0){
+    print(xgb_tune3$bestTune)
+    break
+  }
+  
+  
+}
+
+
+
 
 
 
@@ -328,72 +428,60 @@ xgb_model <- caret::train(
 
 
 
-# PONEMOS A PRUEBA EL MODELO ----------------------------------------------
-
-holdout_x <- select(DATA_TRAIN_HOLDOUT, -WS_N)
-holdout_y <- DATA_TRAIN_HOLDOUT$WS_N
-
-
-xgb_base_rmse <- ModelMetrics::rmse(holdout_y, predict(xgb_base, newdata = holdout_x))
-xgb_model_rmse <- ModelMetrics::rmse(holdout_y, predict(xgb_model, newdata = holdout_x))
-
-
-ggplot(data = DATA_TRAIN_HOLDOUT[1:500,]) +
-    geom_line(aes(x= Date, y= WS_N))+
-  geom_line(aes(x= holdout_x$Date[1:500], 
-                y= predict(xgb_model, newdata = holdout_x[1:500,])),
-            col= 'red', 
-            alpha= 0.5)+
-  geom_line(data= DATA_TRAIN_HOLDOUT[1:500,], aes(x= Date, y = ERAWS), 
-            col='green', alpha= 0.5)+
-  theme_light()
-  
-library(forecast)
-
-accuracy(DATA_TRAIN_HOLDOUT$ERAWS, DATA_TRAIN_HOLDOUT$WS_N)
-cor(DATA_TRAIN_HOLDOUT$ERAWS, DATA_TRAIN_HOLDOUT$WS_N)
-
-accuracy(predict(xgb_model, newdata = holdout_x), DATA_TRAIN_HOLDOUT$WS_N)
-cor(predict(xgb_model, newdata = holdout_x), DATA_TRAIN_HOLDOUT$WS_N)
-
-
-
-
 # TEST DATA ---------------------------------------------------------------
 
+library(forecast)
 
-holdout_x <- select(DATA_TEST, c('ERAWS', 'ERAWD'))
-holdout_y <- DATA_TEST$WS_N
+holdout_x <- DATA_TEST[,c('WS10','WD10','WS80', 'WD80')]
+holdout_y <-  DATA_TEST[,"PRUDUCCION_MWH"]$PRUDUCCION_MWH
 
-accuracy(DATA_TEST$ERAWS, DATA_TEST$WS_N)
-cor(DATA_TEST$ERAWS, DATA_TEST$WS_N, use= 'complete.obs')
+accuracy(predict(linear_base, newdata = holdout_x), DATA_TEST$PRUDUCCION_MWH)
+cor(predict(linear_base, newdata = holdout_x), DATA_TEST$PRUDUCCION_MWH,use= 'complete.obs')
 
-accuracy(predict(xgb_model, newdata = holdout_x), DATA_TEST$WS_N)
-cor(predict(xgb_model, newdata = holdout_x), DATA_TEST$WS_N,use= 'complete.obs')
+accuracy(predict(xgb_base, newdata = holdout_x), DATA_TEST$PRUDUCCION_MWH)
+cor(predict(xgb_base, newdata = holdout_x), DATA_TEST$PRUDUCCION_MWH,use= 'complete.obs')
 
-DATE_RANGE<- DATA_TEST$Date %>% range()
+accuracy(predict(xgb_model, newdata = holdout_x), DATA_TEST$PRUDUCCION_MWH)
+cor(predict(xgb_model, newdata = holdout_x), DATA_TEST$PRUDUCCION_MWH,use= 'complete.obs')
+
+DATE_RANGE<- DATA_TEST$DATE %>% range()
 DATE0<- DATE_RANGE[1] + as.difftime(7, units = 'days')
 
-for(i in 1:10){
+for(i in 1:5){
   if(i==1){
     DATE1<- DATE0
   }
   DATE2<- DATE1 + as.difftime(7, units = 'days')
-  DATA_TEST_PLOT<- DATA_TEST %>% filter(Date< DATE2, Date>DATE1)
+  DATA_TEST_PLOT<- DATA_TEST %>% filter(DATE < DATE2, DATE>DATE1)
   
  print( DATA_TEST_PLOT %>% 
           ggplot() +
-          geom_line(aes(x= Date, y= WS_N))+
-          geom_line(aes(x= Date, 
+          geom_line(aes(x= DATE, y= PRUDUCCION_MWH))+
+          geom_line(aes(x= DATE, 
                         y= predict(xgb_model, 
-                                   newdata = DATA_TEST_PLOT %>%  select(c('ERAWS', 'ERAWD')))),
-                    col= 'red', 
-                    alpha= 0.5)+
-          geom_line(aes(x= Date, y = ERAWS), 
-                    col='green', alpha= 0.5)+
-          theme_light())
+                                   newdata =  DATA_TEST_PLOT[,c('WS10','WD10','WS80', 'WD80')])),
+                    colour= 'red', 
+                    alpha= 0.8)+
+          geom_line(aes(x= DATE, 
+                        y= predict(linear_base, 
+                                   newdata =  DATA_TEST_PLOT[,c('WS10','WD10','WS80', 'WD80')])),
+                        colour= 'green', 
+                        alpha= 0.8)+
+          geom_line(aes(x= DATE, 
+                        y= predict(xgb_base, 
+                                   newdata =  DATA_TEST_PLOT[,c('WS10','WD10','WS80', 'WD80')])),
+                        colour= 'orange', 
+                        alpha= 0.8)+
+          theme_light()+
+          guides(colour=FALSE, alpha= FALSE))
   
   DATE1<- DATE1 + as.difftime(7, units = 'days')
   
 }
 
+
+
+
+linear_10_80<- linear_base
+xgb_Base_10_80<- xgb_base
+xgb_model_10_80<- xgb_model
