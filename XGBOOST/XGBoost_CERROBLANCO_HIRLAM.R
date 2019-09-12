@@ -27,7 +27,7 @@ subsample: Row sampling, default: 1
 
 # IMPORT DATA -------------------------------------------------------------
 
-DATA_ALL<- here::here('Data/Parques/PRUEBA_EOLICOS/TAMAULIPAS_DATA/NAM_12_TAMAULIPAS_WITH_PRODUCTION.csv') %>% read_csv()
+DATA_ALL<- here::here('Data/Parques/PRUEBA_EOLICOS/CERROBLANCO/HIRLAM/HISTORICO_HIRLAM_WITH_PRUDCTION.csv') %>% read_csv()
 
 
 MAX_COR_POINT<- DATA_ALL %>% group_by(LON.x, LAT.x) %>% group_split() %>% 
@@ -36,24 +36,15 @@ MAX_COR_POINT<- DATA_ALL %>% group_by(LON.x, LAT.x) %>% group_split() %>%
   }) %>% which.max()
 
 DATA_ONE_LOCATION<- DATA_ALL %>%  group_by(LON.x, LAT.x) %>% group_split() %>% .[[MAX_COR_POINT]]
+DATA_ONE_LOCATION<-  DATA_ONE_LOCATION[DATA_ONE_LOCATION$FCST_TIME<2,]
 
 
-DATA_ONE_LOCATION$U10<- sin(DATA_ONE_LOCATION$WD10*pi/180)*DATA_ONE_LOCATION$WS10
-DATA_ONE_LOCATION$V10<- cos(DATA_ONE_LOCATION$WD10*pi/180)*DATA_ONE_LOCATION$WS10
+DATA_ONE_LOCATION<- DATA_ONE_LOCATION %>% mutate(WS10_2= WS10^2,
+                                                 WS10_3= WS10^3,
+                                                 WS100_2= WS100^2,
+                                                 WS100_3= WS100^3)
 
-DATA_ONE_LOCATION$U80<- sin(DATA_ONE_LOCATION$WD80*pi/180)*DATA_ONE_LOCATION$WS80
-DATA_ONE_LOCATION$V80<- cos(DATA_ONE_LOCATION$WD80*pi/180)*DATA_ONE_LOCATION$WS80
-
-DATA_ONE_LOCATION<- DATA_ONE_LOCATION %>% mutate(U10= sin(DATA_ONE_LOCATION$WD10*pi/180)*DATA_ONE_LOCATION$WS10,
-                             V10=cos(DATA_ONE_LOCATION$WD10*pi/180)*DATA_ONE_LOCATION$WS10,
-                             U80=sin(DATA_ONE_LOCATION$WD80*pi/180)*DATA_ONE_LOCATION$WS80,
-                             V80=cos(DATA_ONE_LOCATION$WD80*pi/180)*DATA_ONE_LOCATION$WS80,
-                             WS10_2= WS10^2,
-                             WS10_3= WS10^3,
-                             WS80_2= WS80^2,
-                             WS80_3= WS80^3)
-
-TEST_TRAIN_FACTOR<- 1.5
+TEST_TRAIN_FACTOR<- 1.1
 N_DATOS<-DATA_ONE_LOCATION %>% nrow()
 DATA_TRAIN<- DATA_ONE_LOCATION[1:((N_DATOS/TEST_TRAIN_FACTOR) %>% round(0)),]
 DATA_TEST<- DATA_ONE_LOCATION[((N_DATOS/TEST_TRAIN_FACTOR) %>% round(0)):N_DATOS,]
@@ -67,8 +58,8 @@ hid <- as.numeric(rownames(DATA_TRAIN_HOLDOUT))
 DATA_TRAIN <- DATA_TRAIN[-hid, ]
 '
 
-GV1<- c( paste('WS80', 'WD80', collapse = '_'), NA)
-GV2<- c( paste('U80', 'V80', collapse = '_'), NA)
+GV1<- c( paste('WS100', 'WD100', collapse = '_'), NA)
+GV2<- c( paste('U100', 'V100', collapse = '_'), NA)
 
 GV3<-  c( paste('WS10', 'WD10', collapse = '_'), NA)
 GV4<- c( paste('U10', 'V10', collapse = '_'), NA)
@@ -79,9 +70,9 @@ GV6<- c('WS10_2', NA)
 
 GV7<- c('WS10_3', NA)
 
-GV8<- c('WS80_2', NA)
+GV8<- c('WS100_2', NA)
 
-GV9<- c('WS80_3', NA)
+GV9<- c('WS100_3', NA)
 
 TABLA_VARIABLES<- expand.grid(GV1, GV2, GV3,GV4, GV5, GV6, GV7, GV8, GV9)
 library(stringr)
@@ -96,7 +87,7 @@ for(i in 1:nrow(TABLA_VARIABLES)){
   
   tryCatch({
     
-    PATH_MODELOS<- here::here('XGBOOST/NAM12_TAMAULIPAS/')
+    PATH_MODELOS<- here::here('XGBOOST/HIRLAM_CERROBLANCO/')
     if(!dir.exists(PATH_MODELOS)){dir.create(PATH_MODELOS, recursive = TRUE)}
     
     NOMBRE_BASE<- paste(VARIABLES_MODELO, collapse = '_')
@@ -499,7 +490,7 @@ for(i in 1:nrow(TABLA_VARIABLES)){
 
 
 # TEST DATA ---------------------------------------------------------------
-ALL_MODELS<-here::here('XGBOOST/NAM12_TAMAULIPAS/') %>% list.files(full.names = TRUE)
+ALL_MODELS<-here::here('XGBOOST/HIRLAM_CERROBLANCO//') %>% list.files(full.names = TRUE)
 LINEAR_MODELS<- ALL_MODELS %>% .[str_detect(., '_linear')]
 XGBbase_MODELS<- ALL_MODELS %>% .[str_detect(., '_xgbBase')]
 XGBTune_MODELS<- ALL_MODELS %>% .[str_detect(., '_xbbTune')]
@@ -548,7 +539,7 @@ for(i in 1:length(LINEAR_MODELS)){
 }
 
 TABLA_ACCURACY_LINEAR[order(TABLA_ACCURACY_LINEAR$CORR, decreasing = TRUE),] %>% View()
-TABLA_ACCURACY_LINEAR[order(TABLA_ACCURACY_LINEAR$RMSE, decreasing = FALSE),] %>% View()
+TABLA_ACCURACY_LINEAR[order(TABLA_ACCURACY_LINEAR$RMSE),] %>% View()
 
 
 TABLA_ACCURACY_XGBbase<- data.frame(matrix(ncol = 7))
