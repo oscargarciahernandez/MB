@@ -288,6 +288,8 @@ for(i in 1:length(VARIABLES_AJUSTE)){
     if(file.exists(paste0(PATH_MODELOS, NOMBRE_BASE,'xgbTune.RDS'))){
       print(paste('YA EXISTE', NOMBRE_BASE))
     }else{
+      input_x<- DATA_TRAIN[,VARIABLES_MODELO]
+      input_y<- DATA_TRAIN[,"PRUDUCCION_MWH"]$PRUDUCCION_MWH
 
   nroundsmin<- 50
   nroundsmax<- 1000
@@ -632,11 +634,9 @@ for(i in 1:length(VARIABLES_AJUSTE)){
 
 
 
-
-
-
-
-
+# SACAMOS TABLA ACCURACY PARA LOS MODELOS TUNEADOS
+ALL_MODELS<-here::here('XGBOOST/METEOGALICIA_CERROBLANCO//') %>% list.files(full.names = TRUE)
+XGBTune_MODELS<- ALL_MODELS %>% .[str_detect(., '_xgbTune')]
 
 TABLA_ACCURACY_XGBTune<- data.frame(matrix(ncol = 7))
 colnames(TABLA_ACCURACY_XGBTune)<- c('NAME','ME','RMSE','MAE','MPE','MAPE','CORR')
@@ -646,7 +646,7 @@ for(i in 1:length(XGBTune_MODELS)){
   
   
   NOMBRE_MODELO<- XGBTune_MODELS[i] %>% str_split('/') %>% .[[1]] %>%
-    .[length(.)] %>% str_remove('_xbbTune.RDS')
+    .[length(.)] %>% str_remove('_xgbTune.RDS')
   
   VARIABLES_MODELO<- LISTA_VARIABLES[[which(names(LISTA_VARIABLES)==NOMBRE_MODELO)]]
   
@@ -665,16 +665,20 @@ for(i in 1:length(XGBTune_MODELS)){
   })
 }
 
-TABLA_ACCURACY_XGBTune[order(TABLA_ACCURACY_XGBTune$CORR, decreasing = TRUE),] %>% View()
-TABLA_ACCURACY_XGBTune[order(TABLA_ACCURACY_XGBTune$RMSE, decreasing = FALSE),] %>% View()
+TABLA_ACCURACY_XGBTune$METHOD<- 'XGB_Tune'
 
 
 
 
+#JUNTAMOS LOS MODELOS TUNEADOS Y LOS MODELOS DE PRUEBA
+TABLA_ACCURACY<- list(TABLA_ACCURACY, TABLA_ACCURACY_XGBTune) %>% bind_rows()
+TABLA_ACCURACY[, c(2:4,7)] <- lapply(TABLA_ACCURACY[, c(2:4,7)], function(x) {
+  if(is.character(x)) as.numeric(as.character(x)) else x
+})
 
-TABLA_ACCURACY<- left_join(TABLA_ACCURACY_XGBTune, 
-                           TABLA_ACCURACY_LINEAR, by= 'NAME')
-
+aggregate(TABLA_ACCURACY[, c(2:4,7)], list(TABLA_ACCURACY$METHOD), mean)
+aggregate(TABLA_ACCURACY[, c(2:4,7)], list(TABLA_ACCURACY$METHOD), max)
+aggregate(TABLA_ACCURACY[, c(2:4,7)], list(TABLA_ACCURACY$METHOD), min)
 
 
 
