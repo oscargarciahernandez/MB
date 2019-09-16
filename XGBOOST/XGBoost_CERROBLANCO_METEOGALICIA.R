@@ -1,3 +1,5 @@
+library(here)
+source('libraries.R')
 library(caret)
 library(dplyr)
 library(ggplot2)
@@ -45,8 +47,8 @@ DATA_ONE_LOCATION<- DATA_ALL %>%  group_by(LON.x, LAT.x) %>% group_split() %>% .
 
 
 #CORAMOS LOS DATOS COJIENDO SOLO HORIZONTE 24 Y ORDENAMOS 
-DATA_ONE_LOCATION<-  DATA_ONE_LOCATION[DATA_ONE_LOCATION$TSIM<24,]
-DATA_ONE_LOCATION<- DATA_ONE_LOCATION[!duplicated(DATA_ONE_LOCATION), ]
+DATA_ONE_LOCATION<-  DATA_ONE_LOCATION[DATA_ONE_LOCATION$TSIM<13,]
+DATA_ONE_LOCATION<- DATA_ONE_LOCATION[!duplicated(DATA_ONE_LOCATION$DATE), ]
 DATA_ONE_LOCATION<- DATA_ONE_LOCATION[order(DATA_ONE_LOCATION$DATE),]
 DATA_ONE_LOCATION<- DATA_ONE_LOCATION[complete.cases(DATA_ONE_LOCATION),]
 
@@ -56,10 +58,10 @@ DATA_ONE_LOCATION<- DATA_ONE_LOCATION[complete.cases(DATA_ONE_LOCATION),]
 # DE MOMENTO POCA CREATIVIDAD PERO AQUI ES DONDE CREAREMOS LAS VARIABLES 
 # PARA MEJORAR EL FUNCIONAMIENTO DE NUESTRO MODELO
 
-DATA_ONE_LOCATION<- DATA_ONE_LOCATION %>% mutate(WS10_2= WS10^2,
-                                                 WS10_3= WS10^3,
-                                                 WSLEV1_2= WSLEV1^2,
-                                                 WSLEV1_3= WSLEV1^3)
+DATA_ONE_LOCATION<- DATA_ONE_LOCATION %>% mutate(WS102= WS10^2,
+                                                 WS103= WS10^3,
+                                                 WSLEV12= WSLEV1^2,
+                                                 WSLEV13= WSLEV1^3)
 
 
 
@@ -99,12 +101,12 @@ GV4<- c( paste('U10', 'V10', collapse = '_'), NA)
 
 GV5<- c('TSIM', NA)
 
-GV6<- c('WS10_2', NA)
+GV6<- c('WS102', NA)
 
-GV7<- c('WS10_3', NA)
+GV7<- c('WS103', NA)
 
-GV8<- c('WSLEV1_2', NA)
-GV9<- c('WSLEV1_3', NA)
+GV8<- c('WSLEV12', NA)
+GV9<- c('WSLEV13', NA)
 
 TABLA_VARIABLES<- expand.grid(GV1, GV2, GV3,GV4, GV5, GV6, GV7, GV8, GV9)
 library(stringr)
@@ -112,9 +114,9 @@ library(stringr)
 for(i in 1:nrow(TABLA_VARIABLES)){
   
   
-  VARIABLES_MODELO<- TABLA_VARIABLES[i,] %>% unlist() %>% as.character() %>% paste(collapse = ' ') %>%
-    str_remove_all(pattern = 'NA') %>% .[.!=''] %>% str_replace_all('  ', ' ') %>% 
-    str_trim() %>% str_split(' ') %>% .[[1]] %>% .[. != ""]
+  VARIABLES_MODELO<- TABLA_VARIABLES[i,] %>% unlist() %>% .[!is.na(.)] %>% as.vector() %>% 
+    str_split(' ') %>% unlist()
+  
   
   tryCatch({
     
@@ -169,18 +171,16 @@ for(i in 1:nrow(TABLA_VARIABLES)){
 
 # TEST DATA ---------------------------------------------------------------
 ALL_MODELS<-here::here('XGBOOST/METEOGALICIA_CERROBLANCO//') %>% list.files(full.names = TRUE)
-LINEAR_MODELS<- ALL_MODELS %>% .[str_detect(., '_linear')]
-XGBbase_MODELS<- ALL_MODELS %>% .[str_detect(., '_xgbBase')]
-XGBTune_MODELS<- ALL_MODELS %>% .[str_detect(., '_xbbTune')]
+LINEAR_MODELS<- ALL_MODELS %>% .[str_detect(., '_linear')] %>% .[!str_detect(.,'COS')] %>% .[!str_detect(.,'TSIM')] %>% .[!str_detect(.,'V2')]
+XGBbase_MODELS<- ALL_MODELS %>% .[str_detect(., '_xgbBase')]%>% .[!str_detect(.,'COS')] %>% .[!str_detect(.,'TSIM')] %>% .[!str_detect(.,'V2')]
+
 
 
 
 LISTA_VARIABLES<- list()
 for(i in 1:nrow(TABLA_VARIABLES)){
-  VARIABLES_MODELO<- TABLA_VARIABLES[i,] %>% unlist() %>% as.character() %>% paste(collapse = ' ') %>%
-    str_remove_all(pattern = 'NA') %>% .[.!=''] %>% str_replace_all('  ', ' ') %>% 
-    str_trim() %>% str_split(' ') %>% .[[1]] %>% .[. != ""]
-  
+  VARIABLES_MODELO<- TABLA_VARIABLES[i,] %>% unlist() %>% .[!is.na(.)] %>% as.vector() %>% 
+    str_split(' ') %>% unlist()
   LISTA_VARIABLES[[paste(VARIABLES_MODELO, collapse = '_')]]<- VARIABLES_MODELO
 }
 
@@ -216,7 +216,7 @@ for(i in 1:length(LINEAR_MODELS)){
   })
 }
 
-BEST_LINEAR<- TABLA_ACCURACY_LINEAR[order(TABLA_ACCURACY_LINEAR$CORR, decreasing = TRUE),][1:50,]
+BEST_LINEAR<- TABLA_ACCURACY_LINEAR[order(TABLA_ACCURACY_LINEAR$RMSE, decreasing = FALSE),][2:50,]
 
 
 TABLA_ACCURACY_XGBbase<- data.frame(matrix(ncol = 7))
@@ -246,7 +246,7 @@ for(i in 1:length(XGBbase_MODELS)){
   })
 }
 
-BEST_XGBBase<- TABLA_ACCURACY_XGBbase[order(TABLA_ACCURACY_XGBbase$CORR, decreasing = TRUE),][1:50,]
+BEST_XGBBase<- TABLA_ACCURACY_XGBbase[order(TABLA_ACCURACY_XGBbase$RMSE, decreasing = FALSE),][2:50,]
 
 
 
@@ -266,10 +266,19 @@ aggregate(TABLA_ACCURACY[, c(2:4,7)], list(TABLA_ACCURACY$METHOD), min)
 
 
 
+
+# MIRAMOS CUALES SON LAS VARIABLES MAS REPRESENTATIVAS --------------------
+X<- 1
+REPEATED_VARIABLES<- TABLA_ACCURACY[order(TABLA_ACCURACY$RMSE),][1:X,1] %>% 
+  str_split('_') %>% unlist() %>% table()
+
+REPEATED_VARIABLES %>% barplot() 
+
+
 # AJUSTAMOS EL XGBOOST PARA LOS 5 MEJORES RESULTADOS ----------------------
 
 BEST_MODELS<- TABLA_ACCURACY %>% filter(METHOD== "XGB_BASE") %>% 
-  .[order(.$CORR, decreasing = TRUE), ]%>% .[1:5,'NAME']
+  .[order(.$RMSE), ]%>% .[1,'NAME']
 
 VARIABLES_AJUSTE<- LISTA_VARIABLES[which(names(LISTA_VARIABLES)%in%BEST_MODELS)]
 
@@ -666,6 +675,9 @@ for(i in 1:length(XGBTune_MODELS)){
 }
 
 TABLA_ACCURACY_XGBTune$METHOD<- 'XGB_Tune'
+TABLA_ACCURACY_XGBTune[, c(2:4,7)] <- lapply(TABLA_ACCURACY_XGBTune[, c(2:4,7)], function(x) {
+  if(is.character(x)) as.numeric(as.character(x)) else x
+})
 
 
 
@@ -683,3 +695,460 @@ aggregate(TABLA_ACCURACY[, c(2:4,7)], list(TABLA_ACCURACY$METHOD), min)
 
 
 
+# VOLVEMOS A CREAR TODOS LOS MODELOS CON LOS HYPERPARAMETROS DEL M --------
+ALL_MODELS<-here::here('XGBOOST/METEOGALICIA_CERROBLANCO//') %>% list.files(full.names = TRUE)
+MODELO_XGBTune<- ALL_MODELS %>% .[str_detect(., '_xgbTune')] %>% readRDS()
+
+BT<- MODELO_XGBTune$bestTune
+
+grid_default <- expand.grid(
+  nrounds = BT$nrounds,
+  max_depth =BT$max_depth,
+  eta = BT$eta,
+  gamma = BT$gamma,
+  colsample_bytree = BT$colsample_bytree,
+  min_child_weight = BT$min_child_weight,
+  subsample = BT$subsample
+)
+
+train_control <- caret::trainControl(
+  method = "none",
+  verboseIter = FALSE, # no training log
+  allowParallel = TRUE # FALSE for reproducible results 
+)
+
+VARIABLES_AJUSTE
+
+DATA_TRAIN %>% View()
+
+GV1<- c( paste('WSLEV1', 'WDLEV1', collapse = '_'), NA)
+GV2<- c( paste('ULEV1', 'VLEV1', collapse = '_'), NA)
+
+GV3<-  c( paste('WS10', 'WD10', collapse = '_'), NA)
+GV4<- c( paste('U10', 'V10', collapse = '_'), NA)
+
+GV5<- c('TSIM', NA)
+
+GV6<- c('WS102', NA)
+
+GV7<- c('WS103', NA)
+
+GV8<- c('WSLEV12', NA)
+GV9<- c('WSLEV13', NA)
+
+TABLA_VARIABLES<- expand.grid(GV1, GV2, GV3,GV4, GV5, GV6, GV7, GV8, GV9)
+library(stringr)
+
+for(i in 1:nrow(TABLA_VARIABLES)){
+  
+  
+  VARIABLES_MODELO<- TABLA_VARIABLES[i,] %>% unlist() %>% .[!is.na(.)] %>% as.vector() %>% 
+    str_split(' ') %>% unlist()
+  
+  
+  tryCatch({
+    
+    PATH_MODELOS<- here::here('XGBOOST/METEOGALICIA_CERROBLANCO/')
+    if(!dir.exists(PATH_MODELOS)){dir.create(PATH_MODELOS, recursive = TRUE)}
+    
+    NOMBRE_BASE<- paste(VARIABLES_MODELO, collapse = '_')
+    
+    if(file.exists(paste0(PATH_MODELOS, NOMBRE_BASE,'_linearV2.RDS'))){
+      print(paste('YA EXISTE', NOMBRE_BASE))
+    }else{
+      
+      
+      # CREAMOS MODELO LINEAL DE REFERENCIA -------------------------------------
+      
+      
+      linear_base <- lm(paste0("PRUDUCCION_MWH ~ ", paste(VARIABLES_MODELO, collapse = ' + ')),data = DATA_TRAIN)
+      
+      # XGBOOST CON PARAMETROS PREDETERMINADOS ----------------------------------
+      
+      input_x<- DATA_TRAIN[,VARIABLES_MODELO]
+      input_y<- DATA_TRAIN[,"PRUDUCCION_MWH"]$PRUDUCCION_MWH
+      
+      xgb_base <- caret::train(
+        x = input_x,
+        y = input_y,
+        trControl = train_control,
+        tuneGrid = grid_default,
+        method = "xgbTree",
+        verbose = TRUE
+      )
+      
+      predict(xgb_base, DATA_TEST[, VARIABLES_MODELO])
+      
+      
+      saveRDS(linear_base, paste0(PATH_MODELOS, NOMBRE_BASE,'_linearV2.RDS'))
+      saveRDS(xgb_base, paste0(PATH_MODELOS, NOMBRE_BASE,'_xgbBaseV2.RDS'))
+      
+      
+      
+    }
+    
+    
+  }, error= function(e){
+    print(e)
+  })
+  
+  
+  
+}
+
+
+
+ALL_MODELS<-here::here('XGBOOST/METEOGALICIA_CERROBLANCO//') %>% list.files(full.names = TRUE)
+LINEAR_MODELS<- ALL_MODELS %>% .[str_detect(., '_linearV2')]
+XGBbase_MODELS<- ALL_MODELS %>% .[str_detect(., '_xgbBaseV2')]
+
+
+
+
+LISTA_VARIABLES<- list()
+for(i in 1:nrow(TABLA_VARIABLES)){
+  VARIABLES_MODELO<- TABLA_VARIABLES[i,] %>% unlist() %>% .[!is.na(.)] %>% as.vector() %>% 
+    str_split(' ') %>% unlist()
+  LISTA_VARIABLES[[paste(VARIABLES_MODELO, collapse = '_')]]<- VARIABLES_MODELO
+}
+
+
+
+
+library(forecast)
+
+TABLA_ACCURACY_LINEAR<- data.frame(matrix(ncol = 7))
+colnames(TABLA_ACCURACY_LINEAR)<- c('NAME','ME','RMSE','MAE','MPE','MAPE','CORR')
+for(i in 1:length(LINEAR_MODELS)){
+  
+  MODELO_LINEAR<- LINEAR_MODELS[i] %>% readRDS()
+  
+  
+  NOMBRE_MODELO<- LINEAR_MODELS[i] %>% str_split('/') %>% .[[1]] %>%
+    .[length(.)] %>% str_remove('_linearV2.RDS')
+  
+  VARIABLES_MODELO<- LISTA_VARIABLES[[which(names(LISTA_VARIABLES)==NOMBRE_MODELO)]]
+  
+  
+  holdout_x <- DATA_TEST[,VARIABLES_MODELO]
+  holdout_y <-  DATA_TEST[,"PRUDUCCION_MWH"]$PRUDUCCION_MWH
+  MODELOS_CORRUPTOS<- tryCatch({
+    
+    TABLA_ACCURACY_LINEAR[i,]<- c(NOMBRE_MODELO,accuracy(predict(MODELO_LINEAR,newdata = holdout_x),
+                                                         holdout_y),
+                                  cor(predict(MODELO_LINEAR, newdata = holdout_x),
+                                      DATA_TEST$PRUDUCCION_MWH,use= 'complete.obs'))
+  }, error= function(e){
+    print('MODELO CORRUPTO')
+    return(LINEAR_MODELS[i])
+  })
+}
+
+BEST_LINEAR<- TABLA_ACCURACY_LINEAR[order(TABLA_ACCURACY_LINEAR$RMSE, decreasing = FALSE),][2:50,]
+
+
+TABLA_ACCURACY_XGBbase<- data.frame(matrix(ncol = 7))
+colnames(TABLA_ACCURACY_XGBbase)<- c('NAME','ME','RMSE','MAE','MPE','MAPE','CORR')
+for(i in 1:length(XGBbase_MODELS)){
+  
+  MODELO_XGBbase<- XGBbase_MODELS[i] %>% readRDS()
+  
+  
+  NOMBRE_MODELO<- XGBbase_MODELS[i] %>% str_split('/') %>% .[[1]] %>%
+    .[length(.)] %>% str_remove('_xgbBaseV2.RDS')
+  
+  VARIABLES_MODELO<- LISTA_VARIABLES[[which(names(LISTA_VARIABLES)==NOMBRE_MODELO)]]
+  
+  
+  holdout_x <- DATA_TEST[,VARIABLES_MODELO]
+  holdout_y <-  DATA_TEST[,"PRUDUCCION_MWH"]$PRUDUCCION_MWH
+  MODELOS_CORRUPTOS<- tryCatch({
+    
+    TABLA_ACCURACY_XGBbase[i,]<- c(NOMBRE_MODELO,accuracy(predict(MODELO_XGBbase,newdata = holdout_x),
+                                                          holdout_y),
+                                   cor(predict(MODELO_XGBbase, newdata = holdout_x),
+                                       DATA_TEST$PRUDUCCION_MWH,use= 'complete.obs'))
+  }, error= function(e){
+    print('MODELO CORRUPTO')
+    return(XGBbase_MODELS[i])
+  })
+}
+
+BEST_XGBBase<- TABLA_ACCURACY_XGBbase[order(TABLA_ACCURACY_XGBbase$RMSE, decreasing = FALSE),][2:50,]
+
+
+
+BEST_LINEAR$METHOD<- 'LINEAR'
+BEST_XGBBase$METHOD<- 'XGB_BASE'
+
+
+#JUNTAMOS LOS DATASETS Y COMPROBAMOS RESULTADS MIRANDO MEDIA MAXIMA Y MINIMA DE LAS COLUMAS IMPORTANTES
+TABLA_ACCURACY<- list(BEST_LINEAR, BEST_XGBBase) %>% bind_rows()
+TABLA_ACCURACY[, c(2:4,7)] <- lapply(TABLA_ACCURACY[, c(2:4,7)], function(x) {
+  if(is.character(x)) as.numeric(as.character(x)) else x
+})
+
+aggregate(TABLA_ACCURACY[, c(2:4,7)], list(TABLA_ACCURACY$METHOD), mean)
+aggregate(TABLA_ACCURACY[, c(2:4,7)], list(TABLA_ACCURACY$METHOD), max)
+aggregate(TABLA_ACCURACY[, c(2:4,7)], list(TABLA_ACCURACY$METHOD), min)
+
+
+# MIRAMOS CUALES SON LAS VARIABLES MAS REPRESENTATIVAS --------------------
+X<- 10
+REPEATED_VARIABLES<- TABLA_ACCURACY[order(TABLA_ACCURACY$RMSE),][1:X,1] %>% 
+  str_split('_') %>% unlist() %>% table()
+
+REPEATED_VARIABLES %>% barplot() 
+
+
+SELECTED_MODELS<- ALL_MODELS[str_detect(ALL_MODELS, TABLA_ACCURACY[order(TABLA_ACCURACY$RMSE),][1,1] )][1:4]
+
+paste0(PATH_MODELOS, 'BEST_MODELS/') %>% dir.create()
+
+
+
+for(i in 1:length(SELECTED_MODELS)){
+  file.copy(SELECTED_MODELS[i],
+            paste0(PATH_MODELOS, 'BEST_MODELS/'))
+}
+
+# VARIABLES QUE MAS APARECEN  ---------------------------------------------
+
+# LAS VARIABLES QUE MAS  APARECEN SON TSIM, U10,V10,WS102,WS103,WSLEV12,WSLEV13
+# VAMOS A COJER EL MEJOR MODELO E IR AÑADIENDO VARIABLES POCO A POCO A VER SI MEJORAN
+
+
+DATA_ONE_LOCATION<- DATA_ALL %>%  group_by(LON.x, LAT.x) %>% group_split() %>% .[[MAX_COR_POINT]]
+
+
+#CORAMOS LOS DATOS COJIENDO SOLO HORIZONTE 24 Y ORDENAMOS 
+DATA_ONE_LOCATION<-  DATA_ONE_LOCATION[DATA_ONE_LOCATION$TSIM<13,]
+DATA_ONE_LOCATION<- DATA_ONE_LOCATION[!duplicated(DATA_ONE_LOCATION$DATE), ]
+DATA_ONE_LOCATION<- DATA_ONE_LOCATION[order(DATA_ONE_LOCATION$DATE),]
+DATA_ONE_LOCATION<- DATA_ONE_LOCATION[complete.cases(DATA_ONE_LOCATION),]
+
+
+
+# CREATIVE FEATURE ENGIENEERING -------------------------------------------
+# AÑADIMOS COSENO DE HORA Y PLAGS A VER QUE PASA
+# PARA MEJORAR EL FUNCIONAMIENTO DE NUESTRO MODELO
+
+DATA_ONE_LOCATION<- DATA_ONE_LOCATION %>% mutate(WS102= WS10^2,
+                                                 WS103= WS10^3,
+                                                 WSLEV12= WSLEV1^2,
+                                                 WSLEV13= WSLEV1^3,
+                                                 HORA= DATE %>% hour(),
+                                                 COSH= cos(2*pi*HORA/24),
+                                                 PLAG1= PRUDUCCION_MWH %>% shift(1),
+                                                 PLAG2= PRUDUCCION_MWH %>% shift(2),
+                                                 PLAG3= PRUDUCCION_MWH %>% shift(3),
+                                                 PLAG4= PRUDUCCION_MWH %>% shift(4))
+
+
+
+# SPLIT TRAIN AND TEST ----------------------------------------------------
+TEST_TRAIN_FACTOR<- 1.1
+N_DATOS<-DATA_ONE_LOCATION %>% nrow()
+DATA_TRAIN<- DATA_ONE_LOCATION[1:((N_DATOS/TEST_TRAIN_FACTOR) %>% round(0)),]
+DATA_TEST<- DATA_ONE_LOCATION[((N_DATOS/TEST_TRAIN_FACTOR) %>% round(0)):N_DATOS,]
+
+
+GV1<- c( paste('U10','V10','WS102','WS103','WSLEV12','WSLEV13', collapse = '_'), NA)
+
+GV2<- c('COS_HORA', NA)
+GV3<- c('HORA', NA)
+
+GV4<- c('PLAG1', NA)
+
+GV5<- c('PLAG2', NA)
+
+GV6<- c('PLAG3', NA)
+
+GV7<- c('PLAG4', NA)
+
+
+
+TABLA_VARIABLES<- expand.grid(GV1, GV2, GV3,GV4, GV5,GV6,GV7)
+
+for(i in 1:nrow(TABLA_VARIABLES)){
+  
+  
+  VARIABLES_MODELO<- TABLA_VARIABLES[i,] %>% unlist() %>% .[!is.na(.)] %>% as.vector() %>% 
+    str_split(' ') %>% unlist()
+  
+  
+  tryCatch({
+    
+    PATH_MODELOS<- here::here('XGBOOST/METEOGALICIA_CERROBLANCO/')
+    if(!dir.exists(PATH_MODELOS)){dir.create(PATH_MODELOS, recursive = TRUE)}
+    
+    NOMBRE_BASE<- paste(VARIABLES_MODELO, collapse = '_')
+    
+    if(file.exists(paste0(PATH_MODELOS, NOMBRE_BASE,'_linearCOS.RDS'))){
+      print(paste('YA EXISTE', NOMBRE_BASE))
+    }else{
+      
+      
+      # CREAMOS MODELO LINEAL DE REFERENCIA -------------------------------------
+      
+      
+      linear_base <- lm(paste0("PRUDUCCION_MWH ~ ", paste(VARIABLES_MODELO, collapse = ' + ')),data = DATA_TRAIN)
+      
+      # XGBOOST CON PARAMETROS PREDETERMINADOS ----------------------------------
+      
+      input_x<- DATA_TRAIN[,VARIABLES_MODELO]
+      input_y<- DATA_TRAIN[,"PRUDUCCION_MWH"]$PRUDUCCION_MWH
+      
+      xgb_base <- caret::train(
+        x = input_x,
+        y = input_y,
+        trControl = train_control,
+        tuneGrid = grid_default,
+        method = "xgbTree",
+        verbose = TRUE
+      )
+      
+      predict(xgb_base, DATA_TEST[, VARIABLES_MODELO])
+      
+      
+      saveRDS(linear_base, paste0(PATH_MODELOS, NOMBRE_BASE,'_linearCOS.RDS'))
+      saveRDS(xgb_base, paste0(PATH_MODELOS, NOMBRE_BASE,'_xgbBaseCOS.RDS'))
+      
+      
+      
+    }
+    
+    
+  }, error= function(e){
+    print(e)
+  })
+  
+  
+  
+}
+
+
+
+ALL_MODELS<-here::here('XGBOOST/METEOGALICIA_CERROBLANCO//') %>% list.files(full.names = TRUE)
+LINEAR_MODELS<- ALL_MODELS %>% .[str_detect(., '_linearCOS')]
+XGBbase_MODELS<- ALL_MODELS %>% .[str_detect(., '_xgbBaseCOS')]
+
+
+
+
+LISTA_VARIABLES<- list()
+for(i in 1:nrow(TABLA_VARIABLES)){
+  VARIABLES_MODELO<- TABLA_VARIABLES[i,] %>% unlist() %>% .[!is.na(.)] %>% as.vector() %>% 
+    str_split(' ') %>% unlist()
+  LISTA_VARIABLES[[paste(VARIABLES_MODELO, collapse = '_')]]<- VARIABLES_MODELO
+}
+
+
+
+
+library(forecast)
+
+TABLA_ACCURACY_LINEAR<- data.frame(matrix(ncol = 7))
+colnames(TABLA_ACCURACY_LINEAR)<- c('NAME','ME','RMSE','MAE','MPE','MAPE','CORR')
+for(i in 1:length(LINEAR_MODELS)){
+  
+  MODELO_LINEAR<- LINEAR_MODELS[i] %>% readRDS()
+  
+  
+  NOMBRE_MODELO<- LINEAR_MODELS[i] %>% str_split('/') %>% .[[1]] %>%
+    .[length(.)] %>% str_remove('_linearCOS.RDS')
+  
+ 
+  MODELOS_CORRUPTOS<- tryCatch({
+    VARIABLES_MODELO<- LISTA_VARIABLES[[which(names(LISTA_VARIABLES)==NOMBRE_MODELO)]]
+    
+    
+    holdout_x <- DATA_TEST[,VARIABLES_MODELO]
+    holdout_y <-  DATA_TEST[,"PRUDUCCION_MWH"]$PRUDUCCION_MWH
+    
+    TABLA_ACCURACY_LINEAR[i,]<- c(NOMBRE_MODELO,accuracy(predict(MODELO_LINEAR,newdata = holdout_x),
+                                                         holdout_y),
+                                  cor(predict(MODELO_LINEAR, newdata = holdout_x),
+                                      DATA_TEST$PRUDUCCION_MWH,use= 'complete.obs'))
+  }, error= function(e){
+    print('MODELO CORRUPTO')
+    return(LINEAR_MODELS[i])
+  })
+}
+
+BEST_LINEAR<- TABLA_ACCURACY_LINEAR[order(TABLA_ACCURACY_LINEAR$RMSE, decreasing = FALSE),]
+
+
+TABLA_ACCURACY_XGBbase<- data.frame(matrix(ncol = 7))
+colnames(TABLA_ACCURACY_XGBbase)<- c('NAME','ME','RMSE','MAE','MPE','MAPE','CORR')
+for(i in 1:length(XGBbase_MODELS)){
+  
+  MODELO_XGBbase<- XGBbase_MODELS[i] %>% readRDS()
+  
+  
+
+  MODELOS_CORRUPTOS<- tryCatch({
+    NOMBRE_MODELO<- XGBbase_MODELS[i] %>% str_split('/') %>% .[[1]] %>%
+      .[length(.)] %>% str_remove('_xgbBaseCOS.RDS')
+    
+    VARIABLES_MODELO<- LISTA_VARIABLES[[which(names(LISTA_VARIABLES)==NOMBRE_MODELO)]]
+    
+    
+    holdout_x <- DATA_TEST[,VARIABLES_MODELO]
+    holdout_y <-  DATA_TEST[,"PRUDUCCION_MWH"]$PRUDUCCION_MWH
+    TABLA_ACCURACY_XGBbase[i,]<- c(NOMBRE_MODELO,accuracy(predict(MODELO_XGBbase,newdata = holdout_x),
+                                                          holdout_y),
+                                   cor(predict(MODELO_XGBbase, newdata = holdout_x),
+                                       DATA_TEST$PRUDUCCION_MWH,use= 'complete.obs'))
+  }, error= function(e){
+    print('MODELO CORRUPTO')
+    return(XGBbase_MODELS[i])
+  })
+}
+
+BEST_XGBBase<- TABLA_ACCURACY_XGBbase[order(TABLA_ACCURACY_XGBbase$RMSE, decreasing = FALSE),]
+
+
+
+BEST_LINEAR$METHOD<- 'LINEAR'
+BEST_XGBBase$METHOD<- 'XGB_BASE'
+
+
+#JUNTAMOS LOS DATASETS Y COMPROBAMOS RESULTADS MIRANDO MEDIA MAXIMA Y MINIMA DE LAS COLUMAS IMPORTANTES
+TABLA_ACCURACY<- list(BEST_LINEAR, BEST_XGBBase) %>% bind_rows()
+TABLA_ACCURACY[, c(2:4,7)] <- lapply(TABLA_ACCURACY[, c(2:4,7)], function(x) {
+  if(is.character(x)) as.numeric(as.character(x)) else x
+})
+
+TABLA_ACCURACY<- TABLA_ACCURACY[complete.cases(TABLA_ACCURACY),]
+aggregate(TABLA_ACCURACY[, c(2:4,7)], list(TABLA_ACCURACY$METHOD), mean)
+aggregate(TABLA_ACCURACY[, c(2:4,7)], list(TABLA_ACCURACY$METHOD), max)
+aggregate(TABLA_ACCURACY[, c(2:4,7)], list(TABLA_ACCURACY$METHOD), min)
+
+
+TABLA_ACCURACY$NAME<- TABLA_ACCURACY$NAME %>% str_replace('COS_HORA', 'COSH')
+X<- 1
+REPEATED_VARIABLES<- TABLA_ACCURACY[order(TABLA_ACCURACY$RMSE),][1:X,1] %>% 
+  str_split('_') %>% unlist() %>% table()
+
+REPEATED_VARIABLES %>% barplot() 
+
+
+ALL_MODELS<-here::here('XGBOOST/METEOGALICIA_CERROBLANCO//') %>% list.files(full.names = TRUE)
+BEST_MODEL_WPLAG<- ALL_MODELS %>% .[str_detect(., (TABLA_ACCURACY[order(TABLA_ACCURACY$RMSE),][1,1] %>% 
+                                           str_replace('COSH','COS_HORA')))] %>% .[4] %>% readRDS()
+BEST_MODEL_WoPLAG<- ALL_MODELS %>% .[str_detect(., (TABLA_ACCURACY[order(TABLA_ACCURACY$RMSE),] %>%
+                                                      .[!str_detect(.$NAME,'PLAG'),] %>% .[1,1] %>%
+                                                      str_replace('COSH','COS_HORA') %>% paste0('_xgbBase')))]  %>% readRDS()
+
+
+DATA_TEST_CUT<- DATA_TEST[1:144,]
+
+holdout_x <- DATA_TEST_CUT[,BEST_MODEL$finalModel$feature_names]
+holdout_y <-  DATA_TEST_CUT[,"PRUDUCCION_MWH"]$PRUDUCCION_MWH
+
+ggplot()+
+  geom_line(aes(DATA_TEST_CUT$DATE, predict(BEST_MODEL_WPLAG,newdata = holdout_x)))+
+  geom_line(aes(DATA_TEST_CUT$DATE, predict(BEST_MODEL_WoPLAG,newdata = holdout_x)), colour= 'green')+
+  geom_line(aes(DATA_TEST_CUT$DATE, holdout_y), colour= 'red', alpha= 0.7)+
+  theme_light()
