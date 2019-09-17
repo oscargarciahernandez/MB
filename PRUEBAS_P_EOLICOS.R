@@ -43,8 +43,8 @@ head(TABLA_PARQUES)
 
 TABLA_PARQUES %>% group_split(PARQUE) %>% lapply(function(x) print(paste(x$PARQUE %>% unique(),": Rango",x$DATE %>% range)))
 
-
-
+#PONEMOS EN EL ORDEN QUE ESTAN EN LA LISTA
+DATA_PARQUES<- DATA_PARQUES[c(1,2,4,3),]
 
 lista_parques<- TABLA_PARQUES %>%  group_split(PARQUE) 
 
@@ -60,6 +60,48 @@ for (i in 1:length(lista_parques)) {
 
 TABLA_PARQUES<- lista_parques %>% bind_rows()
 saveRDS(TABLA_PARQUES, here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS'))
+
+
+
+
+
+
+
+
+# LEEER DEL BENDITO XLSX DE LOS COJONES LAS CURVAS DE POTENCIA ------------
+
+lista_CURVAs<- list()
+for (i in 1:5) {
+  CURVA<- here::here('Data/Parques/PRUEBA_EOLICOS/windfarm/Curvas_de_potencia.xlsx') %>% read.xls(sheet = i)
+  lista_CURVAs[[i]]<- CURVA
+}
+
+CURVA_TATANKA<- lista_CURVAs[[1]] %>% .[2:nrow(.),1:2]
+colnames(CURVA_TATANKA)<- c('WS_ms', 'P_kw')
+saveRDS(CURVA_TATANKA, here::here('Data/Parques/PRUEBA_EOLICOS/windfarm/CURVA_TATANKA.RDS'))
+CURVA_TATANKA
+
+
+CURVA_TAMAULIPAS<- lista_CURVAs[[2]] %>% .[2:nrow(.),1:2]
+colnames(CURVA_TAMAULIPAS)<- c('WS_ms', 'P_kw')
+CURVA_TAMAULIPAS$P_kw<- CURVA_TAMAULIPAS$P_kw %>% as.character() %>% str_replace_all(',','') %>% as.numeric()
+saveRDS(CURVA_TAMAULIPAS, here::here('Data/Parques/PRUEBA_EOLICOS/windfarm/CURVA_TAMAULIPAS.RDS'))
+CURVA_TAMAULIPAS
+
+
+CURVA_WAUBRA<- lista_CURVAs[[4]] %>% .[2:nrow(.),1:4]
+colnames(CURVA_WAUBRA)<- c('WS_ms', 'P_kw','WS_msR', 'P_kwR')
+CURVA_WAUBRA$P_kw<- CURVA_WAUBRA$P_kw %>% as.character() %>% str_replace_all(',','') %>% as.numeric()
+CURVA_WAUBRA$P_kwR<- CURVA_WAUBRA$P_kwR %>% as.character() %>% str_replace_all(',','') %>% as.numeric()
+saveRDS(CURVA_WAUBRA, here::here('Data/Parques/PRUEBA_EOLICOS/windfarm/CURVA_WAUBRA77.RDS'))
+CURVA_WAUBRA
+
+
+CURVA_CERROBLANCO<- lista_CURVAs[[5]] %>% .[2:nrow(.),1:2]
+colnames(CURVA_CERROBLANCO)<- c('WS_ms', 'P_kw')
+CURVA_CERROBLANCO$P_kw<- CURVA_CERROBLANCO$P_kw %>% as.character() %>% str_replace_all(',','') %>% as.numeric()
+saveRDS(CURVA_CERROBLANCO, here::here('Data/Parques/PRUEBA_EOLICOS/windfarm/CURVA_CERROBLANCO.RDS'))
+CURVA_CERROBLANCO
 
 
 
