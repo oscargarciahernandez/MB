@@ -61,13 +61,6 @@ for (i in 1:length(lista_parques)) {
 TABLA_PARQUES<- lista_parques %>% bind_rows()
 saveRDS(TABLA_PARQUES, here::here('Data/Parques/PRUEBA_EOLICOS/Historico_PE.RDS'))
 
-
-
-
-
-
-
-
 # LEEER DEL BENDITO XLSX DE LOS COJONES LAS CURVAS DE POTENCIA ------------
 
 lista_CURVAs<- list()
@@ -104,6 +97,40 @@ saveRDS(CURVA_CERROBLANCO, here::here('Data/Parques/PRUEBA_EOLICOS/windfarm/CURV
 CURVA_CERROBLANCO
 
 
+# INTERPOLAMOS LA CURVA PARA TENER MAS PUNTOS  ----------------------------
+RDS_CURVAS<- here::here('Data/Parques/PRUEBA_EOLICOS/windfarm/') %>% list.files(full.names = TRUE) %>% 
+  .[str_detect(., 'CURVA')]
+
+for(FILE_CURVA in RDS_CURVAS){
+  
+  CURVA_POTENCIA<- FILE_CURVA %>% readRDS
+  
+  P_FIT<- CURVA_POTENCIA[,c("WS_ms", "P_kw")]
+  
+  P_FIT$WS_ms<- P_FIT$WS_ms %>% as.character() %>% str_remove('<|>')%>% str_split('-') %>% 
+             sapply(function(x){mean(as.numeric(x))})
+
+  
+
+  P_FIT$P_kw<- P_FIT$P_kw %>% as.character() %>% as.numeric()
+  
+  p<- WindCurves::fitcurve(data =P_FIT )
+  p %>% plot()
+  N<- 200
+  
+  INTERP_WS<- approx(P_FIT$WS_ms, n = N) 
+  INTERP_P<- approx(P_FIT$P_kw, n = N)
+  P_INTERP<-data.frame(WS_ms= INTERP_WS$y,
+                       P_kw= INTERP_P$y) 
+  saveRDS(P_INTERP, FILE_CURVA %>% str_replace('.RDS', '_INTERPOLATED.RDS'))
+  
+}
+
+
+ggplot()+
+  geom_line(data = P_FIT, aes(x= WS_ms, y= P_kw), linetype= 'dashed', size= 1.3)+
+  geom_line(data = P_INTERP, aes(x= WS_ms, y= P_kw), colour= 'red')+
+  theme_light()
 
 
 # TANTANKA ----------------------------------------------------------------

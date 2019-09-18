@@ -37,6 +37,7 @@ INFO_CERROBLANCO<- INFO_PARQUES[INFO_PARQUES$PARQUE %>% str_detect('Cerroblanco'
 DATA_ALL<- left_join(DATA_ALL, INFO_CERROBLANCO, by= 'DATE')
 
 
+
 #SELECCIONAMOS EL PUNTO CON MEJOR CORRELACION 
 MAX_COR_POINT<- DATA_ALL %>% group_by(LON.x, LAT.x) %>% group_split() %>% 
   sapply(function(x){
@@ -54,14 +55,47 @@ DATA_ONE_LOCATION<- DATA_ONE_LOCATION[complete.cases(DATA_ONE_LOCATION),]
 
 
 
+DATA_ONE_LOCATION<- DATA_ONE_LOCATION %>% select(-c(PARQUE, CAPACIDAD, N_TURBINAS, LON.y, LAT.y))
+
+DATA_ONE_LOCATION<- DATA_ONE_LOCATION %>% dplyr::rename(LON = LON.x,
+                                      LAT = LAT.x,
+                                      P_MWH= PRUDUCCION_MWH,
+                                      DISP= DISPONIBILIDAD,
+                                      FCST_TIME= TSIM)
 # CREATIVE FEATURE ENGIENEERING -------------------------------------------
 # DE MOMENTO POCA CREATIVIDAD PERO AQUI ES DONDE CREAREMOS LAS VARIABLES 
 # PARA MEJORAR EL FUNCIONAMIENTO DE NUESTRO MODELO
 
-DATA_ONE_LOCATION<- DATA_ONE_LOCATION %>% mutate(WS102= WS10^2,
-                                                 WS103= WS10^3,
-                                                 WSLEV12= WSLEV1^2,
-                                                 WSLEV13= WSLEV1^3)
+
+CURVA_POTECIA1<- here::here('Data/Parques/PRUEBA_EOLICOS/windfarm/CURVA_CERROBLANCO_INTERPOLATED.RDS') %>% readRDS()
+
+N_TURBINAS<- INFO_CERROBLANCO$N_TURBINAS %>% unique()
+
+LISTA_POTENCIAS<- list()
+for(WS in (DATA_ONE_LOCATION %>% colnames() %>% .[str_detect(., 'WS')])){
+  
+  #CURVA PARA 97500
+  P_ANALITIC1= DATA_ONE_LOCATION[, WS] %>% unlist() %>%
+    cut(breaks= (CURVA_POTECIA1$WS_ms %>% as.character() %>% as.numeric()), 
+        labels = CURVA_POTECIA1$P_kw[1:(nrow(CURVA_POTECIA1)-1)]) %>%
+    as.character() %>% 
+    as.numeric()
+  P_ANALITIC<- (P_ANALITIC1*N_TURBINAS)/1000 
+  LISTA_POTENCIAS[[WS]]<- P_ANALITIC
+}
+
+
+
+
+# CONSTRUCCION DE VARIABLES INICIALES PARA LA PRIMERA TANDA DE CLA --------
+
+DATA_ONE_LOCATION<- DATA_ONE_LOCATION %>% mutate(P10AN= LISTA_POTENCIAS$WS10, 
+                                                 PLEV1AN= LISTA_POTENCIAS$WSLEV1, 
+                                                 PLEV2AN= LISTA_POTENCIAS$WSLEV2, 
+                                                 PLEV3AN= LISTA_POTENCIAS$WSLEV3,
+                                                 HORA= DATE %>% hour(),
+                                                 COSH= cos(2*pi*HORA/24))
+
 
 
 
@@ -73,7 +107,11 @@ DATA_TEST<- DATA_ONE_LOCATION[((N_DATOS/TEST_TRAIN_FACTOR) %>% round(0)):N_DATOS
 
 
 
-# VALORES POR DEFECTO DEL XGBOOST  ----------------------------------------
+# VALORES POR DEFECTO DEL DEL ENTRENAMIENTO  ----------------------------------------
+
+
+library(doParallel)
+registerDoParallel(cores=6)
 
 grid_default <- expand.grid(
   nrounds = 100,
@@ -85,88 +123,92 @@ grid_default <- expand.grid(
   subsample = 1
 )
 
-train_control <- caret::trainControl(
-  method = "none",
-  verboseIter = FALSE, # no training log
-  allowParallel = TRUE # FALSE for reproducible results 
-)
+
+
+# CORTAMOS DATA_TRAIN PORQUE TARDA UNA ETERNIDAD EN HACER LOS MODELOS
+
+DATA_TRAIN_CUT<-DATA_TRAIN[ DATA_TRAIN$DATE > ymd('2019 03 01'), ]
+
+
+myTimeControl <- trainControl(method = "timeslice",
+                              initialWindow = (((nrow(DATA_TRAIN_CUT)/100)*95) %>% round(0)),
+                              horizon = 48,
+                              fixedWindow = TRUE,
+                              allowParallel = TRUE)
+
+#ESTO NOS VALE PARA VER CUANTAS VECES SE HACE LA VALIDACION 
+# ESTOS PARAMETROS SE PUEDEN CAMBIAR
+PRUEBA_CROSS_VALIDATION<- createTimeSlices(1:nrow(DATA_TRAIN_CUT), 
+                                           initialWindow = (((nrow(DATA_TRAIN_CUT)/100)*90) %>% round(0)),
+                                           horizon = 48,
+                                           fixedWindow = TRUE)
+
+PRUEBA_CROSS_VALIDATION$train %>% length()
 
 
 # CREAMOS MILES DE MODELOS PARA TODAS LA VARIABLES DISPONIBLES ------------
-GV1<- c( paste('WSLEV1', 'WDLEV1', collapse = '_'), NA)
-GV2<- c( paste('ULEV1', 'VLEV1', collapse = '_'), NA)
+VECTOR_COLS<-DATA_ONE_LOCATION %>% colnames() %>% .[!(.%in%c("LON","LAT","DATE","FCST_TIME", 'P_MWH','DISP'))]
+VECTOR_COLS1<- VECTOR_COLS %>% .[str_detect(., 'WS|WD|P|U|V')]
 
-GV3<-  c( paste('WS10', 'WD10', collapse = '_'), NA)
-GV4<- c( paste('U10', 'V10', collapse = '_'), NA)
+pat <- "(\\d)+"
+VECTOR_CAPAS<- VECTOR_COLS1 %>% str_extract(., pat) %>% unique() %>% na.omit()
 
-GV5<- c('TSIM', NA)
-
-GV6<- c('WS102', NA)
-
-GV7<- c('WS103', NA)
-
-GV8<- c('WSLEV12', NA)
-GV9<- c('WSLEV13', NA)
-
-TABLA_VARIABLES<- expand.grid(GV1, GV2, GV3,GV4, GV5, GV6, GV7, GV8, GV9)
-library(stringr)
-
-for(i in 1:nrow(TABLA_VARIABLES)){
+for(ALTURAS_VIENTO in VECTOR_CAPAS){
+  VECTOR_COLS_SELECT<- VECTOR_COLS1 %>% .[which(str_extract(.,pat)==ALTURAS_VIENTO)]
   
-  
-  VARIABLES_MODELO<- TABLA_VARIABLES[i,] %>% unlist() %>% .[!is.na(.)] %>% as.vector() %>% 
-    str_split(' ') %>% unlist()
-  
-  
-  tryCatch({
+  TABLA_VARIABLES<- expand.grid(lapply(VECTOR_COLS_SELECT, function(x) c(x, NA)))
+  for(i in 1:nrow(TABLA_VARIABLES)){
     
-    PATH_MODELOS<- here::here('XGBOOST/METEOGALICIA_CERROBLANCO/')
-    if(!dir.exists(PATH_MODELOS)){dir.create(PATH_MODELOS, recursive = TRUE)}
+    VARIABLES_MODELO<- TABLA_VARIABLES[i,] %>% unlist() %>% .[!is.na(.)] %>% as.vector() %>% 
+      str_split(' ') %>% unlist()
     
-    NOMBRE_BASE<- paste(VARIABLES_MODELO, collapse = '_')
-    
-    if(file.exists(paste0(PATH_MODELOS, NOMBRE_BASE,'_linear.RDS'))){
-      print(paste('YA EXISTE', NOMBRE_BASE))
-    }else{
+    tryCatch({
       
+      PATH_MODELOS<- here::here('XGBOOST/METEOGALICIA_CERROBLANCO/ALTURAS_VIENTO/')
+      if(!dir.exists(PATH_MODELOS)){dir.create(PATH_MODELOS, recursive = TRUE)}
       
-      # CREAMOS MODELO LINEAL DE REFERENCIA -------------------------------------
+      NOMBRE_BASE<- paste(VARIABLES_MODELO, collapse = '_')
       
+      if(file.exists(paste0(PATH_MODELOS, NOMBRE_BASE,'_linear.RDS'))){
+        print(paste('YA EXISTE', NOMBRE_BASE))
+      }else{
+        
+        
+        # CREAMOS INPUT X e INPUT Y -----------------------------------------------
+        input_x<- DATA_TRAIN_CUT[,VARIABLES_MODELO]
+        input_y<- DATA_TRAIN_CUT[,"P_MWH"]$P_MWH
+        
+        # CREAMOS MODELO LINEAL DE REFERENCIA -------------------------------------
+        
+        linear_base <- train(x = input_x,
+                             y = input_y,
+                             method = "lm",
+                             trControl = myTimeControl)
+        # XGBOOST CON PARAMETROS PREDETERMINADOS ----------------------------------
+        
+        
+        xgb_base <- caret::train(
+          x = input_x,
+          y = input_y,
+          trControl = myTimeControl,
+          tuneGrid = grid_default,
+          method = "xgbTree",
+          verbose = TRUE
+        )
+        
+        
+        saveRDS(linear_base, paste0(PATH_MODELOS, NOMBRE_BASE,'_linear.RDS'))
+        saveRDS(xgb_base, paste0(PATH_MODELOS, NOMBRE_BASE,'_xgbBase.RDS'))
+      }
       
-      linear_base <- lm(paste0("PRUDUCCION_MWH ~ ", paste(VARIABLES_MODELO, collapse = ' + ')),data = DATA_TRAIN)
-      
-      # XGBOOST CON PARAMETROS PREDETERMINADOS ----------------------------------
-      
-      input_x<- DATA_TRAIN[,VARIABLES_MODELO]
-      input_y<- DATA_TRAIN[,"PRUDUCCION_MWH"]$PRUDUCCION_MWH
-      
-      xgb_base <- caret::train(
-        x = input_x,
-        y = input_y,
-        trControl = train_control,
-        tuneGrid = grid_default,
-        method = "xgbTree",
-        verbose = TRUE
-      )
-      
-      predict(xgb_base, DATA_TEST[, VARIABLES_MODELO])
-      
-      
-      saveRDS(linear_base, paste0(PATH_MODELOS, NOMBRE_BASE,'_linear.RDS'))
-      saveRDS(xgb_base, paste0(PATH_MODELOS, NOMBRE_BASE,'_xgbBase.RDS'))
-
-      
-      
-    }
-    
-    
-  }, error= function(e){
-    print(e)
-  })
-  
-  
-  
+    }, error= function(e){
+      print(e)
+    })
+  }
 }
+
+
+
 
 
 # TEST DATA ---------------------------------------------------------------
